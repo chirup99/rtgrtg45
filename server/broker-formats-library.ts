@@ -1,4 +1,5 @@
 import { getFirestore } from 'firebase-admin/firestore';
+import type { Firestore } from 'firebase-admin/firestore';
 
 export interface UniversalFormatData {
   brokerName: string;
@@ -26,8 +27,15 @@ export interface UniversalFormatData {
 }
 
 export class BrokerFormatsLibrary {
-  private db = getFirestore();
+  private _db: Firestore | null = null;
   private brokerFormatsCollection = "brokerFormats";
+
+  private get db(): Firestore {
+    if (!this._db) {
+      this._db = getFirestore();
+    }
+    return this._db;
+  }
 
   /**
    * Save format to universal broker library
