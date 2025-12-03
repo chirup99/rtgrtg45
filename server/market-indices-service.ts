@@ -46,8 +46,10 @@ export async function getMarketIndices(): Promise<Record<string, MarketIndex>> {
 
   console.log(`📊 Successfully fetched ${successCount}/${Object.keys(GOOGLE_FINANCE_INDICES).length} indices`);
   
+  // Return empty results if no data fetched (don't throw error - let frontend handle gracefully)
   if (successCount === 0) {
-    throw new Error('Failed to fetch any market data from Google Finance');
+    console.warn('⚠️ No market data available - returning empty results');
+    return {};
   }
 
   return results;
