@@ -1,0 +1,59 @@
+# Overview
+
+This project is a full-stack trading platform providing real-time market data analysis, AI-powered trading insights, and a social feed. It utilizes the "BATTU API" for pattern recognition and trading signal generation based on a 4-candle rule methodology across multiple timeframes. The platform also integrates an AI agent with web search for financial queries and a unified sharing system for trading journal reports, allowing users to preview and share performance metrics. The business vision is to empower traders with sophisticated analytical tools, AI-driven insights, and a collaborative community to enhance decision-making.
+
+# User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+# System Architecture
+
+## Frontend Architecture
+
+**Framework**: React with TypeScript, Vite
+**UI/UX**: Radix UI components with Tailwind CSS for a mobile-first, responsive design using shadcn/ui patterns. Features include bottom navigation for mobile and sidebar for desktop.
+**State Management**: TanStack Query (React Query) for server state and real-time data updates.
+**Routing**: Wouter for client-side routing.
+
+## Backend Architecture
+
+**Runtime**: Node.js with Express.js (TypeScript)
+**API Pattern**: RESTful endpoints.
+**Core Services**:
+- **BATTU Analysis Engine**: Implements the 4-candle rule with recursive C2 block drilling for multi-timeframe pattern detection.
+- **Market Data Service**: Fetches real-time and historical data.
+- **Pattern Recognition**: Identifies uptrend/downtrend using Point A/B analysis.
+- **Slope Calculator**: Provides precise slope calculations.
+- **Trade Validation**: Applies timing rules for breakout detection.
+**System Design**: Stateless API, separation of concerns, comprehensive error handling, and caching strategies for performance.
+
+## Data Storage
+
+**Database**: PostgreSQL (Neon serverless), AWS DynamoDB (for NeoFeed social features)
+**ORM**: Drizzle ORM with TypeScript schema definitions (`shared/schema.ts`).
+**Data Models**: User accounts, trading signals, cached market data, social feed posts, and user trading journal data.
+
+## Authentication & Authorization
+
+**Strategy**: Session-based authentication.
+**User Management**: Account creation, profile management, and verification.
+
+## Key Architectural Patterns
+
+- **BATTU 4-Candle Rule Methodology**: Involves data collection, block formation, Point A/B detection, pattern classification, slope calculation, timing validation, and recursive analysis (80min down to 5min).
+- **Demo Mode**: Allows users to switch between shared demo data (Google Cloud Storage) and personal trading data (Firebase Firestore), with access controls for saving and deleting formats based on authentication status.
+- **Audio MiniCast**: Enables users to create audio-based content from feed posts by selecting up to 5 posts, which are then displayed as swipeable cards with play controls in the feed.
+
+# External Dependencies
+
+-   **Market Data Providers**:
+    -   **Global Market Indices**: Web search-based data (DuckDuckGo, Google News) for S&P 500, S&P/TSX, Nifty 50, Nikkei 225, Hang Seng, with smart caching and refresh based on market hours.
+    -   **Indian Market Data**: Fyers API v3 and Angel One SmartAPI for real-time and historical NSE/BSE data.
+-   **Cloud Services**:
+    -   **Google Cloud Firestore**: Document storage.
+    -   **Google Cloud Storage**: File and asset storage.
+    -   **Google Generative AI**: AI-powered market analysis.
+    -   **AWS S3**: Storage backend for uploaded files (via Uppy).
+    -   **AWS DynamoDB**: Primary data source for NeoFeed social features.
+-   **UI Component Libraries**: Radix UI, shadcn/ui, Framer Motion, Lucide React.
+-   **Development Tools**: TypeScript, ESBuild, Drizzle Kit.
