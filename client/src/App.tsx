@@ -41,8 +41,7 @@ import TradingJournalDemo from "@/pages/trading-journal-demo";
 import UserProfile from "@/pages/user-profile";
 import NeoFeedSocialFeed from "@/components/neofeed-social-feed";
 import { AngelOneGlobalAutoConnect } from "@/components/auth-button-angelone";
-import { auth } from "@/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { getCognitoToken, getCognitoUser, initializeCognito } from "@/cognito";
 
 // New Home Page Component
 function NewHome() {
@@ -449,42 +448,47 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        localStorage.setItem('currentUserId', user.uid);
-        localStorage.setItem('currentUserEmail', user.email || '');
-        
-        try {
-          const idToken = await user.getIdToken();
-          const response = await fetch('/api/user/profile', {
-            headers: {
-              'Authorization': `Bearer ${idToken}`
-            }
-          });
+    initializeCognito();
+    
+    const checkCognitoUser = async () => {
+      try {
+        const user = await getCognitoUser();
+        if (user && user.userId) {
+          localStorage.setItem('currentUserId', user.userId);
+          localStorage.setItem('currentUserEmail', user.email || '');
+          if (user.displayName) {
+            localStorage.setItem('currentDisplayName', user.displayName);
+            localStorage.setItem('currentUserName', user.displayName);
+          }
           
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.profile) {
-              if (data.profile.username) {
-                localStorage.setItem('currentUsername', data.profile.username);
+          const idToken = await getCognitoToken();
+          if (idToken) {
+            const response = await fetch('/api/user/profile', {
+              headers: {
+                'Authorization': `Bearer ${idToken}`
               }
-              if (data.profile.displayName) {
-                localStorage.setItem('currentDisplayName', data.profile.displayName);
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.profile) {
+                if (data.profile.username) {
+                  localStorage.setItem('currentUsername', data.profile.username);
+                }
+                if (data.profile.displayName) {
+                  localStorage.setItem('currentDisplayName', data.profile.displayName);
+                  localStorage.setItem('currentUserName', data.profile.displayName);
+                }
               }
             }
           }
-        } catch (error) {
-          console.error('Error loading user profile:', error);
         }
-      } else {
-        localStorage.removeItem('currentUserId');
-        localStorage.removeItem('currentUserEmail');
-        localStorage.removeItem('currentUsername');
-        localStorage.removeItem('currentDisplayName');
+      } catch (error) {
+        console.log('No authenticated user or error:', error);
       }
-    });
-
-    return () => unsubscribe();
+    };
+    
+    checkCognitoUser();
   }, []);
 
   return (

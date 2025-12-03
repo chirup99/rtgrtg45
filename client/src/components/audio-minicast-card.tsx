@@ -11,7 +11,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { auth } from '@/firebase';
+import { getCognitoToken } from '@/cognito';
 
 interface SelectedPost {
   id: string | number;
@@ -284,10 +284,9 @@ export function AudioMinicastCard({
 
     setIsDeleting(true);
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not authenticated');
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
 
-      const idToken = await user.getIdToken();
       const response = await fetch(`/api/social-posts/${postId}`, {
         method: 'DELETE',
         headers: {

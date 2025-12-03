@@ -35,7 +35,7 @@ import { UserIdSetupDialog } from './user-id-setup-dialog';
 import { UserProfileDropdown } from './user-profile-dropdown';
 import { AudioMinicastCard } from './audio-minicast-card';
 import { AudioSelectedPostsPreview } from './audio-selected-posts-preview';
-import { auth } from '@/firebase';
+import { getCognitoToken, getCognitoUser } from '@/cognito';
 
 interface FeedPost {
   id: string | number;
@@ -834,7 +834,6 @@ function FeedHeader({ onAllClick, isRefreshing, selectedFilter, onFilterChange, 
 }
 
 function ProfileHeader() {
-  const currentUser = auth.currentUser;
   const [activeTab, setActiveTab] = useState('Posts');
   const [profileData, setProfileData] = useState<any>(null);
   const [postCount, setPostCount] = useState(0);
@@ -844,17 +843,16 @@ function ProfileHeader() {
   const [showFollowingDialog, setShowFollowingDialog] = useState(false);
   const { toast } = useToast();
 
-  // Fetch real user profile data from Firebase
+  // Fetch real user profile data
   useEffect(() => {
     const loadProfileData = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const idToken = await user.getIdToken();
+        const idToken = await getCognitoToken();
+        if (!idToken) {
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch('/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${idToken}`
@@ -878,7 +876,7 @@ function ProfileHeader() {
   }, []);
 
   // Get username for queries
-  const currentUsername = profileData?.username || currentUser?.email?.split('@')[0] || '';
+  const currentUsername = profileData?.username || '';
 
   // Fetch follower and following counts (lightweight query)
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
@@ -941,16 +939,17 @@ function ProfileHeader() {
     }
   });
 
+  // Get current user email from localStorage for matching
+  const currentUserEmail = localStorage.getItem('currentUserEmail') || '';
+  
   // Filter user's posts (works for regular users and bots)
   const userPosts = allPosts.filter(post => {
     if (!profileData) return false;
     
     const matches = (
       post.authorUsername === profileData.username || 
-      post.user?.handle === profileData.username ||
-      post.authorUsername === currentUser?.email?.split('@')[0] ||
-      post.authorDisplayName === profileData.displayName ||
-      post.user?.username === profileData.username
+      post.authorUsername === currentUserEmail?.split('@')[0] ||
+      post.authorDisplayName === profileData.displayName
     );
     
     if (matches) {
@@ -971,8 +970,8 @@ function ProfileHeader() {
     }
   }, [userPosts.length, profileData]);
 
-  const displayName = profileData?.displayName || currentUser?.displayName || '';
-  const username = profileData?.username || currentUser?.email?.split('@')[0] || '';
+  const displayName = profileData?.displayName || localStorage.getItem('currentDisplayName') || '';
+  const username = profileData?.username || currentUserEmail?.split('@')[0] || '';
   const bio = profileData?.bio || '';
   const following = countsData?.following || 0;
   const followers = countsData?.followers || 0;
@@ -1223,7 +1222,6 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
   const [profilePicUrl, setProfilePicUrl] = useState(profileData?.profilePicUrl || '');
   const [coverPicUrl, setCoverPicUrl] = useState(profileData?.coverPicUrl || '');
   const { toast } = useToast();
-  const currentUser = auth.currentUser;
 
   // Update state when profileData changes
   useEffect(() => {
@@ -1245,7 +1243,7 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
       formData.append('file', file);
       formData.append('type', type);
 
-      const idToken = await currentUser?.getIdToken();
+      const idToken = await getCognitoToken();
       const response = await fetch('/api/upload-profile-image', {
         method: 'POST',
         headers: {
@@ -1274,7 +1272,7 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
 
   const handleSave = async () => {
     try {
-      const idToken = await currentUser?.getIdToken();
+      const idToken = await getCognitoToken();
       const response = await fetch('/api/user/profile', {
         method: 'POST',
         headers: {
@@ -1786,7 +1784,6 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const [isFollowing, setIsFollowing] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const currentUser = auth.currentUser;
   
   // Check if this post belongs to the current user
   const isOwnPost = !!(currentUserUsername && (post.authorUsername === currentUserUsername || post.user?.handle === currentUserUsername));
@@ -1798,15 +1795,16 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const { data: followStatus } = useQuery({
     queryKey: [`/api/users/${authorUsername}/follow-status`],
     queryFn: async () => {
-      if (!currentUser || isOwnPost) return { isFollowing: false };
-      const idToken = await currentUser.getIdToken();
+      if (isOwnPost) return { isFollowing: false };
+      const idToken = await getCognitoToken();
+      if (!idToken) return { isFollowing: false };
       const response = await fetch(`/api/users/${authorUsername}/follow-status`, {
         headers: { 'Authorization': `Bearer ${idToken}` }
       });
       if (!response.ok) return { isFollowing: false };
       return response.json();
     },
-    enabled: !!currentUser && !isOwnPost
+    enabled: !!currentUserUsername && !isOwnPost
   });
   
   // Update local state when query data changes
@@ -1850,10 +1848,9 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not authenticated');
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
       
-      const idToken = await user.getIdToken();
       const method = liked ? 'DELETE' : 'POST';
       const response = await fetch(`/api/social-posts/${post.id}/like`, {
         method,
@@ -1898,10 +1895,9 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Repost mutation
   const repostMutation = useMutation({
     mutationFn: async () => {
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not authenticated');
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
       
-      const idToken = await user.getIdToken();
       const method = reposted ? 'DELETE' : 'POST';
       const response = await fetch(`/api/social-posts/${post.id}/repost`, {
         method,
@@ -1946,8 +1942,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Edit mutation
   const editMutation = useMutation({
     mutationFn: async (content: string) => {
-      if (!currentUser) throw new Error('Not authenticated');
-      const idToken = await currentUser.getIdToken();
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
       const response = await fetch(`/api/social-posts/${post.id}`, {
         method: 'PATCH',
         headers: {
@@ -1973,8 +1969,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!currentUser) throw new Error('Not authenticated');
-      const idToken = await currentUser.getIdToken();
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
       const response = await fetch(`/api/social-posts/${post.id}`, {
         method: 'DELETE',
         headers: {
@@ -1998,8 +1994,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Follow/Unfollow mutation
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (!currentUser) throw new Error('Not authenticated');
-      const idToken = await currentUser.getIdToken();
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
       const method = isFollowing ? 'DELETE' : 'POST';
       const response = await fetch(`/api/users/${authorUsername}/follow`, {
         method,
@@ -2181,7 +2177,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
           </div>
           <div className="flex items-center gap-2">
             {/* Follow button - only show for other users if NOT following */}
-            {!isOwnPost && currentUser && !isFollowing && (
+            {!isOwnPost && currentUserUsername && !isFollowing && (
               <Button
                 variant="default"
                 size="sm"
@@ -2604,22 +2600,18 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Check if user has profile (username) when component mounts and fetch real username from Firebase
+  // Check if user has profile (username) when component mounts and fetch real username
   useEffect(() => {
     const checkUserProfile = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        console.log('No user logged in');
-        return;
-      }
-
       try {
-        console.log('🔍 Checking profile for Firebase user:', {
-          uid: user.uid,
-          email: user.email
-        });
+        const idToken = await getCognitoToken();
+        if (!idToken) {
+          console.log('No user logged in');
+          return;
+        }
 
-        const idToken = await user.getIdToken();
+        console.log('🔍 Checking profile for authenticated user');
+
         const response = await fetch('/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${idToken}`

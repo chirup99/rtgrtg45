@@ -223,3 +223,46 @@ APPLICATION STATUS:
 🎉 IMPORT COMPLETE - Trading Platform is fully operational and ready for development!
 
 =========================================================
+FIREBASE TO AWS COGNITO AUTHENTICATION MIGRATION - December 3, 2025 ✅
+
+[x] 1. Created client/src/cognito.ts with AWS Amplify Auth integration
+[x] 2. Created server/cognito-auth.ts with AWS JWT verification for backend
+[x] 3. Updated useCurrentUser hook to use Cognito tokens
+[x] 4. Migrated home.tsx authentication flow to Cognito
+[x] 5. Updated user-profile-dropdown.tsx sign-out to use cognitoSignOut
+[x] 6. Updated user-id-setup-dialog.tsx with Cognito token authentication
+[x] 7. Updated audio-minicast-card.tsx with getCognitoToken
+[x] 8. Updated post-creation-panel.tsx with Cognito authentication
+[x] 9. Updated social-feed.tsx with getCognitoToken
+[x] 10. Updated neofeed-social-feed.tsx with Cognito authentication
+[x] 11. Updated user-profile.tsx with getCognitoToken
+[x] 12. Updated App.tsx to use getCognitoUser and getCognitoToken instead of onAuthStateChanged
+[x] 13. Removed all Firebase auth imports from frontend components
+[x] 14. Verified no remaining Firebase auth references in client/src
+
+FRONTEND FILES MIGRATED:
+✅ client/src/cognito.ts - AWS Amplify Auth wrapper (signUp, signIn, signOut, getToken)
+✅ client/src/App.tsx - Initialization and user state management
+✅ client/src/hooks/useCurrentUser.ts - Current user hook with Cognito token
+✅ client/src/pages/home.tsx - Main dashboard authentication
+✅ client/src/pages/user-profile.tsx - Profile page follow/unfollow
+✅ client/src/components/user-profile-dropdown.tsx - User menu and sign-out
+✅ client/src/components/user-id-setup-dialog.tsx - Profile setup with auth
+✅ client/src/components/audio-minicast-card.tsx - Audio post likes
+✅ client/src/components/post-creation-panel.tsx - Post creation with auth
+✅ client/src/components/social-feed.tsx - Social feed interactions
+✅ client/src/components/neofeed-social-feed.tsx - NeoFeed social features
+
+COGNITO CONFIGURATION REQUIRED (User must configure):
+- VITE_COGNITO_USER_POOL_ID - AWS Cognito User Pool ID
+- VITE_COGNITO_APP_CLIENT_ID - AWS Cognito App Client ID
+- VITE_COGNITO_DOMAIN - Cognito Hosted UI domain
+- VITE_COGNITO_REDIRECT_URI - OAuth callback URL
+- VITE_COGNITO_LOGOUT_URI - Logout redirect URL
+- AWS_COGNITO_USER_POOL_ID - Backend verification
+- AWS_COGNITO_APP_CLIENT_ID - Backend verification
+- AWS_REGION - AWS region (defaults to eu-north-1)
+
+🎉 FRONTEND AUTH MIGRATION COMPLETE - All Firebase auth removed from frontend!
+
+=========================================================

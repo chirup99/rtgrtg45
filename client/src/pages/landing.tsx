@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { auth } from "@/firebase"; // Import Firebase auth
 import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile
-} from "firebase/auth";
+  cognitoSignIn, 
+  cognitoSignUp, 
+  cognitoSignInWithGoogle,
+  handleCognitoCallback,
+  getCognitoToken,
+  initializeCognito
+} from "@/cognito";
+
 export default function Landing() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -18,81 +19,68 @@ export default function Landing() {
   const [name, setName] = useState("");
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isCheckingCallback, setIsCheckingCallback] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    initializeCognito();
+    
+    const checkOAuthCallback = async () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasCode = urlParams.has('code');
+        
+        if (hasCode) {
+          console.log('🔐 OAuth callback detected, processing...');
+          const user = await handleCognitoCallback();
+          
+          if (user) {
+            localStorage.setItem('currentUserId', user.userId);
+            localStorage.setItem('currentUserEmail', user.email);
+            localStorage.setItem('currentUserName', user.name);
+            
+            const token = await getCognitoToken();
+            if (token) {
+              try {
+                await fetch('/api/auth/cognito', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  }
+                });
+              } catch (err) {
+                console.warn('Backend sync failed, continuing...', err);
+              }
+            }
+            
+            console.log('✅ OAuth sign-in successful, redirecting...');
+            window.location.href = '/';
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('OAuth callback error:', error);
+      } finally {
+        setIsCheckingCallback(false);
+      }
+    };
+    
+    checkOAuthCallback();
+  }, []);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      'prompt': 'select_account'
-    });
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // Capture display name from Google profile
-      const displayName = user.displayName || user.email || '';
-      console.log('📝 Google OAuth successful:', { uid: user.uid, email: user.email, displayName });
-      
-      // Update Firebase Auth profile with display name
-      if (displayName && !user.displayName) {
-        try {
-          await updateProfile(user, { displayName });
-          console.log('✅ Updated Firebase Auth profile with displayName:', displayName);
-        } catch (profileError) {
-          console.warn('⚠️ Could not update Firebase Auth profile:', profileError);
-        }
-      }
-      
-      // Get the ID token
-      const idToken = await user.getIdToken();
-
-      // Send the token to your backend (backend will also save displayName from ID token)
-      const response = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
-
-      const responseData = await response.json();
-      
-      if (response.ok) {
-        // Store user info in localStorage with display name
-        localStorage.setItem('currentUserId', user.uid);
-        localStorage.setItem('currentUserEmail', user.email || '');
-        localStorage.setItem('currentUserName', displayName);
-        
-        console.log('✅ Google sign-in successful with displayName, redirecting to app...', { displayName, responseData });
-        window.location.href = "/";
-      } else {
-        console.error('Backend auth failed:', responseData);
-        toast({
-          title: "Authentication Failed",
-          description: responseData?.message || "Could not sign in with Google.",
-          variant: "destructive",
-        });
-      }
+      console.log('🔐 Initiating Google OAuth via AWS Cognito...');
+      await cognitoSignInWithGoogle();
     } catch (error: any) {
-      console.error("Google sign-in error details:", error);
+      console.error("Google sign-in error:", error);
       
-      if (error.code === 'auth/api-key-not-valid') {
+      if (error.message?.includes('not configured')) {
         toast({
           title: "Configuration Error",
-          description: "Firebase API Key is invalid. Contact support.",
-          variant: "destructive",
-        });
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-        toast({
-          title: "Account Exists",
-          description: "An account with this email already exists.",
-          variant: "destructive",
-        });
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/operation-not-allowed') {
-        toast({
-          title: "OAuth Not Configured",
-          description: "Google Sign-In is not properly configured. Please check Firebase Console settings.",
+          description: "Google Sign-In is not configured. Please set up AWS Cognito with Google federation.",
           variant: "destructive",
         });
       } else {
@@ -102,7 +90,6 @@ export default function Landing() {
           variant: "destructive",
         });
       }
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -126,73 +113,98 @@ export default function Landing() {
       return;
     }
 
+    if (password.length < 8) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsEmailLoading(true);
     try {
-      let userCredential;
+      let user;
+      
       if (isLogin) {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        console.log('🔐 Signing in with AWS Cognito...');
+        user = await cognitoSignIn(email, password);
       } else {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log('🔐 Signing up with AWS Cognito...');
+        user = await cognitoSignUp(email, password, name);
+        
+        toast({
+          title: "Account Created",
+          description: "Please check your email for a verification code, then log in.",
+        });
+        setIsLogin(true);
+        setIsEmailLoading(false);
+        return;
       }
 
-      const user = userCredential.user;
-      
-      // Force fresh token retrieval to avoid stale token issues on Cloud Run
-      const idToken = await user.getIdToken(true);
-      
-      console.log('🔑 Authentication attempt:', { 
+      localStorage.setItem('currentUserId', user.userId);
+      localStorage.setItem('currentUserEmail', user.email);
+      localStorage.setItem('currentUserName', user.name);
+
+      console.log('🔑 Authentication successful:', { 
         action: isLogin ? 'login' : 'register',
-        userId: user.uid,
+        userId: user.userId,
         email: user.email 
       });
 
-      // Store user session immediately after Firebase Auth succeeds
-      localStorage.setItem('currentUserId', user.uid);
-      localStorage.setItem('currentUserEmail', user.email || '');
-
-      try {
-        const response = await fetch(isLogin ? '/api/auth/login' : '/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`
-          },
-          body: JSON.stringify({ name: isLogin ? undefined : name, email }),
-          signal: AbortSignal.timeout(8000) // 8 second timeout
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          console.warn('⚠️ Backend sync failed, but Firebase Auth succeeded:', data.message);
+      const token = await getCognitoToken();
+      if (token) {
+        try {
+          await fetch('/api/auth/cognito', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name: user.name, email: user.email }),
+            signal: AbortSignal.timeout(8000)
+          });
+        } catch (fetchError) {
+          console.warn('⚠️ Backend sync failed, but Cognito Auth succeeded. Continuing...', fetchError);
         }
-      } catch (fetchError) {
-        // Backend call failed, but Firebase Auth succeeded - continue anyway
-        console.warn('⚠️ Backend unreachable, but Firebase Auth succeeded. Continuing...', fetchError);
       }
 
-      // Always redirect after successful Firebase Auth
       console.log('✅ Authentication successful, redirecting to app...');
       window.location.href = "/";
     } catch (error: any) {
       console.error('❌ Authentication error:', error);
-      if (error.code === 'auth/api-key-not-valid') {
-        console.error("Firebase: Invalid API Key. Please check your Firebase configuration.");
-        toast({
-          title: "Configuration Error",
-          description: "Firebase API key is invalid. Please contact support.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Authentication Error",
-          description: error.message || "Something went wrong. Please try again.",
-          variant: "destructive",
-        });
+      
+      let errorMessage = error.message || "Something went wrong. Please try again.";
+      
+      if (error.name === 'UserNotConfirmedException') {
+        errorMessage = "Please verify your email before signing in. Check your inbox for a verification link.";
+      } else if (error.name === 'NotAuthorizedException') {
+        errorMessage = "Incorrect email or password.";
+      } else if (error.name === 'UserNotFoundException') {
+        errorMessage = "No account found with this email. Please sign up first.";
+      } else if (error.name === 'UsernameExistsException') {
+        errorMessage = "An account with this email already exists.";
+      } else if (error.name === 'InvalidPasswordException') {
+        errorMessage = "Password does not meet requirements. Use at least 8 characters with uppercase, lowercase, numbers, and symbols.";
       }
+      
+      toast({
+        title: "Authentication Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsEmailLoading(false);
     }
   };
+
+  if (isCheckingCallback) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+        <div className="text-white text-lg">Processing authentication...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 py-8">

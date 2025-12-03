@@ -22,7 +22,7 @@ import {
 import { User, Edit, LogOut, Settings, Users, UserPlus, Loader2, CheckCircle } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/firebase';
+import { getCognitoToken, cognitoSignOut } from '@/cognito';
 
 interface UserProfile {
   username: string;
@@ -44,14 +44,12 @@ export function UserProfileDropdown() {
   const [editedBio, setEditedBio] = useState('');
   const [editedDisplayName, setEditedDisplayName] = useState('');
 
-  // Load user profile
   useEffect(() => {
     const loadProfile = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
       try {
-        const idToken = await user.getIdToken();
+        const idToken = await getCognitoToken();
+        if (!idToken) return;
+
         const response = await fetch('/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${idToken}`
@@ -96,10 +94,9 @@ export function UserProfileDropdown() {
 
     setIsSaving(true);
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('Not authenticated');
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
 
-      const idToken = await user.getIdToken();
       const response = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: {
@@ -140,20 +137,14 @@ export function UserProfileDropdown() {
 
   const handleLogout = async () => {
     try {
-      // Clear all Firebase-related localStorage items first
       localStorage.removeItem('currentUserId');
       localStorage.removeItem('currentUserEmail');
+      localStorage.removeItem('currentUsername');
+      localStorage.removeItem('currentDisplayName');
+      localStorage.removeItem('currentUserName');
       
-      // Clear all Firebase Auth cache keys
-      const firebaseKeys = Object.keys(localStorage).filter(key => 
-        key.startsWith('firebase:')
-      );
-      firebaseKeys.forEach(key => localStorage.removeItem(key));
+      await cognitoSignOut();
       
-      // Sign out from Firebase
-      await auth.signOut();
-      
-      // Force a complete page reload to clear all state
       window.location.href = '/';
     } catch (error) {
       console.error('Error logging out:', error);
@@ -264,7 +255,6 @@ export function UserProfileDropdown() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={(open) => {
         setShowProfileDialog(open);
         if (!open) {
@@ -284,7 +274,6 @@ export function UserProfileDropdown() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Avatar */}
             <div className="flex justify-center">
               <Avatar className="h-24 w-24 border-4 border-gray-200 dark:border-gray-600">
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-2xl">
@@ -293,7 +282,6 @@ export function UserProfileDropdown() {
               </Avatar>
             </div>
 
-            {/* Display Name */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Display Name
@@ -313,7 +301,6 @@ export function UserProfileDropdown() {
               )}
             </div>
 
-            {/* Username */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Username
@@ -321,7 +308,6 @@ export function UserProfileDropdown() {
               <p className="text-gray-600 dark:text-gray-400">@{username}</p>
             </div>
 
-            {/* Bio */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Bio
@@ -347,7 +333,6 @@ export function UserProfileDropdown() {
               )}
             </div>
 
-            {/* Stats */}
             <div className="flex gap-6 py-4 border-t border-b border-gray-200 dark:border-gray-700">
               <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -364,7 +349,6 @@ export function UserProfileDropdown() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2">
             {isEditing ? (
               <>

@@ -62,6 +62,7 @@ import { angelOneRealTicker } from './angel-one-real-ticker';
 import { brokerFormatsLibrary, type UniversalFormatData } from './broker-formats-library';
 import { registerNeoFeedAwsRoutes } from './neofeed-routes-replacement';
 import { initializeNeoFeedTables } from './neofeed-dynamodb-migration';
+import { initializeCognitoVerifier, authenticateRequest } from './cognito-auth';
 
 // 🔶 Angel One Stock Token Mappings for historical data
 const ANGEL_ONE_STOCK_TOKENS: { [key: string]: { token: string; exchange: string; tradingSymbol: string } } = {
@@ -4012,6 +4013,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('⚠️ [STARTUP] Will wait for UI token input');
   }
 
+  // 🔷 Initialize AWS Cognito JWT Verifier for authentication
+  initializeCognitoVerifier();
+  
   // 🔷 Initialize and Register AWS DynamoDB routes for NeoFeed (replaces Firebase for social posts)
   await initializeNeoFeedTables();
   registerNeoFeedAwsRoutes(app);
@@ -4259,6 +4263,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Google sign-in error:', error);
       res.status(401).json({ message: 'Google authentication failed' });
+    }
+  });
+
+  // AWS Cognito Authentication Route (replaces Firebase auth)
+  app.post('/api/auth/cognito', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const { name, email } = req.body;
+
+      console.log('🔐 AWS Cognito auth attempt:', { email, hasAuthHeader: !!authHeader });
+
+      const claims = await authenticateRequest(authHeader);
+      
+      if (!claims) {
+        console.error('❌ Cognito auth failed: Invalid or missing token');
+        return res.status(401).json({ message: 'Invalid or expired authentication token' });
+      }
+
+      console.log('✅ Cognito token verified:', { 
+        userId: claims.sub, 
+        email: claims.email,
+        name: claims.name 
+      });
+
+      // Save user profile to DynamoDB (similar to Firebase Firestore save)
+      try {
+        const { DynamoDBClient, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+        
+        const dynamoClient = new DynamoDBClient({
+          region: process.env.AWS_REGION || 'eu-north-1',
+          credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          } : undefined,
+        });
+
+        const putCommand = new PutItemCommand({
+          TableName: 'tradebook-users',
+          Item: {
+            pk: { S: `USER#${claims.sub}` },
+            sk: { S: 'PROFILE' },
+            userId: { S: claims.sub },
+            email: { S: claims.email },
+            displayName: { S: name || claims.name || claims.email },
+            createdAt: { S: new Date().toISOString() },
+            updatedAt: { S: new Date().toISOString() },
+          },
+        });
+
+        await dynamoClient.send(putCommand);
+        console.log('💾 User profile saved to DynamoDB');
+      } catch (dbError) {
+        console.warn('⚠️ DynamoDB save failed (non-critical):', dbError);
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Cognito authentication successful',
+        userId: claims.sub,
+        email: claims.email,
+        name: name || claims.name || claims.email
+      });
+    } catch (error: any) {
+      console.error('❌ Cognito auth error:', error);
+      res.status(401).json({ 
+        message: 'Authentication failed',
+        error: error.message 
+      });
     }
   });
 

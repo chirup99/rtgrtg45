@@ -156,10 +156,10 @@ export function PostCreationPanel({ hideAudioMode = false, initialViewMode = 'po
 
   const createPostMutation = useMutation({
     mutationFn: async (postData: InsertSocialPost) => {
-      const { auth } = await import('@/firebase');
-      const user = auth.currentUser;
+      const { getCognitoUser } = await import('@/cognito');
+      const user = await getCognitoUser();
       
-      if (!user?.uid) {
+      if (!user?.userId) {
         throw new Error('Please log in first');
       }
       
@@ -170,7 +170,7 @@ export function PostCreationPanel({ hideAudioMode = false, initialViewMode = 'po
         },
         body: JSON.stringify({
           ...postData,
-          userId: user.uid
+          userId: user.userId
         }),
         credentials: 'include'
       });

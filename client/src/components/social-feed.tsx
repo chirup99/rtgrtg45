@@ -30,7 +30,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { SwipeableCarousel } from './swipeable-carousel';
 import { UserIdSetupDialog } from './user-id-setup-dialog';
-import { auth } from '@/firebase';
+import { getCognitoToken, getCognitoUser } from '@/cognito';
 import { useAudioMode } from '@/contexts/AudioModeContext';
 import { AudioMinicastCard } from './audio-minicast-card';
 
@@ -531,14 +531,13 @@ export function SocialFeed() {
   // Check if user has profile (username) when component mounts
   useEffect(() => {
     const checkUserProfile = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        console.log('No user logged in');
-        return;
-      }
-
       try {
-        const idToken = await user.getIdToken();
+        const idToken = await getCognitoToken();
+        if (!idToken) {
+          console.log('No user logged in');
+          return;
+        }
+
         const response = await fetch('/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${idToken}`

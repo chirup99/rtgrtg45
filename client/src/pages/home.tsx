@@ -37,9 +37,8 @@ import { DemoHeatmap } from "@/components/DemoHeatmap";
 import { PersonalHeatmap } from "@/components/PersonalHeatmap";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { auth } from "@/firebase";
+import { cognitoSignOut, getCognitoToken } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
-import { signOut } from "firebase/auth";
 import { LogOut, ArrowLeft, Save } from "lucide-react";
 import { parseBrokerTrades, ParseError } from "@/utils/trade-parser";
 
@@ -3642,7 +3641,7 @@ ${
     }
 
     try {
-      const idToken = await auth.currentUser?.getIdToken();
+      const idToken = await getCognitoToken();
       if (!idToken) return false;
       
       // Generate a unique ID for this format (timestamp + random suffix)
@@ -3742,15 +3741,15 @@ ${
 
       setFormatsLoading(true);
       try {
-        console.log("📥 Loading user formats from Firebase for userId:", currentUser.userId);
-        const idToken = await auth.currentUser?.getIdToken();
+        console.log("📥 Loading user formats for userId:", currentUser.userId);
+        const idToken = await getCognitoToken();
         if (!idToken) {
-          console.error("❌ Failed to get Firebase ID token");
+          console.error("❌ Failed to get Cognito ID token");
           setFormatsLoading(false);
           return;
         }
         
-        console.log("🔑 Got Firebase ID token, making request to /api/user-formats/", currentUser.userId);
+        console.log("🔑 Got Cognito ID token, making request to /api/user-formats/", currentUser.userId);
         const response = await fetch(`/api/user-formats/${currentUser.userId}`, {
           headers: {
             'Authorization': `Bearer ${idToken}`
@@ -3789,7 +3788,7 @@ ${
       // Create a function to reload formats without dependency on state
       (async () => {
         try {
-          const idToken = await auth.currentUser?.getIdToken();
+          const idToken = await getCognitoToken();
           if (idToken) {
             const response = await fetch(`/api/user-formats/${currentUser.userId}`, {
               headers: { 'Authorization': `Bearer ${idToken}` }
@@ -11252,7 +11251,7 @@ ${
                           <button
                             onClick={async () => {
                               try {
-                                await signOut(auth);
+                                await cognitoSignOut();
                                 localStorage.clear();
                                 window.location.href = "/login";
                               } catch (error) {
@@ -16238,7 +16237,7 @@ ${
                                 // Reload saved formats immediately to trigger auto-apply
                                 if (currentUser?.userId) {
                                   try {
-                                    const idToken = await auth.currentUser?.getIdToken();
+                                    const idToken = await getCognitoToken();
                                     if (idToken) {
                                       const response = await fetch(`/api/user-formats/${currentUser.userId}`, {
                                         headers: { 'Authorization': `Bearer ${idToken}` }
@@ -17008,10 +17007,10 @@ ${
                               size="sm"
                               className="h-9 px-2"
                               onClick={async () => {
-                                console.log("🔃 Manually refreshing formats from Firebase...");
+                                console.log("🔃 Manually refreshing formats...");
                                 setFormatsLoading(true);
                                 try {
-                                  const idToken = await auth.currentUser?.getIdToken();
+                                  const idToken = await getCognitoToken();
                                   if (idToken) {
                                     const response = await fetch(`/api/user-formats/${currentUser.userId}`, {
                                       headers: { 'Authorization': `Bearer ${idToken}` }

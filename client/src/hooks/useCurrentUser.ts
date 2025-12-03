@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth } from '../firebase';
+import { getCognitoUser, getCognitoToken, cognitoSignOut, initializeCognito } from '../cognito';
 
 interface CurrentUser {
   userId: string | null;
@@ -19,14 +19,14 @@ export function useCurrentUser() {
   const [profileChecked, setProfileChecked] = useState(false);
 
   useEffect(() => {
-    // Load user data from localStorage and fetch profile from Firebase
+    initializeCognito();
+    
     const loadUserData = async () => {
       const savedUserId = localStorage.getItem('currentUserId');
       const savedUserEmail = localStorage.getItem('currentUserEmail');
       const savedUsername = localStorage.getItem('currentUsername');
-      const savedDisplayName = localStorage.getItem('currentDisplayName');
+      const savedDisplayName = localStorage.getItem('currentDisplayName') || localStorage.getItem('currentUserName');
       
-      // Set initial user data from localStorage
       setCurrentUser({
         userId: savedUserId,
         email: savedUserEmail,
@@ -34,15 +34,13 @@ export function useCurrentUser() {
         displayName: savedDisplayName
       });
 
-      // Always fetch fresh profile data from Firebase (via backend)
       if (savedUserId && savedUserEmail) {
         try {
-          const user = auth.currentUser;
-          if (user) {
-            const idToken = await user.getIdToken();
+          const token = await getCognitoToken();
+          if (token) {
             const response = await fetch('/api/user/profile', {
               headers: {
-                'Authorization': `Bearer ${idToken}`
+                'Authorization': `Bearer ${token}`
               }
             });
             
@@ -50,7 +48,6 @@ export function useCurrentUser() {
               const data = await response.json();
               if (data.success && data.profile) {
                 const profile = data.profile;
-                // Update with Firebase profile data
                 updateUser(
                   savedUserId,
                   savedUserEmail,
@@ -58,8 +55,7 @@ export function useCurrentUser() {
                   profile.displayName
                 );
               } else {
-                // Profile doesn't exist in Firebase, clear username/displayName
-                updateUser(savedUserId, savedUserEmail, null, null);
+                updateUser(savedUserId, savedUserEmail, null, savedDisplayName);
               }
             }
           }
@@ -87,8 +83,10 @@ export function useCurrentUser() {
     
     if (displayName) {
       localStorage.setItem('currentDisplayName', displayName);
+      localStorage.setItem('currentUserName', displayName);
     } else {
       localStorage.removeItem('currentDisplayName');
+      localStorage.removeItem('currentUserName');
     }
     
     setCurrentUser({ 
@@ -102,6 +100,7 @@ export function useCurrentUser() {
   const updateProfile = (username: string, displayName: string) => {
     localStorage.setItem('currentUsername', username);
     localStorage.setItem('currentDisplayName', displayName);
+    localStorage.setItem('currentUserName', displayName);
     setCurrentUser(prev => ({
       ...prev,
       username,
@@ -109,11 +108,18 @@ export function useCurrentUser() {
     }));
   };
 
-  const clearUser = () => {
+  const clearUser = async () => {
+    try {
+      await cognitoSignOut();
+    } catch (error) {
+      console.error('Error signing out from Cognito:', error);
+    }
+    
     localStorage.removeItem('currentUserId');
     localStorage.removeItem('currentUserEmail');
     localStorage.removeItem('currentUsername');
     localStorage.removeItem('currentDisplayName');
+    localStorage.removeItem('currentUserName');
     setCurrentUser({ 
       userId: null, 
       email: null,

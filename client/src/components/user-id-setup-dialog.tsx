@@ -19,7 +19,7 @@ import {
 } from './ui/select';
 import { CheckCircle, X as XIcon, Loader2, Calendar, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '../firebase';
+import { getCognitoToken } from '../cognito';
 
 interface UserIdSetupDialogProps {
   isOpen: boolean;
@@ -113,13 +113,11 @@ export function UserIdSetupDialog({ isOpen, onClose, onSuccess }: UserIdSetupDia
 
     setSaving(true);
     try {
-      const user = auth.currentUser;
-      if (!user) {
+      console.log('🔐 Getting Cognito ID token...');
+      const idToken = await getCognitoToken();
+      if (!idToken) {
         throw new Error('Not authenticated');
       }
-
-      console.log('🔐 Getting Firebase ID token...');
-      const idToken = await user.getIdToken();
       console.log('✅ ID token obtained');
       
       console.log('📤 Sending profile save request:', {

@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CheckCircle, MapPin, Calendar, Users, UserPlus, ArrowLeft } from 'lucide-react';
-import { auth } from '@/firebase';
+import { getCognitoToken } from '@/cognito';
 
 interface UserProfileData {
   username: string;
@@ -80,11 +80,12 @@ export default function UserProfile() {
   // Check follow status
   useEffect(() => {
     const checkFollowStatus = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser || !username) return;
+      if (!username) return;
 
       try {
-        const idToken = await currentUser.getIdToken();
+        const idToken = await getCognitoToken();
+        if (!idToken) return;
+        
         const response = await fetch(`/api/users/${username}/follow-status`, {
           headers: {
             'Authorization': `Bearer ${idToken}`
@@ -167,11 +168,12 @@ export default function UserProfile() {
 
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser || !username) return;
+    if (!username) return;
 
     try {
-      const idToken = await currentUser.getIdToken();
+      const idToken = await getCognitoToken();
+      if (!idToken) return;
+      
       const response = await fetch(`/api/users/${username}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
         headers: {
