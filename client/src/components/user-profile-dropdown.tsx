@@ -23,6 +23,7 @@ import { User, Edit, LogOut, Settings, Users, UserPlus, Loader2, CheckCircle } f
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/use-toast';
 import { getCognitoToken, cognitoSignOut } from '@/cognito';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface UserProfile {
   username: string;
@@ -37,51 +38,57 @@ interface UserProfile {
 export function UserProfileDropdown() {
   const { currentUser } = useCurrentUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [editedBio, setEditedBio] = useState('');
   const [editedDisplayName, setEditedDisplayName] = useState('');
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const idToken = await getCognitoToken();
-        if (!idToken) return;
+  const { data: profile } = useQuery<UserProfile | null>({
+    queryKey: ['user-profile-dropdown', currentUser.email],
+    queryFn: async () => {
+      if (!currentUser.email) return null;
+      
+      const idToken = await getCognitoToken();
+      if (!idToken) return null;
 
-        const response = await fetch('/api/user/profile', {
-          headers: {
-            'Authorization': `Bearer ${idToken}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📋 Profile data received:', data.profile);
-          if (data.profile) {
-            setProfile({
-              username: data.profile.username || currentUser.email?.split('@')[0] || 'user',
-              displayName: data.profile.displayName || currentUser.email?.split('@')[0] || 'User',
-              email: data.profile.email || currentUser.email || '',
-              bio: data.profile.bio || '',
-              followers: data.profile.followers || 0,
-              following: data.profile.following || 0,
-              dob: data.profile.dob
-            });
-            setEditedBio(data.profile.bio || '');
-            setEditedDisplayName(data.profile.displayName || currentUser.email?.split('@')[0] || 'User');
-          }
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
         }
-      } catch (error) {
-        console.error('Error loading profile:', error);
-      }
-    };
+      });
 
-    if (currentUser.email) {
-      loadProfile();
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile) {
+          return {
+            username: data.profile.username || currentUser.email?.split('@')[0] || 'user',
+            displayName: data.profile.displayName || currentUser.email?.split('@')[0] || 'User',
+            email: data.profile.email || currentUser.email || '',
+            bio: data.profile.bio || '',
+            followers: data.profile.followers || 0,
+            following: data.profile.following || 0,
+            dob: data.profile.dob
+          };
+        }
+      }
+      return null;
+    },
+    enabled: !!currentUser.email,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setEditedBio(profile.bio || '');
+      setEditedDisplayName(profile.displayName || '');
     }
-  }, [currentUser.email]);
+  }, [profile]);
 
   const handleSaveProfile = async () => {
     if (!editedDisplayName.trim()) {
@@ -114,7 +121,7 @@ export function UserProfileDropdown() {
       }
 
       const data = await response.json();
-      setProfile(prev => prev ? {
+      queryClient.setQueryData(['user-profile-dropdown', currentUser.email], (prev: UserProfile | null) => prev ? {
         ...prev,
         displayName: editedDisplayName.trim(),
         bio: editedBio.trim()

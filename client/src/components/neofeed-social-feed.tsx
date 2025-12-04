@@ -843,63 +843,51 @@ function FeedHeader({ onAllClick, isRefreshing, selectedFilter, onFilterChange, 
 
 function ProfileHeader() {
   const [activeTab, setActiveTab] = useState('Posts');
-  const [profileData, setProfileData] = useState<any>(null);
   const [postCount, setPostCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowersDialog, setShowFollowersDialog] = useState(false);
   const [showFollowingDialog, setShowFollowingDialog] = useState(false);
   const { toast } = useToast();
 
-  // Fetch real user profile data
-  useEffect(() => {
-    const loadProfileData = async () => {
-      try {
-        const idToken = await getCognitoToken();
-        if (!idToken) {
-          setIsLoading(false);
-          return;
-        }
+  const { data: profileData, isLoading } = useQuery({
+    queryKey: ['profile-header-data'],
+    queryFn: async () => {
+      const idToken = await getCognitoToken();
+      if (!idToken) return null;
 
-        const response = await fetch('/api/user/profile', {
-          headers: {
-            'Authorization': `Bearer ${idToken}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.profile) {
-            setProfileData(data.profile);
-          }
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
         }
-      } catch (error) {
-        console.error('Error loading profile data:', error);
-      } finally {
-        setIsLoading(false);
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.profile || null;
       }
-    };
+      return null;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
 
-    loadProfileData();
-  }, []);
-
-  // Get username for queries
   const currentUsername = profileData?.username || '';
 
-  // Fetch follower and following counts (lightweight query - no staleTime to allow real-time updates)
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
-    queryKey: [`/api/users/${currentUsername}/followers-count`],
+    queryKey: ['followers-count', currentUsername],
     queryFn: async () => {
       if (!currentUsername) return { followers: 0, following: 0 };
       const response = await fetch(`/api/users/${currentUsername}/followers-count`);
       if (!response.ok) return { followers: 0, following: 0 };
-      const data = await response.json();
-      console.log(`📊 ProfileHeader counts for ${currentUsername}:`, data);
-      return data;
+      return response.json();
     },
     enabled: !!currentUsername,
-    staleTime: 0, // Always refetch when invalidated for real-time count updates
-    refetchOnMount: true,
+    staleTime: 60000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch followers list (only when dialog opens)
