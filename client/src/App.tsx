@@ -397,6 +397,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Landing} />
+      <Route path="/landing" component={Landing} />
       <Route path="/">
         <MainLayout>
           <Dashboard />
