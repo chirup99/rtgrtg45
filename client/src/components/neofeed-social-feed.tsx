@@ -2562,7 +2562,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                 data-testid={`button-vote-${post.id}`}
                 title="Click to vote"
               >
-                <ThumbsUp className={`h-5 w-5 ${liked ? 'text-green-500 fill-green-500' : ''}`} />
+                {liked ? (
+                  <TrendingUp className="h-5 w-5 fill-green-500 text-green-500" />
+                ) : downtrended ? (
+                  <TrendingDown className="h-5 w-5 fill-red-500 text-red-500" />
+                ) : (
+                  <ThumbsUp className="h-5 w-5" />
+                )}
                 <span>{likeCount + downtrendCount}</span>
               </Button>
 
