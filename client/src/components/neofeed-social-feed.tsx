@@ -11,7 +11,7 @@ import {
   TrendingUp, TrendingDown, Activity, Plus, Home, PenTool,
   Copy, ExternalLink, X, Send, Bot, Trash2, User, MapPin, Calendar,
   ChevronDown, ChevronUp, ArrowLeft, Check, Layers, Mic, Newspaper,
-  Users, UserPlus
+  Users, UserPlus, ThumbsUp
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
 import { Button } from './ui/button';
@@ -1775,8 +1775,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [voteMode, setVoteMode] = useState<'uptrend' | 'downtrend'>('uptrend');
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showVoteBar, setShowVoteBar] = useState(false);
+  const voteBarRef = useRef<HTMLDivElement>(null);
   
   // Real-time count state - initialize from post data (uptrends = likes, downtrends = new)
   const [likeCount, setLikeCount] = useState(post.metrics?.likes || post.likes || 0);
@@ -1878,6 +1878,23 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       }
     }
   }, [retweetStatus]);
+
+  // Close vote bar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (voteBarRef.current && !voteBarRef.current.contains(event.target as Node)) {
+        setShowVoteBar(false);
+      }
+    };
+
+    if (showVoteBar) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showVoteBar]);
   
   // Audio mode text selection
   const { isAudioMode, selectedTextSnippets, addTextSnippet } = useAudioMode();
@@ -2531,50 +2548,67 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               <span>{repostCount}</span>
             </Button>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onMouseDown={(e) => {
-                const timer = setTimeout(() => {
-                  setVoteMode(prev => prev === 'uptrend' ? 'downtrend' : 'uptrend');
-                  toast({ description: `Switched to ${voteMode === 'uptrend' ? 'downtrend' : 'uptrend'} mode` });
-                }, 500);
-                setLongPressTimer(timer);
-              }}
-              onMouseUp={() => {
-                if (longPressTimer) {
-                  clearTimeout(longPressTimer);
-                  setLongPressTimer(null);
-                  // Short click - trigger vote for current mode
-                  if (voteMode === 'uptrend') {
-                    likeMutation.mutate({ wasLiked: liked });
-                  } else {
-                    downtrendMutation.mutate({ wasDowntrended: downtrended });
-                  }
-                }
-              }}
-              onMouseLeave={() => {
-                if (longPressTimer) {
-                  clearTimeout(longPressTimer);
-                  setLongPressTimer(null);
-                }
-              }}
-              disabled={likeMutation.isPending || downtrendMutation.isPending}
-              className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
-                voteMode === 'uptrend' 
-                  ? liked ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
-                  : downtrended ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-              data-testid={`button-vote-${post.id}`}
-              title="Click to vote | Long-press to switch mode"
-            >
-              {voteMode === 'uptrend' ? (
-                <TrendingUp className={`h-5 w-5 ${liked ? 'text-green-500' : ''}`} />
-              ) : (
-                <TrendingDown className={`h-5 w-5 ${downtrended ? 'text-red-500' : ''}`} />
+            <div ref={voteBarRef} className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowVoteBar(!showVoteBar)}
+                disabled={likeMutation.isPending || downtrendMutation.isPending}
+                className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
+                  liked || downtrended
+                    ? liked ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+                    : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                data-testid={`button-vote-${post.id}`}
+                title="Click to vote"
+              >
+                <ThumbsUp className={`h-5 w-5 ${liked ? 'text-green-500 fill-green-500' : ''}`} />
+                <span>{likeCount + downtrendCount}</span>
+              </Button>
+
+              {/* Vote Bar - Facebook/LinkedIn Style */}
+              {showVoteBar && (
+                <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-700 rounded-full shadow-lg p-2 flex gap-3 backdrop-blur-sm border border-gray-200 dark:border-gray-600 z-50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      likeMutation.mutate({ wasLiked: liked });
+                      setShowVoteBar(false);
+                    }}
+                    disabled={likeMutation.isPending}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${
+                      liked
+                        ? 'bg-green-500/20 text-green-500 dark:text-green-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white'
+                    }`}
+                    title="Uptrend (Bullish)"
+                  >
+                    <TrendingUp className="h-5 w-5" />
+                    <span className="text-sm">{likeCount}</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      downtrendMutation.mutate({ wasDowntrended: downtrended });
+                      setShowVoteBar(false);
+                    }}
+                    disabled={downtrendMutation.isPending}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${
+                      downtrended
+                        ? 'bg-red-500/20 text-red-500 dark:text-red-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white'
+                    }`}
+                    title="Downtrend (Bearish)"
+                  >
+                    <TrendingDown className="h-5 w-5" />
+                    <span className="text-sm">{downtrendCount}</span>
+                  </Button>
+                </div>
               )}
-              <span>{voteMode === 'uptrend' ? likeCount : downtrendCount}</span>
-            </Button>
+            </div>
 
             {/* Only show analysis button if valid ticker exists */}
             {post.ticker && (
