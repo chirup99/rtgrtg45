@@ -41,18 +41,18 @@ interface FeedPost {
   id: string | number;
   authorUsername?: string;
   authorDisplayName?: string;
-  authorAvatar?: string;
+  authorAvatar?: string | null;
   authorVerified?: boolean;
-  authorFollowers?: number;
+  authorFollowers?: number | null;
   content: string;
   likes?: number;
   comments?: number;
   reposts?: number;
   tags?: string[];
   stockMentions?: string[];
-  sentiment?: 'bullish' | 'bearish' | 'neutral';
+  sentiment?: 'bullish' | 'bearish' | 'neutral' | null;
   hasImage?: boolean;
-  imageUrl?: string;
+  imageUrl?: string | null;
   hasImages?: boolean;  // Support for future multi-image feature
   imageUrls?: string[];  // Support for future multi-image feature
   isAudioPost?: boolean; // Audio minicast post flag
@@ -2496,7 +2496,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
   const [currentUserUsername, setCurrentUserUsername] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
   const [showTopFilters, setShowTopFilters] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0);
   const [showAppBar, setShowAppBar] = useState(true);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [showMobileCreatePost, setShowMobileCreatePost] = useState(false);
@@ -2524,7 +2524,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
         (window as any).pauseBannerYouTube();
       }
       
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+      if (currentScrollY > lastScrollYRef.current && currentScrollY > 100) {
         // Scrolling down and past 100px - hide app bar and bottom nav
         setShowAppBar(false);
         setShowBottomNav(false);
@@ -2543,7 +2543,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
         setShowBottomNav(true);
       }, 150);
       
-      setLastScrollY(currentScrollY);
+      lastScrollYRef.current = currentScrollY;
       setIsAtTop(currentScrollY < 50);
     };
     
@@ -2552,7 +2552,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(scrollTimeout);
     };
-  }, [lastScrollY]);
+  }, []);
   
   const { data: posts = [], isLoading, error, isFetching } = useQuery({
     queryKey: ['/api/social-posts', pageNumber],
@@ -2589,15 +2589,6 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     return () => observer.disconnect();
   }, [isLoading, isFetching, posts.length]);
 
-  // Scroll detection
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsAtTop(window.scrollY < 100);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Check if user has profile (username) when component mounts and fetch real username
   useEffect(() => {
