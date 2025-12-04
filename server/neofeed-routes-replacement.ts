@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { verifyCognitoToken } from './cognito-auth';
 import { 
   createUserPost, 
   getUserPost, 
@@ -29,6 +30,36 @@ import {
   getFollowingList,
   TABLES 
 } from './neofeed-dynamodb-migration';
+
+async function getAuthenticatedUser(req: any): Promise<{ userId: string; username: string; displayName: string } | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  
+  const token = authHeader.split(' ')[1];
+  const cognitoUser = await verifyCognitoToken(token);
+  
+  if (!cognitoUser) return null;
+  
+  const profile = await getUserProfile(cognitoUser.sub);
+  
+  // If no profile exists yet, use Cognito data (email username part)
+  if (!profile) {
+    const emailUsername = cognitoUser.email ? cognitoUser.email.split('@')[0] : cognitoUser.sub;
+    return {
+      userId: cognitoUser.sub,
+      username: emailUsername,
+      displayName: emailUsername
+    };
+  }
+  
+  return {
+    userId: cognitoUser.sub,
+    username: profile.username,
+    displayName: profile.displayName || profile.username
+  };
+}
 
 export function registerNeoFeedAwsRoutes(app: any) {
   console.log('🔷 Registering NeoFeed AWS DynamoDB routes...');
@@ -444,13 +475,18 @@ export function registerNeoFeedAwsRoutes(app: any) {
   app.get('/api/users/:username/follow-status', async (req: any, res: any) => {
     try {
       const targetUsername = req.params.username;
-      const currentUsername = req.query.currentUsername as string;
       
-      if (!currentUsername || !targetUsername) {
+      const currentUser = await getAuthenticatedUser(req);
+      if (!currentUser) {
         return res.json({ following: false });
       }
       
-      const following = await isFollowing(currentUsername, targetUsername);
+      if (!targetUsername) {
+        return res.json({ following: false });
+      }
+      
+      const following = await isFollowing(currentUser.username, targetUsername);
+      console.log(`🔍 Follow status check: ${currentUser.username} -> ${targetUsername}: ${following}`);
       res.json({ following });
     } catch (error: any) {
       console.error('❌ Error checking follow status:', error);
@@ -461,26 +497,37 @@ export function registerNeoFeedAwsRoutes(app: any) {
   app.post('/api/users/:username/follow', async (req: any, res: any) => {
     try {
       const targetUsername = req.params.username;
-      const { currentUsername, currentUserData, targetUserData } = req.body;
+      const { targetUserData } = req.body;
       
-      if (!currentUsername || !targetUsername) {
-        return res.status(400).json({ error: 'Both usernames are required' });
+      const currentUser = await getAuthenticatedUser(req);
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Authentication required' });
       }
       
-      if (currentUsername === targetUsername) {
+      if (!targetUsername) {
+        return res.status(400).json({ error: 'Target username is required' });
+      }
+      
+      if (currentUser.username === targetUsername) {
         return res.status(400).json({ error: 'Cannot follow yourself' });
       }
       
-      const alreadyFollowing = await isFollowing(currentUsername, targetUsername);
+      const alreadyFollowing = await isFollowing(currentUser.username, targetUsername);
       if (alreadyFollowing) {
         const followers = await getFollowersCount(targetUsername);
+        console.log(`⚠️ ${currentUser.username} already follows ${targetUsername}`);
         return res.json({ success: true, following: true, followers });
       }
       
-      await createFollow(currentUsername, targetUsername, currentUserData, targetUserData);
+      await createFollow(
+        currentUser.username, 
+        targetUsername, 
+        { displayName: currentUser.displayName }, 
+        targetUserData
+      );
       const followers = await getFollowersCount(targetUsername);
       
-      console.log(`✅ ${currentUsername} followed ${targetUsername}`);
+      console.log(`✅ ${currentUser.username} followed ${targetUsername} - now has ${followers} followers`);
       res.json({ success: true, following: true, followers });
     } catch (error: any) {
       console.error('❌ Error following user:', error);
@@ -491,16 +538,20 @@ export function registerNeoFeedAwsRoutes(app: any) {
   app.post('/api/users/:username/unfollow', async (req: any, res: any) => {
     try {
       const targetUsername = req.params.username;
-      const { currentUsername } = req.body;
       
-      if (!currentUsername || !targetUsername) {
-        return res.status(400).json({ error: 'Both usernames are required' });
+      const currentUser = await getAuthenticatedUser(req);
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Authentication required' });
       }
       
-      await deleteFollow(currentUsername, targetUsername);
+      if (!targetUsername) {
+        return res.status(400).json({ error: 'Target username is required' });
+      }
+      
+      await deleteFollow(currentUser.username, targetUsername);
       const followers = await getFollowersCount(targetUsername);
       
-      console.log(`✅ ${currentUsername} unfollowed ${targetUsername}`);
+      console.log(`✅ ${currentUser.username} unfollowed ${targetUsername} - now has ${followers} followers`);
       res.json({ success: true, following: false, followers });
     } catch (error: any) {
       console.error('❌ Error unfollowing user:', error);

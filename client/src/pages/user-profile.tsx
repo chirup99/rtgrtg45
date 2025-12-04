@@ -5,7 +5,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, MapPin, Calendar, Users, UserPlus, ArrowLeft } from 'lucide-react';
+import { CheckCircle, MapPin, Calendar, Users, UserPlus, ArrowLeft, Loader2 } from 'lucide-react';
+import { getCognitoToken } from '@/cognito';
 
 interface UserProfileData {
   username: string;
@@ -49,8 +50,46 @@ export default function UserProfile() {
   const [showFollowersDialog, setShowFollowersDialog] = useState(false);
   const [showFollowingDialog, setShowFollowingDialog] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ username: string; displayName: string } | null>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
-  // Fetch user profile
+  // Fetch current user's profile using Cognito token
+  useEffect(() => {
+    const loadCurrentUserProfile = async () => {
+      try {
+        const token = await getCognitoToken();
+        if (!token) {
+          console.log('No Cognito token - user not logged in');
+          return;
+        }
+
+        const response = await fetch('/api/user/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile?.username) {
+            setCurrentUserProfile({
+              username: data.profile.username,
+              displayName: data.profile.displayName || data.profile.username
+            });
+            // Check if viewing own profile
+            if (data.profile.username === username) {
+              setIsOwnProfile(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading current user profile:', error);
+      }
+    };
+
+    loadCurrentUserProfile();
+  }, [username]);
+
+  // Fetch target user profile
   useEffect(() => {
     const loadProfileData = async () => {
       if (!username) {
@@ -77,20 +116,24 @@ export default function UserProfile() {
     loadProfileData();
   }, [username]);
 
-  // Check follow status
+  // Check follow status using Cognito authentication
   useEffect(() => {
     const checkFollowStatus = async () => {
-      if (!username) return;
+      if (!username || !currentUserProfile?.username) return;
+      if (isOwnProfile) return;
 
       try {
-        const currentUsername = localStorage.getItem('currentUsername');
-        if (!currentUsername) return;
+        const idToken = await getCognitoToken();
+        if (!idToken) return;
         
-        const response = await fetch(`/api/users/${username}/follow-status?currentUsername=${encodeURIComponent(currentUsername)}`);
+        const response = await fetch(`/api/users/${username}/follow-status`, {
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
 
         if (response.ok) {
           const data = await response.json();
           setIsFollowing(data.following || data.isFollowing || false);
+          console.log(`Follow status for ${username}:`, data.following);
         }
       } catch (error) {
         console.error('Error checking follow status:', error);
@@ -98,7 +141,7 @@ export default function UserProfile() {
     };
 
     checkFollowStatus();
-  }, [username]);
+  }, [username, currentUserProfile, isOwnProfile]);
 
   // Fetch user counts
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
@@ -147,14 +190,12 @@ export default function UserProfile() {
     },
   });
 
-  // Filter posts for this user (works for regular users and bots)
+  // Filter posts for this user
   const userPosts = allPosts.filter(post => {
     if (!username) return false;
     return (
       post.authorUsername === username ||
-      post.user?.handle === username ||
-      post.authorDisplayName === profileData?.displayName ||
-      post.user?.username === username
+      post.authorDisplayName === profileData?.displayName
     );
   });
 
@@ -162,39 +203,67 @@ export default function UserProfile() {
     setPostCount(userPosts.length);
   }, [userPosts.length]);
 
-  // Handle follow/unfollow
+  // Handle follow/unfollow - Instagram/Twitter style with Cognito authentication
   const handleFollowToggle = async () => {
-    if (!username) return;
+    if (!username || !currentUserProfile?.username) {
+      console.log('Cannot follow: missing username or not logged in');
+      return;
+    }
+
+    if (isOwnProfile) {
+      console.log('Cannot follow yourself');
+      return;
+    }
+
+    setIsFollowLoading(true);
 
     try {
-      const currentUsername = localStorage.getItem('currentUsername');
-      if (!currentUsername) return;
+      const idToken = await getCognitoToken();
+      if (!idToken) {
+        console.log('No authentication token available');
+        setIsFollowLoading(false);
+        return;
+      }
       
       const endpoint = isFollowing 
         ? `/api/users/${username}/unfollow` 
         : `/api/users/${username}/follow`;
       
+      console.log(`${isFollowing ? 'Unfollowing' : 'Following'} ${username}...`);
+      
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({ 
-          currentUsername,
-          currentUserData: { displayName: localStorage.getItem('currentDisplayName') || currentUsername },
           targetUserData: { displayName: profileData?.displayName || username }
         })
       });
 
       if (response.ok) {
-        setIsFollowing(!isFollowing);
-        // Invalidate follower counts
+        const data = await response.json();
+        console.log('Follow response:', data);
+        
+        // Sync state with server response (not just toggle)
+        setIsFollowing(data.following);
+        
+        // Invalidate all related queries to refresh counts
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-count`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUsername}/followers-count`] });
-        // Invalidate follower/following lists
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile?.username}/followers-count`] });
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-list`] });
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/following-list`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile?.username}/following-list`] });
+        queryClient.invalidateQueries({ queryKey: ['follow-status', username] });
+      } else {
+        const errorData = await response.json();
+        console.error('Follow/unfollow failed:', errorData);
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
+    } finally {
+      setIsFollowLoading(false);
     }
   };
 
@@ -272,16 +341,36 @@ export default function UserProfile() {
               </h1>
               <p className="text-gray-600 dark:text-gray-400">@{profileData.username}</p>
             </div>
-            {!isFollowing && (
+            {isOwnProfile ? (
               <Button 
-                variant="default"
-                className="rounded-full px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                variant="outline"
+                className="rounded-full px-6"
+                onClick={() => setLocation('/settings')}
+                data-testid="button-edit-profile"
+              >
+                Edit profile
+              </Button>
+            ) : currentUserProfile ? (
+              <Button 
+                variant={isFollowing ? "outline" : "default"}
+                className={`rounded-full px-6 min-w-[100px] ${
+                  isFollowing 
+                    ? 'border-gray-300 dark:border-gray-600 hover:border-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
                 onClick={handleFollowToggle}
+                disabled={isFollowLoading}
                 data-testid="button-follow-user"
               >
-                Follow
+                {isFollowLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isFollowing ? (
+                  'Following'
+                ) : (
+                  'Follow'
+                )}
               </Button>
-            )}
+            ) : null}
           </div>
 
           {bio && (

@@ -1771,12 +1771,17 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Get the author username for follow functionality
   const authorUsername = post.user?.handle || post.authorUsername || 'user';
   
-  // Fetch follow status for this author - with stable caching to prevent flickering
+  // Fetch follow status for this author - with Cognito authentication
   const { data: followStatus } = useQuery({
-    queryKey: ['follow-status', authorUsername, currentUserUsername],
+    queryKey: ['follow-status', authorUsername],
     queryFn: async () => {
       if (isOwnPost || !currentUserUsername) return { following: false };
-      const response = await fetch(`/api/users/${authorUsername}/follow-status?currentUsername=${encodeURIComponent(currentUserUsername)}`);
+      const idToken = await getCognitoToken();
+      if (!idToken) return { following: false };
+      
+      const response = await fetch(`/api/users/${authorUsername}/follow-status`, {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
       if (!response.ok) return { following: false };
       return response.json();
     },
@@ -1924,11 +1929,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     }
   });
 
-  // Follow/Unfollow mutation
-  // Simple follow/unfollow mutation - optimistic updates, targeted invalidation
+  // Follow/Unfollow mutation with Cognito authentication
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (!currentUserUsername) throw new Error('Not authenticated');
+      const idToken = await getCognitoToken();
+      if (!idToken) throw new Error('Not authenticated');
       
       const endpoint = isFollowing 
         ? `/api/users/${authorUsername}/unfollow` 
@@ -1936,10 +1941,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({ 
-          currentUsername: currentUserUsername,
-          currentUserData: { displayName: localStorage.getItem('currentDisplayName') || currentUserUsername },
           targetUserData: { displayName: post.authorDisplayName || post.user?.username || authorUsername }
         })
       });
@@ -1960,19 +1966,19 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
         action: wasFollowing ? 'unfollowed' : 'followed',
         author: authorUsername, 
         currentUser: currentUserUsername,
+        serverFollowing: data.following,
         responseData: data
       });
       
-      // Invalidate and refetch follower counts for both users
-      queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername, currentUserUsername] });
+      setIsFollowing(data.following);
+      
+      queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername] });
       queryClient.invalidateQueries({ queryKey: ['followers-count', authorUsername] });
       queryClient.invalidateQueries({ queryKey: ['followers-count', currentUserUsername] });
-      
-      // Also invalidate the lists
       queryClient.invalidateQueries({ queryKey: ['followers-list'] });
       queryClient.invalidateQueries({ queryKey: ['following-list'] });
       
-      toast({ description: wasFollowing ? "Unfollowed" : "Following!" });
+      toast({ description: data.following ? "Following!" : "Unfollowed" });
     },
     onError: (err: any, variables, context) => {
       setIsFollowing(context?.previousFollowing || false);
@@ -2105,17 +2111,21 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Follow button - only show for other users if NOT following */}
-            {!isOwnPost && currentUserUsername && !isFollowing && (
+            {/* Follow/Following button - Instagram/Twitter style toggle */}
+            {!isOwnPost && currentUserUsername && (
               <Button
-                variant="default"
+                variant={isFollowing ? "outline" : "default"}
                 size="sm"
                 onClick={() => followMutation.mutate()}
                 disabled={followMutation.isPending}
-                className="rounded-full px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                className={`rounded-full px-4 text-xs font-semibold min-w-[80px] ${
+                  isFollowing 
+                    ? 'border-gray-300 dark:border-gray-600 hover:border-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
                 data-testid={`button-follow-${post.id}`}
               >
-                {followMutation.isPending ? '...' : 'Follow'}
+                {followMutation.isPending ? '...' : isFollowing ? 'Following' : 'Follow'}
               </Button>
             )}
             {/* Audio mode indicator */}
