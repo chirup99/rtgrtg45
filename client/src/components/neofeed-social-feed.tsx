@@ -849,7 +849,7 @@ function ProfileHeader() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Simple profile fetch
+  // Simple profile fetch - cached to prevent slow repeated calls
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['my-profile'],
     queryFn: async () => {
@@ -862,11 +862,13 @@ function ProfileHeader() {
       const data = await response.json();
       return data.profile || null;
     },
+    staleTime: 60000, // Cache for 1 minute to avoid slow repeated fetches
+    gcTime: 300000, // Keep in cache for 5 minutes
   });
 
   const username = profileData?.username || '';
 
-  // Simple stats fetch - Twitter-like, one endpoint
+  // Simple stats fetch - cached with longer interval
   const { data: stats = { followers: 0, following: 0 } } = useQuery({
     queryKey: ['profile-stats', username],
     queryFn: async () => {
@@ -879,8 +881,8 @@ function ProfileHeader() {
       return data;
     },
     enabled: !!username,
-    staleTime: 0,
-    refetchInterval: 5000, // Auto-refresh every 5s like Twitter
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 30000, // Refresh every 30s instead of 5s
   });
 
   // Followers list - only when dialog opens
@@ -907,25 +909,21 @@ function ProfileHeader() {
     enabled: !!username && showFollowingDialog,
   });
 
-  // User posts
-  const { data: allPosts = [] } = useQuery({
-    queryKey: ['/api/social-posts'],
+  // User posts - direct fetch by username for speed
+  const { data: userPosts = [], isLoading: postsLoading } = useQuery({
+    queryKey: ['user-posts', username],
     queryFn: async (): Promise<SocialPost[]> => {
-      const response = await fetch('/api/social-posts');
-      if (!response.ok) throw new Error('Failed to fetch posts');
-      return response.json();
+      if (!username) return [];
+      console.log(`📝 Fetching posts for user: ${username}`);
+      const response = await fetch(`/api/social-posts/by-user/${username}`);
+      if (!response.ok) throw new Error('Failed to fetch user posts');
+      const posts = await response.json();
+      console.log(`📝 Received ${posts.length} posts for ${username}`);
+      return posts;
     },
+    enabled: !!username,
     staleTime: 30000,
   });
-
-  const currentUserEmail = localStorage.getItem('currentUserEmail') || '';
-  const userPosts = useMemo(() => {
-    if (!profileData) return [];
-    return allPosts.filter(post => 
-      post.authorUsername === profileData.username || 
-      post.authorDisplayName === profileData.displayName
-    );
-  }, [allPosts, profileData]);
 
   const postCount = userPosts.length;
   const displayName = profileData?.displayName || '';
@@ -1051,9 +1049,24 @@ function ProfileHeader() {
       {/* User Posts Display */}
       {activeTab === 'Posts' && (
         <div className="space-y-4 mb-6">
-          {userPosts.length === 0 ? (
+          {postsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="p-4 animate-pulse">
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-full mb-1"></div>
+                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : userPosts.length === 0 ? (
             <Card className="p-8 text-center">
-              <p className="text-gray-500 dark:text-gray-400">No posts yet</p>
+              <p className="text-gray-500 dark:text-gray-400">No posts yet. Share your first trading insight!</p>
             </Card>
           ) : (
             userPosts.map((post) => (

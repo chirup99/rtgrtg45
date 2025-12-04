@@ -86,6 +86,39 @@ export function registerNeoFeedAwsRoutes(app: any) {
     }
   });
 
+  // Get posts by specific username - faster for profile pages
+  app.get('/api/social-posts/by-user/:username', async (req: any, res: any) => {
+    try {
+      const { username } = req.params;
+      console.log(`📱 Fetching posts for user: ${username}`);
+      
+      const { items: userPosts } = await getAllUserPosts(100);
+      
+      // Filter posts by authorUsername matching the requested username
+      const matchingPosts = userPosts.filter((post: any) => 
+        post.authorUsername === username || 
+        post.authorUsername?.toLowerCase() === username?.toLowerCase()
+      );
+      
+      console.log(`✅ Found ${matchingPosts.length} posts for user ${username} (out of ${userPosts.length} total)`);
+      
+      // Log sample post structure for debugging
+      if (userPosts.length > 0) {
+        console.log(`📋 Sample post structure:`, JSON.stringify({
+          id: userPosts[0].id,
+          authorUsername: userPosts[0].authorUsername,
+          authorDisplayName: userPosts[0].authorDisplayName,
+          content: userPosts[0].content?.substring(0, 50)
+        }));
+      }
+      
+      res.json(matchingPosts);
+    } catch (error: any) {
+      console.error('❌ Error fetching user posts:', error);
+      res.status(500).json({ error: 'Failed to fetch user posts' });
+    }
+  });
+
   app.post('/api/social-posts', async (req: any, res: any) => {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`🚀 [${requestId}] Creating post on AWS DynamoDB`);

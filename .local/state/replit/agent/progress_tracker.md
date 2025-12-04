@@ -636,3 +636,34 @@ VERIFICATION:
 🎉 PROFILE TAB PERFORMANCE FIX COMPLETE - Follow counts update immediately!
 
 =========================================================
+NEOFEED PROFILE POSTS & LOADING OPTIMIZATION - December 4, 2025 ✅
+
+[x] 1. Added staleTime (60 seconds) to profile query to prevent repeated slow API calls
+[x] 2. Added gcTime (5 minutes) to keep profile data cached longer
+[x] 3. Changed stats refetchInterval from 5 seconds to 30 seconds to reduce network load
+[x] 4. Created new endpoint GET /api/social-posts/by-user/:username for server-side filtering
+[x] 5. Updated ProfileHeader to use new dedicated user posts endpoint
+[x] 6. Added skeleton loading UI while posts are being fetched
+[x] 7. Server-side post filtering by authorUsername for better accuracy
+
+BACKEND CHANGES:
+✅ New endpoint: GET /api/social-posts/by-user/:username
+✅ Filters posts by authorUsername match
+✅ Returns only posts by the requested user
+✅ Includes debug logging for post structure analysis
+
+FRONTEND CHANGES:
+✅ Profile query: staleTime 60000ms, gcTime 300000ms
+✅ Stats query: staleTime 30000ms, refetchInterval 30000ms
+✅ User posts: Direct fetch from /api/social-posts/by-user/:username
+✅ Added skeleton loading cards for posts while fetching
+
+PERFORMANCE IMPROVEMENTS:
+✅ Profile data cached for 1 minute (was being refetched constantly)
+✅ Stats polling reduced from every 5s to every 30s
+✅ User posts fetched server-side instead of client-side filtering
+✅ Loading states provide immediate visual feedback
+
+🎉 PROFILE TAB OPTIMIZED - Faster loading and proper post fetching!
+
+=========================================================
