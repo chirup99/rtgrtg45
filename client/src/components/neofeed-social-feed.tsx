@@ -849,70 +849,65 @@ function ProfileHeader() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch profile data - quick fetch on mount
+  // Simple profile fetch
   const { data: profileData, isLoading } = useQuery({
-    queryKey: ['profile-header-data'],
+    queryKey: ['my-profile'],
     queryFn: async () => {
       const idToken = await getCognitoToken();
       if (!idToken) return null;
-
       const response = await fetch('/api/user/profile', {
         headers: { 'Authorization': `Bearer ${idToken}` }
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.profile || null;
-      }
-      return null;
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.profile || null;
     },
-    staleTime: 60 * 1000, // 1 minute cache
-    gcTime: 5 * 60 * 1000,
   });
 
-  const currentUsername = profileData?.username || '';
+  const username = profileData?.username || '';
 
-  // Fetch follower/following counts - immediate fetch, no stale cache
-  const { data: countsData = { followers: 0, following: 0 } } = useQuery({
-    queryKey: ['followers-count', currentUsername],
+  // Simple stats fetch - Twitter-like, one endpoint
+  const { data: stats = { followers: 0, following: 0 } } = useQuery({
+    queryKey: ['profile-stats', username],
     queryFn: async () => {
-      if (!currentUsername) return { followers: 0, following: 0 };
-      const response = await fetch(`/api/users/${currentUsername}/followers-count`);
+      if (!username) return { followers: 0, following: 0 };
+      console.log(`📊 Fetching stats for: ${username}`);
+      const response = await fetch(`/api/profile/${username}/stats`);
       if (!response.ok) return { followers: 0, following: 0 };
-      return response.json();
+      const data = await response.json();
+      console.log(`📊 Stats received:`, data);
+      return data;
     },
-    enabled: !!currentUsername,
-    staleTime: 0, // Always refetch after invalidation
-    gcTime: 60 * 1000,
+    enabled: !!username,
+    staleTime: 0,
+    refetchInterval: 5000, // Auto-refresh every 5s like Twitter
   });
 
-  // Fetch followers list - immediate when dialog opens
+  // Followers list - only when dialog opens
   const { data: followersList = { followers: [] } } = useQuery({
-    queryKey: ['followers-list', currentUsername],
+    queryKey: ['followers-list', username],
     queryFn: async () => {
-      if (!currentUsername) return { followers: [] };
-      const response = await fetch(`/api/users/${currentUsername}/followers-list`);
+      if (!username) return { followers: [] };
+      const response = await fetch(`/api/users/${username}/followers-list`);
       if (!response.ok) return { followers: [] };
       return response.json();
     },
-    enabled: !!currentUsername && showFollowersDialog,
-    staleTime: 0,
+    enabled: !!username && showFollowersDialog,
   });
 
-  // Fetch following list - immediate when dialog opens
+  // Following list - only when dialog opens
   const { data: followingList = { following: [] } } = useQuery({
-    queryKey: ['following-list', currentUsername],
+    queryKey: ['following-list', username],
     queryFn: async () => {
-      if (!currentUsername) return { following: [] };
-      const response = await fetch(`/api/users/${currentUsername}/following-list`);
+      if (!username) return { following: [] };
+      const response = await fetch(`/api/users/${username}/following-list`);
       if (!response.ok) return { following: [] };
       return response.json();
     },
-    enabled: !!currentUsername && showFollowingDialog,
-    staleTime: 0,
+    enabled: !!username && showFollowingDialog,
   });
 
-  // Fetch posts with stable caching
+  // User posts
   const { data: allPosts = [] } = useQuery({
     queryKey: ['/api/social-posts'],
     queryFn: async (): Promise<SocialPost[]> => {
@@ -921,34 +916,24 @@ function ProfileHeader() {
       return response.json();
     },
     staleTime: 30000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
   });
 
-  // Get current user email from localStorage for matching
   const currentUserEmail = localStorage.getItem('currentUserEmail') || '';
-  
-  // Filter user's posts - memoized to prevent recalculations
   const userPosts = useMemo(() => {
     if (!profileData) return [];
-    
     return allPosts.filter(post => 
       post.authorUsername === profileData.username || 
-      post.authorUsername === currentUserEmail?.split('@')[0] ||
       post.authorDisplayName === profileData.displayName
     );
-  }, [allPosts, profileData, currentUserEmail]);
+  }, [allPosts, profileData]);
 
   const postCount = userPosts.length;
-
-  const displayName = profileData?.displayName || localStorage.getItem('currentDisplayName') || '';
-  const username = profileData?.username || currentUserEmail?.split('@')[0] || '';
+  const displayName = profileData?.displayName || '';
   const bio = profileData?.bio || '';
-  const following = countsData?.following || 0;
-  const followers = countsData?.followers || 0;
+  const followers = stats?.followers || 0;
+  const following = stats?.following || 0;
   const profilePicUrl = profileData?.profilePicUrl;
   const coverPicUrl = profileData?.coverPicUrl;
-
   const initials = displayName ? displayName.charAt(0).toUpperCase() : username.charAt(0).toUpperCase();
 
   if (isLoading) {
@@ -1962,15 +1947,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       // Use server response as source of truth
       setIsFollowing(data.following);
       
-      // Invalidate all follow-related queries - use CORRECT query keys that match ProfileHeader
+      // Simple cache invalidation - Twitter-like
       queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername] });
-      queryClient.invalidateQueries({ queryKey: ['followers-count', authorUsername] });
-      queryClient.invalidateQueries({ queryKey: ['followers-list', authorUsername] });
-      queryClient.invalidateQueries({ queryKey: ['following-list', authorUsername] });
+      queryClient.invalidateQueries({ queryKey: ['profile-stats', authorUsername] });
       if (currentUserUsername) {
-        queryClient.invalidateQueries({ queryKey: ['followers-count', currentUserUsername] });
-        queryClient.invalidateQueries({ queryKey: ['followers-list', currentUserUsername] });
-        queryClient.invalidateQueries({ queryKey: ['following-list', currentUserUsername] });
+        queryClient.invalidateQueries({ queryKey: ['profile-stats', currentUserUsername] });
       }
       
       // Show success message based on server response

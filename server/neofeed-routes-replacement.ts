@@ -47,6 +47,7 @@ async function getAuthenticatedUser(req: any): Promise<{ userId: string; usernam
   // If no profile exists yet, use Cognito data (email username part)
   if (!profile) {
     const emailUsername = cognitoUser.email ? cognitoUser.email.split('@')[0] : cognitoUser.sub;
+    console.log(`⚠️ getAuthenticatedUser: No profile for ${cognitoUser.sub}, using email: ${emailUsername}`);
     return {
       userId: cognitoUser.sub,
       username: emailUsername,
@@ -54,6 +55,7 @@ async function getAuthenticatedUser(req: any): Promise<{ userId: string; usernam
     };
   }
   
+  console.log(`✅ getAuthenticatedUser: Found profile username=${profile.username}`);
   return {
     userId: cognitoUser.sub,
     username: profile.username,
@@ -419,6 +421,37 @@ export function registerNeoFeedAwsRoutes(app: any) {
       res.json(news);
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to create finance news' });
+    }
+  });
+
+  // Simple unified profile stats endpoint - one call gets everything
+  app.get('/api/profile/:username/stats', async (req: any, res: any) => {
+    try {
+      const username = req.params.username;
+      console.log(`📊 Fetching stats for: ${username}`);
+      
+      if (!username) {
+        return res.json({ followers: 0, following: 0, isFollowing: false });
+      }
+      
+      // Get counts directly from DynamoDB
+      const [followers, following] = await Promise.all([
+        getFollowersCount(username),
+        getFollowingCount(username)
+      ]);
+      
+      // Check if current user is following this profile
+      let userIsFollowing = false;
+      const currentUser = await getAuthenticatedUser(req);
+      if (currentUser && currentUser.username !== username) {
+        userIsFollowing = await isFollowing(currentUser.username, username);
+      }
+      
+      console.log(`✅ Stats for ${username}: ${followers} followers, ${following} following`);
+      res.json({ followers, following, isFollowing: userIsFollowing });
+    } catch (error: any) {
+      console.error('❌ Error getting profile stats:', error);
+      res.json({ followers: 0, following: 0, isFollowing: false });
     }
   });
 

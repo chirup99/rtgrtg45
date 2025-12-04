@@ -447,12 +447,15 @@ export async function createOrUpdateUserProfile(userId: string, profileData: any
 
 export async function getUserProfile(userId: string) {
   try {
+    // Use correct key format: USER#userId for pk, PROFILE for sk (matching routes.ts)
     const result = await docClient.send(new GetCommand({
       TableName: TABLES.USER_PROFILES,
-      Key: { pk: `profile#${userId}`, sk: userId }
+      Key: { pk: `USER#${userId}`, sk: 'PROFILE' }
     }));
+    console.log(`🔍 getUserProfile(${userId}): ${result.Item ? 'FOUND - ' + result.Item.username : 'NOT FOUND'}`);
     return result.Item || null;
   } catch (error) {
+    console.error(`❌ getUserProfile error for ${userId}:`, error);
     return null;
   }
 }
