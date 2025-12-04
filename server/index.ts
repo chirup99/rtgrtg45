@@ -2,6 +2,7 @@
 import * as admin from 'firebase-admin';
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import fileUpload from 'express-fileupload';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { liveWebSocketStreamer } from "./live-websocket-streamer";
@@ -154,6 +155,13 @@ app.use((req, res, next) => {
 // Increase body size limits for image uploads (base64 encoded images can be large)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// File upload middleware for profile images
+app.use(fileUpload({
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
+  abortOnLimit: true,
+  createParentPath: true
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

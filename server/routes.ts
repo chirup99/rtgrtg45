@@ -4692,13 +4692,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update user profile (PATCH) - for bio and displayName - Using AWS Cognito + DynamoDB
+  // Update user profile (PATCH) - for all profile fields - Using AWS Cognito + DynamoDB
   app.patch('/api/user/profile', async (req, res) => {
     try {
-      const { displayName, bio } = req.body;
+      const { username, displayName, bio, profilePicUrl, coverPicUrl } = req.body;
       const authHeader = req.headers.authorization;
 
-      console.log('🔄 Profile update request:', { displayName, bio: bio?.substring(0, 50), hasAuth: !!authHeader });
+      console.log('🔄 Profile update request:', { 
+        username, 
+        displayName, 
+        bio: bio?.substring(0, 50), 
+        profilePicUrl: profilePicUrl?.substring(0, 50),
+        coverPicUrl: coverPicUrl?.substring(0, 50),
+        hasAuth: !!authHeader 
+      });
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ success: false, message: 'No authentication token provided' });
@@ -4719,7 +4726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use AWS DynamoDB
       const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { DynamoDBDocumentClient, GetCommand, UpdateCommand, PutCommand, QueryCommand, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
       
       const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
       const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
@@ -4757,11 +4764,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const existingProfile = existingResult.Item;
+      const oldUsername = existingProfile.username;
+
+      // If username is being changed, check for uniqueness
+      if (username !== undefined && username.toLowerCase() !== oldUsername) {
+        // Validate username format
+        if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+          return res.status(400).json({ 
+            success: false,
+            message: 'Username must be 3-20 characters and contain only letters, numbers, and underscores' 
+          });
+        }
+
+        // Check if new username is taken
+        const checkUsernameCommand = new GetCommand({
+          TableName: 'neofeed-user-profiles',
+          Key: {
+            pk: `USERNAME#${username.toLowerCase()}`,
+            sk: 'MAPPING'
+          }
+        });
+
+        const usernameResult = await docClient.send(checkUsernameCommand);
+        if (usernameResult.Item && usernameResult.Item.userId !== userId) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Username already taken. Please choose a different one.' 
+          });
+        }
+      }
+
       // Build update expression
       let updateExpression = 'SET updatedAt = :updatedAt';
       const expressionAttributeValues: any = {
         ':updatedAt': new Date().toISOString()
       };
+      const expressionAttributeNames: any = {};
+
+      if (username !== undefined && username.toLowerCase() !== oldUsername) {
+        updateExpression += ', username = :username';
+        expressionAttributeValues[':username'] = username.toLowerCase();
+      }
 
       if (displayName !== undefined) {
         updateExpression += ', displayName = :displayName';
@@ -4771,6 +4815,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (bio !== undefined) {
         updateExpression += ', bio = :bio';
         expressionAttributeValues[':bio'] = bio.trim();
+      }
+
+      if (profilePicUrl !== undefined) {
+        updateExpression += ', profilePicUrl = :profilePicUrl';
+        expressionAttributeValues[':profilePicUrl'] = profilePicUrl;
+      }
+
+      if (coverPicUrl !== undefined) {
+        updateExpression += ', coverPicUrl = :coverPicUrl';
+        expressionAttributeValues[':coverPicUrl'] = coverPicUrl;
       }
 
       console.log('💾 Updating profile with DynamoDB...');
@@ -4788,6 +4842,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updateResult = await docClient.send(updateCommand);
       console.log('✅ Profile updated successfully');
+
+      // If username changed, update the username mapping
+      if (username !== undefined && username.toLowerCase() !== oldUsername) {
+        // Delete old username mapping
+        if (oldUsername) {
+          const deleteOldMappingCommand = new DeleteCommand({
+            TableName: 'neofeed-user-profiles',
+            Key: {
+              pk: `USERNAME#${oldUsername}`,
+              sk: 'MAPPING'
+            }
+          });
+          await docClient.send(deleteOldMappingCommand);
+          console.log('🗑️ Deleted old username mapping:', oldUsername);
+        }
+
+        // Create new username mapping
+        const newMappingCommand = new PutCommand({
+          TableName: 'neofeed-user-profiles',
+          Item: {
+            pk: `USERNAME#${username.toLowerCase()}`,
+            sk: 'MAPPING',
+            userId: userId,
+            username: username.toLowerCase(),
+            updatedAt: new Date().toISOString()
+          }
+        });
+        await docClient.send(newMappingCommand);
+        console.log('✅ Created new username mapping:', username.toLowerCase());
+      }
 
       res.json({ 
         success: true,
@@ -5981,7 +6065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   */ // 🔴 END DEPRECATED Firebase Social Posts - Now using AWS DynamoDB
 
-  // Upload profile image (profile or cover photo)
+  // Upload profile image (profile or cover photo) - Using Cognito + AWS S3
   app.post('/api/upload-profile-image', async (req: any, res) => {
     try {
       const authHeader = req.headers.authorization;
@@ -5989,24 +6073,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
+      // Verify Cognito token
+      const { verifyCognitoToken } = await import('./cognito-auth');
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const userId = decodedToken.uid;
+      const cognitoUser = await verifyCognitoToken(idToken);
+      
+      if (!cognitoUser) {
+        console.log('❌ Cognito token verification failed for image upload');
+        return res.status(401).json({ error: 'Invalid authentication token' });
+      }
 
-      // Check if multer is available
-      if (!req.files || !req.body) {
+      const userId = cognitoUser.sub;
+      const imageType = req.body?.type || 'profile';
+      
+      console.log(`📸 Processing ${imageType} image upload for user:`, userId);
+
+      // Check for file data in the request
+      // The frontend sends multipart form data
+      const files = req.files;
+      const file = files?.file;
+      
+      if (!file) {
+        console.log('❌ No file found in request');
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      // For now, return a placeholder URL - in production, this would upload to Firebase Storage
-      // You can implement actual Firebase Storage upload here
-      const timestamp = Date.now();
-      const placeholderUrl = `https://ui-avatars.com/api/?name=${userId}&size=200&background=random&time=${timestamp}`;
+      // Import AWS S3 SDK
+      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      
+      const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+      const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      const awsRegion = process.env.AWS_REGION || 'eu-north-1';
+      const bucketName = process.env.AWS_S3_BUCKET || 'neofeed-profile-images';
 
-      console.log(`✅ Profile image uploaded for user ${userId}`);
-      res.json({ url: placeholderUrl });
-    } catch (error) {
+      if (!awsAccessKeyId || !awsSecretAccessKey) {
+        console.log('❌ AWS credentials not configured for S3 upload');
+        // Fall back to generating a placeholder URL
+        const timestamp = Date.now();
+        const displayName = cognitoUser.name || userId.substring(0, 8);
+        const placeholderUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=200&background=random&time=${timestamp}`;
+        console.log('⚠️ Using placeholder URL instead:', placeholderUrl);
+        return res.json({ url: placeholderUrl });
+      }
+
+      try {
+        const s3Client = new S3Client({
+          region: awsRegion,
+          credentials: {
+            accessKeyId: awsAccessKeyId,
+            secretAccessKey: awsSecretAccessKey
+          }
+        });
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const fileExtension = file.name?.split('.').pop() || 'jpg';
+        const key = `profiles/${userId}/${imageType}-${timestamp}.${fileExtension}`;
+
+        // Upload to S3
+        const uploadCommand = new PutObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+          Body: file.data,
+          ContentType: file.mimetype || 'image/jpeg',
+          ACL: 'public-read'
+        });
+
+        await s3Client.send(uploadCommand);
+        
+        // Construct public URL
+        const publicUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${key}`;
+        
+        console.log(`✅ ${imageType} image uploaded to S3:`, publicUrl);
+        res.json({ url: publicUrl });
+      } catch (s3Error: any) {
+        console.error('❌ S3 upload error:', s3Error.message);
+        // Fall back to placeholder URL if S3 fails
+        const timestamp = Date.now();
+        const displayName = cognitoUser.name || userId.substring(0, 8);
+        const placeholderUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=200&background=random&time=${timestamp}`;
+        console.log('⚠️ S3 failed, using placeholder URL:', placeholderUrl);
+        res.json({ url: placeholderUrl });
+      }
+    } catch (error: any) {
       console.error('❌ Error uploading profile image:', error);
       res.status(500).json({ error: 'Failed to upload image' });
     }

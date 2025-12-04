@@ -1527,27 +1527,37 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
   const handleSave = async () => {
     try {
       const idToken = await getCognitoToken();
+      if (!idToken) {
+        toast({ description: "Please log in to update your profile", variant: "destructive" });
+        return;
+      }
+
       const response = await fetch('/api/user/profile', {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          username,
-          displayName,
-          bio,
-          profilePicUrl,
-          coverPicUrl
+          username: username || undefined,
+          displayName: displayName || undefined,
+          bio: bio || undefined,
+          profilePicUrl: profilePicUrl || undefined,
+          coverPicUrl: coverPicUrl || undefined
         })
       });
 
-      if (!response.ok) throw new Error('Failed to update profile');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to update profile');
+      }
 
       toast({ description: "Profile updated successfully!" });
       onSuccess();
-    } catch (error) {
-      toast({ description: "Failed to update profile", variant: "destructive" });
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      toast({ description: error.message || "Failed to update profile", variant: "destructive" });
     }
   };
 
