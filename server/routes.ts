@@ -4562,8 +4562,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
       const awsRegion = process.env.AWS_REGION || 'eu-north-1';
 
+      console.log('🔑 AWS Credentials Check (POST /api/user/profile):');
+      console.log('  - AWS_ACCESS_KEY_ID present:', !!awsAccessKeyId, awsAccessKeyId ? `(${awsAccessKeyId.substring(0, 4)}...)` : '');
+      console.log('  - AWS_SECRET_ACCESS_KEY present:', !!awsSecretAccessKey);
+      console.log('  - AWS_REGION:', awsRegion);
+
       if (!awsAccessKeyId || !awsSecretAccessKey) {
-        console.log('❌ AWS credentials not configured');
+        console.log('❌ AWS credentials not configured - Check secrets are set in Replit');
         return res.status(500).json({ success: false, message: 'Server configuration error' });
       }
 
