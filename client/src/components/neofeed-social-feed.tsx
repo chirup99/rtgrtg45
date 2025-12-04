@@ -886,17 +886,20 @@ function ProfileHeader() {
   // Get username for queries
   const currentUsername = profileData?.username || '';
 
-  // Fetch follower and following counts (lightweight query)
+  // Fetch follower and following counts (lightweight query - no staleTime to allow real-time updates)
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
     queryKey: [`/api/users/${currentUsername}/followers-count`],
     queryFn: async () => {
       if (!currentUsername) return { followers: 0, following: 0 };
       const response = await fetch(`/api/users/${currentUsername}/followers-count`);
       if (!response.ok) return { followers: 0, following: 0 };
-      return response.json();
+      const data = await response.json();
+      console.log(`📊 ProfileHeader counts for ${currentUsername}:`, data);
+      return data;
     },
     enabled: !!currentUsername,
-    staleTime: 60000, // Cache for 1 minute
+    staleTime: 0, // Always refetch when invalidated for real-time count updates
+    refetchOnMount: true,
   });
 
   // Fetch followers list (only when dialog opens)
@@ -2020,7 +2023,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       await queryClient.cancelQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername] });
       return { previousFollowing: isFollowing };
     },
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
+      // Use context.previousFollowing to determine the correct message
+      // previousFollowing is the state BEFORE the action was taken
+      const wasFollowing = context?.previousFollowing;
+      
       // Invalidate related queries to update counts
       queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
@@ -2043,7 +2050,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                  (key[0].includes('/followers-list') || key[0].includes('/following-list'));
         }
       });
-      toast({ description: isFollowing ? "Unfollowed successfully!" : "Following!" });
+      // If wasFollowing was true, we just unfollowed. If false, we just followed.
+      toast({ description: wasFollowing ? "Unfollowed successfully!" : "Following!" });
     },
     onError: (err: any, variables, context) => {
       // Revert on error
