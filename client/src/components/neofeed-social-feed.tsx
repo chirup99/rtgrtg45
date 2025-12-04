@@ -462,7 +462,7 @@ function InlineCommentSection({ post, isVisible, onClose, onCommentAdded }: { po
                 <div className="py-1">
                   {mentionSuggestions.map((user, index) => (
                     <button
-                      key={user.username}
+                      key={`${user.username}-${index}`}
                       type="button"
                       onClick={() => insertMention(user)}
                       className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
