@@ -2519,7 +2519,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-700 dark:border-cyan-400/30 bg-gradient-to-r from-gray-800/80 to-gray-900/80 dark:from-black/40 dark:to-indigo-900/40 py-4 rounded-b-lg">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-300 dark:border-cyan-400/30 bg-gradient-to-r from-gray-100/80 to-gray-200/80 dark:from-black/40 dark:to-indigo-900/40 py-4 rounded-b-lg">
           <div className="flex items-center gap-8">
             <Button
               variant="ghost"
