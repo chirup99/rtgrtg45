@@ -2574,7 +2574,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
 
               {/* Vote Bar - Facebook/LinkedIn Style */}
               {showVoteBar && (
-                <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-700 rounded-full shadow-lg p-2 flex gap-3 backdrop-blur-sm border border-gray-200 dark:border-gray-600 z-50">
+                <div className="absolute bottom-full mb-2 left-0 bg-gray-50 dark:bg-gray-800 rounded-full shadow-lg p-2 flex gap-3 backdrop-blur-sm border border-gray-300 dark:border-gray-700 z-50">
                   <Button
                     variant="ghost"
                     size="sm"
