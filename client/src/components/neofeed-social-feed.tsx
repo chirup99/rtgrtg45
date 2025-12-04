@@ -1779,8 +1779,10 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Check if this post belongs to the current user
-  const isOwnPost = !!(currentUserUsername && (post.authorUsername === currentUserUsername || post.user?.handle === currentUserUsername));
+  // Check if this post belongs to the current user (case-insensitive)
+  const isOwnPost = !!(currentUserUsername && (
+    post.authorUsername?.toLowerCase() === currentUserUsername?.toLowerCase() || 
+    post.user?.handle?.toLowerCase() === currentUserUsername?.toLowerCase()));
   
   // Get the author username for follow functionality
   const authorUsername = post.user?.handle || post.authorUsername || 'user';
@@ -2847,6 +2849,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
   }
 
   // Apply filter tabs to search results - using real Firebase username from state
+  // Use case-insensitive matching for Profile filter to handle username case variations
   let filteredData: FeedPost[] = selectedFilter === 'All' 
     ? searchFilteredData
     : selectedFilter === 'Symbol' 
@@ -2856,7 +2859,9 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     : selectedFilter === 'Bearish'
     ? searchFilteredData.filter(post => post.sentiment === 'bearish')
     : selectedFilter === 'Profile'
-    ? searchFilteredData.filter(post => post.authorUsername === currentUserUsername || post.user?.handle === currentUserUsername)
+    ? searchFilteredData.filter(post => 
+        post.authorUsername?.toLowerCase() === currentUserUsername?.toLowerCase() || 
+        post.user?.handle?.toLowerCase() === currentUserUsername?.toLowerCase())
     : searchFilteredData.filter(post => post.tags?.some(tag => tag.toLowerCase().includes(selectedFilter.toLowerCase())));
 
   // Sort posts - memoized to prevent re-sorting on every render
