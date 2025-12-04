@@ -2,6 +2,39 @@
 # Trading Platform Migration - Progress Tracker
 
 =========================================================
+NEOFEED LIKE COUNT FIX - December 4, 2025 ✅
+
+[x] 1. Identified duplicate like records in DynamoDB causing inflated counts
+[x] 2. Added admin endpoint GET /api/admin/check-likes to diagnose duplicates
+[x] 3. Added admin endpoint POST /api/admin/cleanup-likes to remove duplicates
+[x] 4. Normalized user IDs to lowercase in createLike, deleteLike, userLikedPost
+[x] 5. Cleaned up 10 duplicate like records from DynamoDB
+[x] 6. Verified like counts are now correct (was 9, now 2 for post IXnre05jgTs4Xlu7B2PWY)
+[x] 7. Like button turns red when user has liked post (via likeStatus query)
+[x] 8. Added admin endpoint GET /api/admin/check-reposts to diagnose repost duplicates
+[x] 9. Added admin endpoint POST /api/admin/cleanup-reposts to remove repost duplicates
+[x] 10. Normalized user IDs to lowercase in createRetweet, deleteRetweet, userRetweetedPost
+[x] 11. Cleaned up 3 duplicate repost records from DynamoDB
+[x] 12. Verified repost counts are now correct
+
+ISSUES FIXED:
+- Problem: Like count showed 9 when only 3 users existed
+- Problem: Repost count showed 4 when should be 1
+- Cause: Same user created multiple records (duplicates) for same post
+- Solution: Added duplicate detection/cleanup, normalized user IDs to lowercase
+
+TECHNICAL CHANGES:
+- server/neofeed-dynamodb-migration.ts: Normalized userId to lowercase in like/repost functions
+- server/neofeed-routes-replacement.ts: Added admin endpoints for like/repost diagnostics
+
+LIKE & REPOST BEHAVIOR (Twitter-style):
+- Each user can only have 1 like per post
+- Each user can only have 1 repost per post  
+- Tapping like shows red color, tapping repost shows green color
+- Tapping again removes the action and decreases count by 1
+- User IDs normalized to lowercase to prevent case-sensitive duplicates
+
+=========================================================
 TWITTER/X-STYLE REPOST FUNCTIONALITY - December 4, 2025 ✅
 
 [x] 1. Updated backend POST /api/social-posts/:id/retweet to create reposts as separate posts

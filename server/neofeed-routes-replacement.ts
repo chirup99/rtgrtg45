@@ -83,6 +83,220 @@ async function enrichPostWithRealCounts(post: any): Promise<any> {
 export function registerNeoFeedAwsRoutes(app: any) {
   console.log('🔷 Registering NeoFeed AWS DynamoDB routes...');
 
+  // Admin endpoint to check and clean up duplicate likes (Twitter-style: 1 like per user per post)
+  app.get('/api/admin/check-likes', async (req: any, res: any) => {
+    try {
+      const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { docClient } = await import('./neofeed-dynamodb-migration');
+      
+      const result = await docClient.send(new ScanCommand({
+        TableName: 'neofeed-likes'
+      }));
+      
+      const likes = result.Items || [];
+      console.log(`📊 Found ${likes.length} total like records`);
+      
+      // Group likes by postId to find duplicates
+      const likesByPost: Record<string, any[]> = {};
+      const likesByUserPost: Record<string, any[]> = {};
+      
+      for (const like of likes) {
+        const postId = like.postId;
+        const userId = like.userId;
+        const key = `${userId}_${postId}`;
+        
+        if (!likesByPost[postId]) likesByPost[postId] = [];
+        likesByPost[postId].push(like);
+        
+        if (!likesByUserPost[key]) likesByUserPost[key] = [];
+        likesByUserPost[key].push(like);
+      }
+      
+      // Find posts with potential duplicates
+      const duplicates = Object.entries(likesByUserPost)
+        .filter(([, likes]) => likes.length > 1)
+        .map(([key, likes]) => ({
+          key,
+          count: likes.length,
+          records: likes.map(l => ({ pk: l.pk, userId: l.userId, postId: l.postId, createdAt: l.createdAt }))
+        }));
+      
+      // Summary by post
+      const postSummary = Object.entries(likesByPost).map(([postId, likes]) => ({
+        postId,
+        totalLikes: likes.length,
+        uniqueUsers: new Set(likes.map(l => l.userId)).size,
+        users: Array.from(new Set(likes.map(l => l.userId)))
+      }));
+      
+      res.json({ 
+        totalLikes: likes.length,
+        duplicateGroups: duplicates.length,
+        duplicates,
+        postSummary
+      });
+    } catch (error: any) {
+      console.error('❌ Error checking likes:', error);
+      res.status(500).json({ error: 'Failed to check likes' });
+    }
+  });
+
+  // Admin endpoint to clean up duplicate likes - keep only 1 like per user per post
+  app.post('/api/admin/cleanup-likes', async (req: any, res: any) => {
+    try {
+      const { ScanCommand, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { docClient } = await import('./neofeed-dynamodb-migration');
+      
+      const result = await docClient.send(new ScanCommand({
+        TableName: 'neofeed-likes'
+      }));
+      
+      const likes = result.Items || [];
+      console.log(`📊 Scanning ${likes.length} like records for duplicates...`);
+      
+      // Group likes by unique user+post combination
+      const likesByUserPost: Record<string, any[]> = {};
+      
+      for (const like of likes) {
+        const key = `${like.userId?.toLowerCase()}_${like.postId}`;
+        if (!likesByUserPost[key]) likesByUserPost[key] = [];
+        likesByUserPost[key].push(like);
+      }
+      
+      let deletedCount = 0;
+      const deletedRecords: any[] = [];
+      
+      // For each group with duplicates, keep the oldest and delete the rest
+      for (const [key, groupLikes] of Object.entries(likesByUserPost)) {
+        if (groupLikes.length > 1) {
+          // Sort by createdAt, keep oldest
+          groupLikes.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          const toDelete = groupLikes.slice(1); // Delete all except first (oldest)
+          
+          for (const like of toDelete) {
+            await docClient.send(new DeleteCommand({
+              TableName: 'neofeed-likes',
+              Key: { pk: like.pk, sk: like.sk }
+            }));
+            deletedCount++;
+            deletedRecords.push({ pk: like.pk, userId: like.userId, postId: like.postId });
+            console.log(`🗑️ Deleted duplicate like: ${like.pk}`);
+          }
+        }
+      }
+      
+      console.log(`✅ Cleaned up ${deletedCount} duplicate likes`);
+      res.json({ 
+        success: true, 
+        deleted: deletedCount,
+        deletedRecords,
+        message: `Removed ${deletedCount} duplicate like records`
+      });
+    } catch (error: any) {
+      console.error('❌ Error cleaning up likes:', error);
+      res.status(500).json({ error: 'Failed to cleanup likes' });
+    }
+  });
+
+  // Admin endpoint to check and clean up duplicate reposts (Twitter-style: 1 repost per user per post)
+  app.get('/api/admin/check-reposts', async (req: any, res: any) => {
+    try {
+      const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { docClient } = await import('./neofeed-dynamodb-migration');
+      
+      const result = await docClient.send(new ScanCommand({
+        TableName: 'neofeed-retweets'
+      }));
+      
+      const reposts = result.Items || [];
+      console.log(`📊 Found ${reposts.length} total repost records`);
+      
+      // Group reposts by unique user+post combination
+      const repostsByUserPost: Record<string, any[]> = {};
+      
+      for (const repost of reposts) {
+        const key = `${repost.userId?.toLowerCase()}_${repost.postId}`;
+        if (!repostsByUserPost[key]) repostsByUserPost[key] = [];
+        repostsByUserPost[key].push(repost);
+      }
+      
+      // Find duplicates
+      const duplicates = Object.entries(repostsByUserPost)
+        .filter(([, items]) => items.length > 1)
+        .map(([key, items]) => ({
+          key,
+          count: items.length,
+          records: items.map(r => ({ pk: r.pk, userId: r.userId, postId: r.postId, createdAt: r.createdAt }))
+        }));
+      
+      res.json({ 
+        totalReposts: reposts.length,
+        duplicateGroups: duplicates.length,
+        duplicates
+      });
+    } catch (error: any) {
+      console.error('❌ Error checking reposts:', error);
+      res.status(500).json({ error: 'Failed to check reposts' });
+    }
+  });
+
+  // Admin endpoint to clean up duplicate reposts
+  app.post('/api/admin/cleanup-reposts', async (req: any, res: any) => {
+    try {
+      const { ScanCommand, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { docClient } = await import('./neofeed-dynamodb-migration');
+      
+      const result = await docClient.send(new ScanCommand({
+        TableName: 'neofeed-retweets'
+      }));
+      
+      const reposts = result.Items || [];
+      console.log(`📊 Scanning ${reposts.length} repost records for duplicates...`);
+      
+      // Group reposts by unique user+post combination
+      const repostsByUserPost: Record<string, any[]> = {};
+      
+      for (const repost of reposts) {
+        const key = `${repost.userId?.toLowerCase()}_${repost.postId}`;
+        if (!repostsByUserPost[key]) repostsByUserPost[key] = [];
+        repostsByUserPost[key].push(repost);
+      }
+      
+      let deletedCount = 0;
+      const deletedRecords: any[] = [];
+      
+      // For each group with duplicates, keep the oldest and delete the rest
+      for (const [key, groupReposts] of Object.entries(repostsByUserPost)) {
+        if (groupReposts.length > 1) {
+          // Sort by createdAt, keep oldest
+          groupReposts.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          const toDelete = groupReposts.slice(1);
+          
+          for (const repost of toDelete) {
+            await docClient.send(new DeleteCommand({
+              TableName: 'neofeed-retweets',
+              Key: { pk: repost.pk, sk: repost.sk }
+            }));
+            deletedCount++;
+            deletedRecords.push({ pk: repost.pk, userId: repost.userId, postId: repost.postId });
+            console.log(`🗑️ Deleted duplicate repost: ${repost.pk}`);
+          }
+        }
+      }
+      
+      console.log(`✅ Cleaned up ${deletedCount} duplicate reposts`);
+      res.json({ 
+        success: true, 
+        deleted: deletedCount,
+        deletedRecords,
+        message: `Removed ${deletedCount} duplicate repost records`
+      });
+    } catch (error: any) {
+      console.error('❌ Error cleaning up reposts:', error);
+      res.status(500).json({ error: 'Failed to cleanup reposts' });
+    }
+  });
+
   // Admin endpoint to fix posts with uppercase authorUsername
   app.post('/api/admin/fix-usernames', async (req: any, res: any) => {
     try {
@@ -568,6 +782,7 @@ export function registerNeoFeedAwsRoutes(app: any) {
       console.log(`✅ Repost created: User ${userId} reposted post ${postId}, new repost ID: ${createdRepost.id}`);
       res.json({ 
         success: true, 
+        retweeted: true,
         reposts: originalRepostCount,
         repostId: createdRepost.id,
         repost: createdRepost
@@ -600,7 +815,7 @@ export function registerNeoFeedAwsRoutes(app: any) {
       }
       
       const count = await getPostRetweetsCount(postId);
-      res.json({ success: true, reposts: count });
+      res.json({ success: true, retweeted: false, reposts: count });
     } catch (error: any) {
       console.error('❌ Error removing retweet:', error);
       res.status(500).json({ error: 'Failed to remove retweet' });

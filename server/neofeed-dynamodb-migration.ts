@@ -212,12 +212,14 @@ export async function getAllUserPosts(limit = 50) {
 
 export async function createLike(userId: string, postId: string) {
   try {
-    const likeId = `${userId}_${postId}`;
+    // Normalize userId to lowercase for consistent matching (Twitter-style: 1 like per user per post)
+    const normalizedUserId = userId.toLowerCase();
+    const likeId = `${normalizedUserId}_${postId}`;
     
     // Check if user already liked this post
-    const existingLike = await userLikedPost(userId, postId);
+    const existingLike = await userLikedPost(normalizedUserId, postId);
     if (existingLike) {
-      console.log(`⚠️ User ${userId} already liked post ${postId}`);
+      console.log(`⚠️ User ${normalizedUserId} already liked post ${postId}`);
       return { alreadyLiked: true, likeId };
     }
     
@@ -225,7 +227,7 @@ export async function createLike(userId: string, postId: string) {
       pk: `like#${likeId}`,
       sk: 'LIKE', // Fixed sk to ensure uniqueness per user/post
       likeId,
-      userId,
+      userId: normalizedUserId,
       postId,
       createdAt: new Date().toISOString()
     };
@@ -241,7 +243,9 @@ export async function createLike(userId: string, postId: string) {
 
 export async function deleteLike(userId: string, postId: string) {
   try {
-    const likeId = `${userId}_${postId}`;
+    // Normalize userId to lowercase for consistent matching
+    const normalizedUserId = userId.toLowerCase();
+    const likeId = `${normalizedUserId}_${postId}`;
     
     // Direct delete using known pk and sk
     await docClient.send(new DeleteCommand({
@@ -272,7 +276,9 @@ export async function getPostLikesCount(postId: string) {
 
 export async function userLikedPost(userId: string, postId: string) {
   try {
-    const likeId = `${userId}_${postId}`;
+    // Normalize userId to lowercase for consistent matching
+    const normalizedUserId = userId.toLowerCase();
+    const likeId = `${normalizedUserId}_${postId}`;
     
     // Direct lookup using known pk and sk
     const result = await docClient.send(new GetCommand({
@@ -288,12 +294,14 @@ export async function userLikedPost(userId: string, postId: string) {
 
 export async function createRetweet(userId: string, postId: string, userDisplayName?: string) {
   try {
-    const retweetId = `${userId}_${postId}`;
+    // Normalize userId to lowercase for consistent matching (Twitter-style: 1 repost per user per post)
+    const normalizedUserId = userId.toLowerCase();
+    const retweetId = `${normalizedUserId}_${postId}`;
     
     // Check if user already retweeted this post
-    const existingRetweet = await userRetweetedPost(userId, postId);
+    const existingRetweet = await userRetweetedPost(normalizedUserId, postId);
     if (existingRetweet) {
-      console.log(`⚠️ User ${userId} already retweeted post ${postId}`);
+      console.log(`⚠️ User ${normalizedUserId} already retweeted post ${postId}`);
       return { alreadyRetweeted: true, retweetId };
     }
     
@@ -301,7 +309,7 @@ export async function createRetweet(userId: string, postId: string, userDisplayN
       pk: `retweet#${retweetId}`,
       sk: 'RETWEET', // Fixed sk to ensure uniqueness per user/post
       retweetId,
-      userId,
+      userId: normalizedUserId,
       userDisplayName: userDisplayName || userId,
       postId,
       createdAt: new Date().toISOString()
@@ -318,7 +326,9 @@ export async function createRetweet(userId: string, postId: string, userDisplayN
 
 export async function deleteRetweet(userId: string, postId: string) {
   try {
-    const retweetId = `${userId}_${postId}`;
+    // Normalize userId to lowercase for consistent matching
+    const normalizedUserId = userId.toLowerCase();
+    const retweetId = `${normalizedUserId}_${postId}`;
     
     // Direct delete using known pk and sk
     await docClient.send(new DeleteCommand({
@@ -349,7 +359,9 @@ export async function getPostRetweetsCount(postId: string) {
 
 export async function userRetweetedPost(userId: string, postId: string) {
   try {
-    const retweetId = `${userId}_${postId}`;
+    // Normalize userId to lowercase for consistent matching
+    const normalizedUserId = userId.toLowerCase();
+    const retweetId = `${normalizedUserId}_${postId}`;
     
     // Direct lookup using known pk and sk
     const result = await docClient.send(new GetCommand({

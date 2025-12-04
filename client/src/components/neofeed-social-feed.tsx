@@ -1921,7 +1921,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       return { wasLiked, prevCount };
     },
     onSuccess: (data) => {
-      // Update with server response if available
+      // Update with server response - sync both liked state AND count
+      if (data?.liked !== undefined) {
+        setLiked(data.liked);
+        console.log(`❤️ Server confirmed: liked=${data.liked}`);
+      }
       if (data?.likes !== undefined) {
         setLikeCount(data.likes);
         console.log(`❤️ Server confirmed: likes=${data.likes}`);
@@ -1967,7 +1971,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       return { wasReposted, prevCount };
     },
     onSuccess: (data) => {
-      // Update with server response if available
+      // Update with server response - sync both reposted state AND count
+      if (data?.retweeted !== undefined) {
+        setReposted(data.retweeted);
+        console.log(`🔁 Server confirmed: retweeted=${data.retweeted}`);
+      }
       if (data?.reposts !== undefined) {
         setRepostCount(data.reposts);
         console.log(`🔁 Server confirmed: reposts=${data.reposts}`);
