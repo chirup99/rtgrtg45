@@ -249,12 +249,20 @@ export default function UserProfile() {
         // Sync state with server response (not just toggle)
         setIsFollowing(data.following);
         
-        // Invalidate all related queries to refresh counts
+        // Invalidate all related queries to refresh counts for BOTH users
+        // Target user's counts and lists
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-count`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile?.username}/followers-count`] });
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-list`] });
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/following-list`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile?.username}/following-list`] });
+        
+        // Current user's counts and lists (their following count changes)
+        if (currentUserProfile?.username) {
+          queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile.username}/followers-count`] });
+          queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile.username}/followers-list`] });
+          queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile.username}/following-list`] });
+        }
+        
+        // Follow status queries
         queryClient.invalidateQueries({ queryKey: ['follow-status', username] });
       } else {
         const errorData = await response.json();

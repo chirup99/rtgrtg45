@@ -514,9 +514,17 @@ export function registerNeoFeedAwsRoutes(app: any) {
       
       const alreadyFollowing = await isFollowing(currentUser.username, targetUsername);
       if (alreadyFollowing) {
-        const followers = await getFollowersCount(targetUsername);
+        const targetFollowers = await getFollowersCount(targetUsername);
+        const targetFollowing = await getFollowingCount(targetUsername);
+        const currentUserFollowing = await getFollowingCount(currentUser.username);
+        const currentUserFollowers = await getFollowersCount(currentUser.username);
         console.log(`⚠️ ${currentUser.username} already follows ${targetUsername}`);
-        return res.json({ success: true, following: true, followers });
+        return res.json({ 
+          success: true, 
+          following: true, 
+          targetUser: { followers: targetFollowers, following: targetFollowing },
+          currentUser: { followers: currentUserFollowers, following: currentUserFollowing }
+        });
       }
       
       await createFollow(
@@ -525,10 +533,23 @@ export function registerNeoFeedAwsRoutes(app: any) {
         { displayName: currentUser.displayName }, 
         targetUserData
       );
-      const followers = await getFollowersCount(targetUsername);
       
-      console.log(`✅ ${currentUser.username} followed ${targetUsername} - now has ${followers} followers`);
-      res.json({ success: true, following: true, followers });
+      // Get updated counts for both users
+      const targetFollowers = await getFollowersCount(targetUsername);
+      const targetFollowing = await getFollowingCount(targetUsername);
+      const currentUserFollowing = await getFollowingCount(currentUser.username);
+      const currentUserFollowers = await getFollowersCount(currentUser.username);
+      
+      console.log(`✅ ${currentUser.username} followed ${targetUsername}`);
+      console.log(`   Target ${targetUsername}: ${targetFollowers} followers, ${targetFollowing} following`);
+      console.log(`   Current ${currentUser.username}: ${currentUserFollowers} followers, ${currentUserFollowing} following`);
+      
+      res.json({ 
+        success: true, 
+        following: true, 
+        targetUser: { followers: targetFollowers, following: targetFollowing },
+        currentUser: { followers: currentUserFollowers, following: currentUserFollowing }
+      });
     } catch (error: any) {
       console.error('❌ Error following user:', error);
       res.status(500).json({ error: 'Failed to follow user' });
@@ -549,10 +570,23 @@ export function registerNeoFeedAwsRoutes(app: any) {
       }
       
       await deleteFollow(currentUser.username, targetUsername);
-      const followers = await getFollowersCount(targetUsername);
       
-      console.log(`✅ ${currentUser.username} unfollowed ${targetUsername} - now has ${followers} followers`);
-      res.json({ success: true, following: false, followers });
+      // Get updated counts for both users
+      const targetFollowers = await getFollowersCount(targetUsername);
+      const targetFollowing = await getFollowingCount(targetUsername);
+      const currentUserFollowing = await getFollowingCount(currentUser.username);
+      const currentUserFollowers = await getFollowersCount(currentUser.username);
+      
+      console.log(`✅ ${currentUser.username} unfollowed ${targetUsername}`);
+      console.log(`   Target ${targetUsername}: ${targetFollowers} followers, ${targetFollowing} following`);
+      console.log(`   Current ${currentUser.username}: ${currentUserFollowers} followers, ${currentUserFollowing} following`);
+      
+      res.json({ 
+        success: true, 
+        following: false, 
+        targetUser: { followers: targetFollowers, following: targetFollowing },
+        currentUser: { followers: currentUserFollowers, following: currentUserFollowing }
+      });
     } catch (error: any) {
       console.error('❌ Error unfollowing user:', error);
       res.status(500).json({ error: 'Failed to unfollow user' });

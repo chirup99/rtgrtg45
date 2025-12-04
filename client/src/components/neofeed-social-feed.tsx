@@ -1972,11 +1972,14 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       
       setIsFollowing(data.following);
       
+      // Invalidate all follow-related queries with correct keys matching user-profile.tsx
       queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername] });
-      queryClient.invalidateQueries({ queryKey: ['followers-count', authorUsername] });
-      queryClient.invalidateQueries({ queryKey: ['followers-count', currentUserUsername] });
-      queryClient.invalidateQueries({ queryKey: ['followers-list'] });
-      queryClient.invalidateQueries({ queryKey: ['following-list'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/followers-count`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/followers-list`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/following-list`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-count`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-list`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/following-list`] });
       
       toast({ description: data.following ? "Following!" : "Unfollowed" });
     },
