@@ -72,45 +72,18 @@ export function registerNeoFeedAwsRoutes(app: any) {
     try {
       console.log('📱 Fetching social posts from AWS DynamoDB');
       
-      const { items: userPosts } = await getAllUserPosts(50);
+      const { items: userPosts } = await getAllUserPosts(100);
       const financePosts = await getFinanceNews(20);
-      const allReposts = await getAllRepostsForFeed();
       
-      // Create a map of posts by ID for quick lookup
-      const postsById = new Map<string, any>();
-      userPosts.forEach((post: any) => postsById.set(post.id, post));
-      financePosts.forEach((post: any) => postsById.set(post.id, post));
-      
-      // Create repost entries as separate feed items
-      const repostFeedItems: any[] = [];
-      for (const repost of allReposts) {
-        const originalPost = postsById.get(repost.postId);
-        if (originalPost) {
-          repostFeedItems.push({
-            ...originalPost,
-            id: `repost_${repost.userId}_${originalPost.id}`, // Unique ID for the repost entry
-            isRepost: true,
-            repostedBy: {
-              userId: repost.userId,
-              displayName: repost.userDisplayName || repost.userId,
-              repostedAt: repost.createdAt
-            },
-            originalPostId: originalPost.id,
-            originalAuthorUsername: originalPost.authorUsername,
-            originalAuthorDisplayName: originalPost.authorDisplayName,
-            createdAt: repost.createdAt, // Use repost time for sorting
-            source: 'aws'
-          });
-        }
-      }
-      
+      // User posts now include reposts stored as separate entries with isRepost: true
+      // No need to dynamically create repost feed items anymore
       const allPosts = [
         ...userPosts.map((post: any) => ({ ...post, source: 'aws' })),
-        ...financePosts.map((post: any) => ({ ...post, source: 'aws', isFinanceNews: true })),
-        ...repostFeedItems
+        ...financePosts.map((post: any) => ({ ...post, source: 'aws', isFinanceNews: true }))
       ].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      console.log(`✅ Retrieved ${allPosts.length} posts from AWS DynamoDB (including ${repostFeedItems.length} reposts)`);
+      const repostCount = userPosts.filter((p: any) => p.isRepost).length;
+      console.log(`✅ Retrieved ${allPosts.length} posts from AWS DynamoDB (including ${repostCount} reposts)`);
       res.json(allPosts);
     } catch (error: any) {
       console.error('❌ Error fetching posts from AWS:', error);
@@ -395,17 +368,84 @@ export function registerNeoFeedAwsRoutes(app: any) {
       const { postId } = req.params;
       const userId = req.body?.userId || 'anonymous';
       const userDisplayName = req.body?.userDisplayName || userId;
+      const userUsername = req.body?.userUsername || userId;
 
-      const result = await createRetweet(userId, postId, userDisplayName);
-      const count = await getPostRetweetsCount(postId);
-      
-      // Check if it was already reposted
-      if (result && 'alreadyRetweeted' in result && result.alreadyRetweeted) {
+      // Check if user already reposted this post
+      const alreadyReposted = await userRetweetedPost(userId, postId);
+      if (alreadyReposted) {
+        const count = await getPostRetweetsCount(postId);
         console.log(`⚠️ User ${userId} already reposted this post`);
         return res.json({ success: true, alreadyReposted: true, reposts: count });
       }
+
+      // Fetch the original post to get its content and author info
+      let originalPost: any = await getUserPost(postId);
+      if (!originalPost) {
+        // Check finance news if not found in user posts
+        const financeNews = await getFinanceNews(100);
+        originalPost = financeNews.find((p: any) => p.id === postId);
+      }
       
-      res.json({ success: true, reposts: count });
+      if (!originalPost) {
+        return res.status(404).json({ error: 'Original post not found' });
+      }
+
+      // Twitter/X-style: If reposting a repost, trace back to the TRUE original author
+      // This ensures "repost of a repost" always shows the original creator, not intermediary
+      let trueOriginalPostId = postId;
+      let trueOriginalAuthorUsername = originalPost.authorUsername;
+      let trueOriginalAuthorDisplayName = originalPost.authorDisplayName;
+      let trueOriginalAuthorAvatar = originalPost.authorAvatar || null;
+      let trueOriginalAuthorVerified = originalPost.authorVerified || false;
+
+      if (originalPost.isRepost && originalPost.originalPostId) {
+        // This post is already a repost - use its original author info (already traced to root)
+        trueOriginalPostId = originalPost.originalPostId;
+        trueOriginalAuthorUsername = originalPost.originalAuthorUsername || originalPost.authorUsername;
+        trueOriginalAuthorDisplayName = originalPost.originalAuthorDisplayName || originalPost.authorDisplayName;
+        trueOriginalAuthorAvatar = originalPost.originalAuthorAvatar || originalPost.authorAvatar || null;
+        trueOriginalAuthorVerified = originalPost.originalAuthorVerified || originalPost.authorVerified || false;
+        console.log(`🔄 Reposting a repost - tracing to true original: ${trueOriginalPostId} by @${trueOriginalAuthorUsername}`);
+      }
+
+      // Create a NEW post entry as a repost with its own engagement counts
+      const repostData = {
+        content: originalPost.content,
+        authorUsername: userUsername,
+        authorDisplayName: userDisplayName,
+        userId: userId,
+        // Repost-specific fields - always point to TRUE original author
+        isRepost: true,
+        originalPostId: trueOriginalPostId,
+        originalAuthorUsername: trueOriginalAuthorUsername,
+        originalAuthorDisplayName: trueOriginalAuthorDisplayName,
+        originalAuthorAvatar: trueOriginalAuthorAvatar,
+        originalAuthorVerified: trueOriginalAuthorVerified,
+        // Copy original post's media/tags
+        stockMentions: originalPost.stockMentions || [],
+        sentiment: originalPost.sentiment || 'neutral',
+        tags: originalPost.tags || [],
+        hasImage: originalPost.hasImage || false,
+        imageUrl: originalPost.imageUrl || null,
+        isAudioPost: false,
+        selectedPostIds: [],
+        selectedPosts: []
+      };
+
+      // Create the repost as a new post with its own ID and engagement counts (likes:0, comments:0, reposts:0)
+      const createdRepost = await createUserPost(repostData);
+      
+      // Also track in retweets table (for the original post's repost count)
+      await createRetweet(userId, postId, userDisplayName);
+      const originalRepostCount = await getPostRetweetsCount(postId);
+      
+      console.log(`✅ Repost created: User ${userId} reposted post ${postId}, new repost ID: ${createdRepost.id}`);
+      res.json({ 
+        success: true, 
+        reposts: originalRepostCount,
+        repostId: createdRepost.id,
+        repost: createdRepost
+      });
     } catch (error: any) {
       console.error('❌ Error retweeting:', error);
       res.status(500).json({ error: 'Failed to retweet' });
@@ -417,7 +457,22 @@ export function registerNeoFeedAwsRoutes(app: any) {
       const { postId } = req.params;
       const userId = req.body?.userId || 'anonymous';
 
+      // Delete the retweet tracking record
       await deleteRetweet(userId, postId);
+      
+      // Also find and delete the user's repost post entry
+      const { items: userPosts } = await getAllUserPosts(200);
+      const repostPost = userPosts.find((p: any) => 
+        p.isRepost === true && 
+        p.originalPostId === postId && 
+        p.userId === userId
+      );
+      
+      if (repostPost) {
+        await deleteUserPost(repostPost.id);
+        console.log(`✅ Deleted repost post ${repostPost.id} for original ${postId}`);
+      }
+      
       const count = await getPostRetweetsCount(postId);
       res.json({ success: true, reposts: count });
     } catch (error: any) {

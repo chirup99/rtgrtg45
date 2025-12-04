@@ -62,16 +62,19 @@ interface FeedPost {
   updatedAt?: string | Date;
   ticker?: string;
   timestamp?: string;
-  // Repost support
+  // Repost support - reposts are now stored as separate posts with their own engagement
   isRepost?: boolean;
+  originalPostId?: string;
+  originalAuthorUsername?: string;
+  originalAuthorDisplayName?: string;
+  originalAuthorAvatar?: string | null;
+  originalAuthorVerified?: boolean;
+  // Legacy repostedBy structure (deprecated - now authorUsername/authorDisplayName is the reposter)
   repostedBy?: {
     userId: string;
     displayName: string;
     repostedAt: string;
   };
-  originalPostId?: string;
-  originalAuthorUsername?: string;
-  originalAuthorDisplayName?: string;
   // Legacy support for the old structure
   user?: {
     initial: string;
@@ -1933,17 +1936,20 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   });
 
   // Repost mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
+  // Now creates a separate repost post with its own engagement counts
   const repostMutation = useMutation({
     mutationFn: async () => {
       const method = reposted ? 'DELETE' : 'POST';
       console.log(`🔁 Repost mutation: ${method} for post ${post.id}`);
       const userDisplayName = localStorage.getItem('currentDisplayName') || currentUserUsername || 'anonymous';
+      const userUsername = currentUserUsername || 'anonymous';
       const response = await fetch(`/api/social-posts/${post.id}/retweet`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userId: currentUserUsername || 'anonymous',
-          userDisplayName: userDisplayName
+          userId: userUsername,
+          userDisplayName: userDisplayName,
+          userUsername: userUsername
         })
       });
       if (!response.ok) throw new Error('Failed to update repost');
@@ -1964,9 +1970,12 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
         setRepostCount(data.reposts);
         console.log(`🔁 Server confirmed: reposts=${data.reposts}`);
       }
+      if (data?.repostId) {
+        console.log(`🔁 New repost post created with ID: ${data.repostId}`);
+      }
       // Invalidate queries to sync state (include userId for proper cache matching)
       queryClient.invalidateQueries({ queryKey: ['retweet-status', post.id, currentUserUsername] });
-      // Also invalidate the main posts feed to show the repost
+      // Also invalidate the main posts feed to show the new repost
       queryClient.invalidateQueries({ queryKey: ['/api/social-posts'] });
     },
     onError: (err, variables, context) => {
@@ -2167,18 +2176,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   return (
     <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md mb-4 transition-none">
       
-      {/* Reposted by header - shows when this is a repost */}
-      {post.isRepost && post.repostedBy && (
-        <div className="flex items-center gap-2 px-3 xl:px-4 pt-2 text-gray-500 dark:text-gray-400 text-sm">
-          <Repeat className="h-4 w-4" />
-          <span>
-            <span className="font-medium">{post.repostedBy.displayName}</span> reposted
-          </span>
-        </div>
-      )}
-      
       <CardContent className="p-3 xl:p-4 transition-none">
-        {/* User Header */}
+        {/* User Header - For reposts, shows the reposter (current user) as the main author */}
         <div className="flex items-start justify-between mb-2 xl:mb-4">
           <div className="flex items-center gap-2 xl:gap-3">
             <div className="relative">
@@ -2195,7 +2194,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => {
                     const username = post.user?.handle || post.authorUsername || '';
@@ -2213,6 +2212,24 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                 </button>
                 {(post.user?.verified || post.authorVerified) && (
                   <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 fill-current" />
+                )}
+                {/* Repost attribution - shows original author with repost icon */}
+                {post.isRepost && post.originalAuthorUsername && (
+                  <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                    <Repeat className="h-4 w-4 text-green-500" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (post.originalAuthorUsername) {
+                          window.location.href = `/user/${post.originalAuthorUsername}`;
+                        }
+                      }}
+                      className="text-sm hover:underline cursor-pointer text-green-600 dark:text-green-400 font-medium"
+                      data-testid={`button-original-author-${post.originalPostId}`}
+                    >
+                      {post.originalAuthorDisplayName || post.originalAuthorUsername}
+                    </button>
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm font-medium ">
@@ -2752,6 +2769,17 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     authorUsername: post.authorUsername,
     authorDisplayName: post.authorDisplayName,
     createdAt: post.createdAt,
+    // Repost fields - reposts are now stored as separate posts with their own engagement
+    isRepost: (post as any).isRepost || false,
+    originalPostId: (post as any).originalPostId,
+    originalAuthorUsername: (post as any).originalAuthorUsername,
+    originalAuthorDisplayName: (post as any).originalAuthorDisplayName,
+    originalAuthorAvatar: (post as any).originalAuthorAvatar,
+    originalAuthorVerified: (post as any).originalAuthorVerified,
+    // Own engagement counts for reposts (separate from original post)
+    likes: post.likes || 0,
+    comments: post.comments || 0,
+    reposts: post.reposts || 0,
   }));
 
   // Enhanced content normalization function to handle source variations
@@ -2778,6 +2806,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
   };
 
   // Remove duplicates: ID-based and enhanced content-based deduplication
+  // Note: Reposts are NOT filtered as duplicates - they have the same content but are separate posts with their own engagement
   const seenIds = new Set<string>();
   const seenContent = new Set<string>();
   const allFeedData: FeedPost[] = rawFeedData.filter(post => {
@@ -2788,7 +2817,12 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     }
     seenIds.add(postId);
 
-    // Enhanced content-based deduplication that ignores source variations
+    // Skip content-based deduplication for reposts (they intentionally have same content as original)
+    if (post.isRepost) {
+      return true;
+    }
+
+    // Enhanced content-based deduplication that ignores source variations (only for non-reposts)
     const normalizedContent = normalizeContentForDeduplication(post.content);
     if (seenContent.has(normalizedContent)) {
       console.log(`🚫 Duplicate content filtered: "${post.content.substring(0, 100)}..."`);
