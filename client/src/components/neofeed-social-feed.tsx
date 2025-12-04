@@ -2567,9 +2567,9 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                 ) : downtrended ? (
                   <TrendingDown className="h-5 w-5 fill-red-500 text-red-500" />
                 ) : (
-                  <ThumbsUp className="h-5 w-5" />
+                  <TrendingUp className="h-5 w-5" />
                 )}
-                <span>{likeCount + downtrendCount}</span>
+                <span>{liked ? likeCount : downtrended ? downtrendCount : likeCount}</span>
               </Button>
 
               {/* Vote Bar - Facebook/LinkedIn Style */}
