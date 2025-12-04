@@ -826,3 +826,135 @@ export async function getAllRepostsForFeed() {
     return [];
   }
 }
+
+// Search users by username prefix for @mention autocomplete
+export async function searchUsersByUsernamePrefix(prefix: string, limit = 10): Promise<any[]> {
+  try {
+    if (!prefix || prefix.length < 1) return [];
+    
+    const normalizedPrefix = prefix.toLowerCase();
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.USER_PROFILES,
+      FilterExpression: 'begins_with(#username, :prefix) OR begins_with(#displayName, :prefix)',
+      ExpressionAttributeNames: {
+        '#username': 'username',
+        '#displayName': 'displayName'
+      },
+      ExpressionAttributeValues: { 
+        ':prefix': normalizedPrefix 
+      },
+      Limit: limit * 3
+    }));
+    
+    const users = (result.Items || [])
+      .filter((item: any) => 
+        item.username?.toLowerCase().startsWith(normalizedPrefix) ||
+        item.displayName?.toLowerCase().startsWith(normalizedPrefix)
+      )
+      .slice(0, limit)
+      .map((item: any) => ({
+        username: item.username,
+        displayName: item.displayName || item.username,
+        avatar: item.profilePicUrl || item.avatar || null,
+        userId: item.userId || item.pk?.replace('USER#', '') || null
+      }));
+    
+    console.log(`🔍 User search for "${prefix}": found ${users.length} users`);
+    return users;
+  } catch (error) {
+    console.error('❌ Error searching users:', error);
+    return [];
+  }
+}
+
+// Create comment with @mention support
+export async function createCommentWithMentions(commentData: {
+  postId: string;
+  authorUsername: string;
+  authorDisplayName: string;
+  authorAvatar?: string | null;
+  content: string;
+  mentions?: string[];
+}) {
+  try {
+    const commentId = nanoid();
+    const timestamp = new Date().toISOString();
+    
+    // Extract @mentions from content
+    const mentionPattern = /@(\w+)/g;
+    const extractedMentions = [...(commentData.content.matchAll(mentionPattern))].map(m => m[1].toLowerCase());
+    const allMentions = [...new Set([...(commentData.mentions || []), ...extractedMentions])];
+    
+    const item = {
+      pk: `comment#${commentId}`,
+      sk: timestamp,
+      id: commentId,
+      postId: commentData.postId,
+      authorUsername: commentData.authorUsername,
+      authorDisplayName: commentData.authorDisplayName,
+      authorAvatar: commentData.authorAvatar || null,
+      content: commentData.content,
+      mentions: allMentions,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      likes: 0
+    };
+
+    await docClient.send(new PutCommand({ TableName: TABLES.COMMENTS, Item: item }));
+    console.log(`✅ Comment created with ${allMentions.length} mentions: ${commentId}`);
+    return item;
+  } catch (error) {
+    console.error('❌ Error creating comment:', error);
+    throw error;
+  }
+}
+
+// Delete a comment
+export async function deleteComment(commentId: string, authorUsername: string): Promise<boolean> {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.COMMENTS,
+      FilterExpression: 'id = :commentId',
+      ExpressionAttributeValues: { ':commentId': commentId }
+    }));
+    
+    if (result.Items && result.Items.length > 0) {
+      const comment = result.Items[0];
+      
+      // Only allow author to delete their own comment
+      if (comment.authorUsername?.toLowerCase() !== authorUsername?.toLowerCase()) {
+        throw new Error('Not authorized to delete this comment');
+      }
+      
+      await docClient.send(new DeleteCommand({
+        TableName: TABLES.COMMENTS,
+        Key: { pk: comment.pk, sk: comment.sk }
+      }));
+      console.log(`✅ Comment deleted: ${commentId}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('❌ Error deleting comment:', error);
+    throw error;
+  }
+}
+
+// Get comments mentioning a specific user (for notifications)
+export async function getCommentsMentioningUser(username: string): Promise<any[]> {
+  try {
+    const normalizedUsername = username.toLowerCase();
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.COMMENTS,
+      FilterExpression: 'contains(mentions, :username)',
+      ExpressionAttributeValues: { ':username': normalizedUsername }
+    }));
+    
+    return (result.Items || []).sort((a: any, b: any) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  } catch (error) {
+    console.error('❌ Error fetching mention comments:', error);
+    return [];
+  }
+}

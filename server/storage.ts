@@ -634,6 +634,6 @@ export class PgStorage implements IStorage {
   }
 }
 
-// Firebase-only storage - no PostgreSQL
-import { storage as firebaseStorage } from './firebase-storage';
-export const storage = firebaseStorage;
+// Use in-memory storage (no Firebase dependency)
+// Comments use AWS DynamoDB directly via neofeed-dynamodb-migration.ts
+export const storage: IStorage = new MemStorage();

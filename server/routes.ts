@@ -7389,22 +7389,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET COMMENTS
+  // GET COMMENTS - AWS DynamoDB
   app.get('/api/social-posts/:id/comments-pg', async (req, res) => {
     try {
       const postId = req.params.id;
-      const db = getDb();
-
-      const commentsSnapshot = await db.collection('comments')
-        .where('postId', '==', postId)
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      const comments = commentsSnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
+      const { getPostComments } = await import('./neofeed-dynamodb-migration');
+      const comments = await getPostComments(postId);
       res.json(comments);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -7412,25 +7402,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET COMMENTS (existing endpoint)
+  // GET COMMENTS (existing endpoint) - AWS DynamoDB
   app.get('/api/social-posts/:id/comments', async (req, res) => {
     try {
       const postId = req.params.id;
-      const db = getDb();
-
-      const commentsSnapshot = await db.collection('comments')
-        .where('postId', '==', postId)
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      const comments = commentsSnapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
+      const { getPostComments } = await import('./neofeed-dynamodb-migration');
+      const comments = await getPostComments(postId);
       res.json(comments);
     } catch (error) {
       console.error('Error fetching comments:', error);
+      res.json([]);
+    }
+  });
+
+  // POST COMMENT with @mentions - AWS DynamoDB
+  app.post('/api/social-posts/:id/comments/aws', async (req, res) => {
+    try {
+      const postId = req.params.id;
+      const { content, authorUsername, authorDisplayName, authorAvatar, mentions } = req.body;
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: 'Comment cannot be empty' });
+      }
+
+      if (!authorUsername) {
+        return res.status(400).json({ error: 'Author username is required' });
+      }
+
+      const { createCommentWithMentions, getPostCommentsCount } = await import('./neofeed-dynamodb-migration');
+      
+      const comment = await createCommentWithMentions({
+        postId,
+        authorUsername,
+        authorDisplayName: authorDisplayName || authorUsername,
+        authorAvatar: authorAvatar || null,
+        content: content.trim(),
+        mentions: mentions || []
+      });
+
+      // Get updated comment count
+      const commentsCount = await getPostCommentsCount(postId);
+
+      // Update the post's comment count in SQL for backward compatibility
+      if (storage.db?.update) {
+        try {
+          await storage.db
+            .update(socialPosts)
+            .set({ comments: commentsCount })
+            .where(eq(socialPosts.id, parseInt(postId)));
+        } catch (sqlError) {
+          console.log('SQL sync skipped for comments count:', sqlError);
+        }
+      }
+
+      console.log(`✅ Comment added by ${authorUsername} on post ${postId} (AWS)`);
+      res.json({ 
+        success: true, 
+        comment,
+        commentsCount
+      });
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      res.status(500).json({ error: error.message || 'Failed to add comment' });
+    }
+  });
+
+  // DELETE COMMENT - AWS DynamoDB
+  app.delete('/api/comments/:commentId', async (req, res) => {
+    try {
+      const { commentId } = req.params;
+      const { authorUsername } = req.body;
+
+      if (!authorUsername) {
+        return res.status(400).json({ error: 'Author username is required' });
+      }
+
+      const { deleteComment } = await import('./neofeed-dynamodb-migration');
+      await deleteComment(commentId, authorUsername);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting comment:', error);
+      res.status(500).json({ error: error.message || 'Failed to delete comment' });
+    }
+  });
+
+  // SEARCH USERS for @mention autocomplete - AWS DynamoDB
+  app.get('/api/users/search', async (req, res) => {
+    try {
+      const { q, limit = '10' } = req.query;
+      
+      if (!q || typeof q !== 'string' || q.length < 1) {
+        return res.json([]);
+      }
+
+      const { searchUsersByUsernamePrefix } = await import('./neofeed-dynamodb-migration');
+      const users = await searchUsersByUsernamePrefix(q, parseInt(limit as string));
+
+      res.json(users);
+    } catch (error) {
+      console.error('Error searching users:', error);
       res.json([]);
     }
   });
