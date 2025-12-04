@@ -145,6 +145,58 @@ Same experience as Create Profile dialog - consistent UX across the app.
 
 =========================================================
 
+TWITTER-STYLE INLINE PROFILE/COVER IMAGE EDITING - December 4, 2025
+
+[x] 1. Added camera edit icons on profile header:
+      - Cover image: Camera icon in top-right corner
+      - Profile picture: Camera overlay on hover (click to edit)
+[x] 2. Created ImageCropModal component for image adjustment:
+      - Drag to reposition image within frame
+      - Zoom slider (0.5x to 3x zoom)
+      - Canvas-based cropping for final output
+      - Touch support for mobile devices
+[x] 3. Removed image uploads from EditProfileDialog:
+      - Profile/cover image fields removed
+      - Added note directing users to camera buttons
+      - Dialog now handles only text fields (username, display name, bio)
+[x] 4. Connected image upload to AWS backend:
+      - Uses /api/upload-profile-image endpoint
+      - Cognito token authentication
+      - Automatic profile update after upload
+[x] 5. Cache invalidation for instant UI updates:
+      - React Query ['my-profile'] cache invalidated
+      - Images refresh without page reload
+[x] 6. Workflow restarted and verified working
+
+IMAGECROPMODAL FEATURES:
+- Cover image: 3:1 aspect ratio (1200x400 output)
+- Profile picture: 1:1 aspect ratio (400x400 output)
+- Mouse drag for repositioning
+- Touch drag for mobile devices
+- Zoom control from 50% to 300%
+- Real-time preview during adjustment
+- Loading state during upload
+- Toast notifications for success/failure
+
+USER EXPERIENCE (Like Twitter/Instagram):
+1. User clicks camera icon on cover or profile image
+2. File picker opens, user selects image
+3. ImageCropModal opens with image loaded
+4. User drags to reposition and adjusts zoom
+5. User clicks "Apply" to save
+6. Image uploads to AWS, profile updates
+7. New image appears immediately without refresh
+
+COMPONENTS UPDATED:
+- ProfileHeader: Added camera icons and file inputs
+- ImageCropModal: New component for image adjustment
+- EditProfileDialog: Removed image upload fields
+
+TWITTER-STYLE INLINE IMAGE EDITING COMPLETE!
+Users can now edit profile/cover images directly on their profile page.
+
+=========================================================
+
 ## APPLICATION STATUS
 
 Server Running: Express server on port 5000
