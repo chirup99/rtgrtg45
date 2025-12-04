@@ -2535,11 +2535,15 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               onClick={() => likeMutation.mutate({ wasLiked: liked })}
               disabled={likeMutation.isPending}
               className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
-                liked ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                liked ? 'text-green-500 dark:text-green-400' : downtrendCount > likeCount ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               data-testid={`button-uptrend-${post.id}`}
             >
-              <TrendingUp className={`h-5 w-5 ${liked ? 'text-green-500' : ''}`} />
+              {downtrendCount > likeCount ? (
+                <TrendingDown className={`h-5 w-5 ${liked ? 'text-green-500' : 'text-red-500'}`} />
+              ) : (
+                <TrendingUp className={`h-5 w-5 ${liked ? 'text-green-500' : ''}`} />
+              )}
               <span>{likeCount}</span>
             </Button>
             
@@ -2549,11 +2553,15 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               onClick={() => downtrendMutation.mutate({ wasDowntrended: downtrended })}
               disabled={downtrendMutation.isPending}
               className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
-                downtrended ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                downtrended ? 'text-red-500 dark:text-red-400' : likeCount > downtrendCount ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               data-testid={`button-downtrend-${post.id}`}
             >
-              <TrendingDown className={`h-5 w-5 ${downtrended ? 'text-red-500' : ''}`} />
+              {likeCount > downtrendCount ? (
+                <TrendingUp className={`h-5 w-5 ${downtrended ? 'text-red-500' : 'text-green-500'}`} />
+              ) : (
+                <TrendingDown className={`h-5 w-5 ${downtrended ? 'text-red-500' : ''}`} />
+              )}
               <span>{downtrendCount}</span>
             </Button>
 
