@@ -2,6 +2,46 @@
 # Trading Platform Migration - Progress Tracker
 
 =========================================================
+UPTREND/DOWNTREND VOTING SYSTEM - December 4, 2025 ✅
+
+[x] 1. Added neofeed-downtrends DynamoDB table with automatic creation
+[x] 2. Implemented createDowntrend, deleteDowntrend, checkUserDowntrended functions
+[x] 3. Added mutual exclusivity logic (uptrend removes downtrend and vice versa)
+[x] 4. Created downtrend API endpoints (POST, DELETE, GET status)
+[x] 5. Added vote-status API endpoint (fetches both uptrend and downtrend state)
+[x] 6. Updated frontend PostCard with TrendingUp (green) and TrendingDown (red) icons
+[x] 7. Added downtrend state, count, and mutation to frontend
+[x] 8. Implemented optimistic UI updates with rollback on error
+
+BACKEND CHANGES (server/neofeed-dynamodb-migration.ts):
+- createDowntrend(): Creates downtrend record, removes uptrend if exists (mutual exclusivity)
+- deleteDowntrend(): Removes downtrend record
+- checkUserDowntrended(): Checks if user has downtrended a post
+- getDowntrendCount(): Returns total downtrends for a post
+
+BACKEND CHANGES (server/neofeed-routes-replacement.ts):
+- POST /api/social-posts/:postId/downtrend - Create downtrend (with mutual exclusivity)
+- DELETE /api/social-posts/:postId/downtrend - Remove downtrend
+- GET /api/social-posts/:postId/vote-status - Get both uptrend and downtrend status
+
+FRONTEND CHANGES (client/src/components/neofeed-social-feed.tsx):
+- Replaced Heart icon with TrendingUp (green when active - bullish)
+- Added TrendingDown icon (red when active - bearish)
+- Added downtrended state and downtrendCount state
+- Updated voteStatus query to fetch both uptrend and downtrend states
+- Added downtrendMutation with optimistic updates
+- Implemented mutual exclusivity in both likeMutation and downtrendMutation
+
+DESIGN DECISIONS:
+- Uptrend = Bullish = TrendingUp icon (green)
+- Downtrend = Bearish = TrendingDown icon (red)
+- Mutual exclusivity: Only one vote type active per user per post
+- Clicking uptrend when downtrended: Removes downtrend, adds uptrend
+- Clicking downtrend when uptrended: Removes uptrend, adds downtrend
+
+🎉 TRADING-THEMED VOTING SYSTEM COMPLETE - Bullish/Bearish instead of Likes!
+
+=========================================================
 REPLIT IMPORT MIGRATION - December 4, 2025 ✅
 
 [x] 1. Install the required packages
