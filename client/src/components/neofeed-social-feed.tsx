@@ -1775,6 +1775,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [voteMode, setVoteMode] = useState<'uptrend' | 'downtrend'>('uptrend');
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   
   // Real-time count state - initialize from post data (uptrends = likes, downtrends = new)
   const [likeCount, setLikeCount] = useState(post.metrics?.likes || post.likes || 0);
@@ -2532,37 +2534,46 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => likeMutation.mutate({ wasLiked: liked })}
-              disabled={likeMutation.isPending}
+              onMouseDown={(e) => {
+                const timer = setTimeout(() => {
+                  setVoteMode(prev => prev === 'uptrend' ? 'downtrend' : 'uptrend');
+                  toast({ description: `Switched to ${voteMode === 'uptrend' ? 'downtrend' : 'uptrend'} mode` });
+                }, 500);
+                setLongPressTimer(timer);
+              }}
+              onMouseUp={() => {
+                if (longPressTimer) {
+                  clearTimeout(longPressTimer);
+                  setLongPressTimer(null);
+                  // Short click - trigger vote for current mode
+                  if (voteMode === 'uptrend') {
+                    likeMutation.mutate({ wasLiked: liked });
+                  } else {
+                    downtrendMutation.mutate({ wasDowntrended: downtrended });
+                  }
+                }
+              }}
+              onMouseLeave={() => {
+                if (longPressTimer) {
+                  clearTimeout(longPressTimer);
+                  setLongPressTimer(null);
+                }
+              }}
+              disabled={likeMutation.isPending || downtrendMutation.isPending}
               className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
-                liked ? 'text-green-500 dark:text-green-400' : downtrendCount > likeCount ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                voteMode === 'uptrend' 
+                  ? liked ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                  : downtrended ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
               }`}
-              data-testid={`button-uptrend-${post.id}`}
+              data-testid={`button-vote-${post.id}`}
+              title="Click to vote | Long-press to switch mode"
             >
-              {downtrendCount > likeCount ? (
-                <TrendingDown className={`h-5 w-5 ${liked ? 'text-green-500' : 'text-red-500'}`} />
-              ) : (
+              {voteMode === 'uptrend' ? (
                 <TrendingUp className={`h-5 w-5 ${liked ? 'text-green-500' : ''}`} />
-              )}
-              <span>{likeCount}</span>
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => downtrendMutation.mutate({ wasDowntrended: downtrended })}
-              disabled={downtrendMutation.isPending}
-              className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
-                downtrended ? 'text-red-500 dark:text-red-400' : likeCount > downtrendCount ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-              data-testid={`button-downtrend-${post.id}`}
-            >
-              {likeCount > downtrendCount ? (
-                <TrendingUp className={`h-5 w-5 ${downtrended ? 'text-red-500' : 'text-green-500'}`} />
               ) : (
                 <TrendingDown className={`h-5 w-5 ${downtrended ? 'text-red-500' : ''}`} />
               )}
-              <span>{downtrendCount}</span>
+              <span>{voteMode === 'uptrend' ? likeCount : downtrendCount}</span>
             </Button>
 
             {/* Only show analysis button if valid ticker exists */}
