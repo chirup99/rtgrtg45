@@ -877,21 +877,22 @@ function ProfileHeader() {
 
   const currentUsername = profileData?.username || '';
 
-  // Fetch follower/following counts with stable caching - prevent flickering
+  // Fetch follower/following counts - allow refetch after invalidation
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
     queryKey: ['followers-count', currentUsername],
     queryFn: async () => {
       if (!currentUsername) return { followers: 0, following: 0 };
+      console.log('📊 Fetching follower counts for:', currentUsername);
       const response = await fetch(`/api/users/${currentUsername}/followers-count`);
       if (!response.ok) return { followers: 0, following: 0 };
-      return response.json();
+      const data = await response.json();
+      console.log('📊 Follower counts received:', data);
+      return data;
     },
     enabled: !!currentUsername,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnMount: false,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
   });
 
   // Fetch followers list only when dialog opens
@@ -1955,11 +1956,22 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     },
     onSuccess: (data, variables, context) => {
       const wasFollowing = context?.previousFollowing;
-      // Only invalidate the specific follow status for this user pair
+      console.log('✅ Follow action success:', { 
+        action: wasFollowing ? 'unfollowed' : 'followed',
+        author: authorUsername, 
+        currentUser: currentUserUsername,
+        responseData: data
+      });
+      
+      // Invalidate and refetch follower counts for both users
       queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername, currentUserUsername] });
-      // Invalidate follower counts
       queryClient.invalidateQueries({ queryKey: ['followers-count', authorUsername] });
       queryClient.invalidateQueries({ queryKey: ['followers-count', currentUserUsername] });
+      
+      // Also invalidate the lists
+      queryClient.invalidateQueries({ queryKey: ['followers-list'] });
+      queryClient.invalidateQueries({ queryKey: ['following-list'] });
+      
       toast({ description: wasFollowing ? "Unfollowed" : "Following!" });
     },
     onError: (err: any, variables, context) => {
