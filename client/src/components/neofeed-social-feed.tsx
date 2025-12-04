@@ -11,7 +11,7 @@ import {
   TrendingUp, TrendingDown, Activity, Plus, Home, PenTool,
   Copy, ExternalLink, X, Send, Bot, Trash2, User, MapPin, Calendar,
   ChevronDown, ChevronUp, ArrowLeft, Check, Layers, Mic, Newspaper,
-  Users, UserPlus, ThumbsUp
+  Users, UserPlus, ThumbsUp, Loader2
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
 import { Button } from './ui/button';
@@ -1475,6 +1475,10 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
   const [uploading, setUploading] = useState(false);
   const [profilePicUrl, setProfilePicUrl] = useState(profileData?.profilePicUrl || '');
   const [coverPicUrl, setCoverPicUrl] = useState(profileData?.coverPicUrl || '');
+  const [originalUsername, setOriginalUsername] = useState(profileData?.username || '');
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameMessage, setUsernameMessage] = useState('');
   const { toast } = useToast();
 
   // Update state when profileData changes
@@ -1485,8 +1489,57 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
       setBio(profileData.bio || '');
       setProfilePicUrl(profileData.profilePicUrl || '');
       setCoverPicUrl(profileData.coverPicUrl || '');
+      setOriginalUsername(profileData.username || '');
+      setUsernameAvailable(null);
+      setUsernameMessage('');
     }
   }, [profileData]);
+
+  // Check username availability when username changes (with debounce)
+  useEffect(() => {
+    const checkUsername = async () => {
+      // If username hasn't changed from original, no need to check
+      if (username.toLowerCase() === originalUsername.toLowerCase()) {
+        setUsernameAvailable(null);
+        setUsernameMessage('');
+        return;
+      }
+
+      if (username.length < 3) {
+        setUsernameAvailable(null);
+        setUsernameMessage('');
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        setUsernameAvailable(false);
+        setUsernameMessage('Username must be 3-20 characters (letters, numbers, underscore only)');
+        return;
+      }
+
+      setCheckingUsername(true);
+      try {
+        const response = await fetch(`/api/user/check-username/${username}`);
+        const data = await response.json();
+        
+        setUsernameAvailable(data.available);
+        setUsernameMessage(data.message);
+      } catch (error) {
+        console.error('Error checking username:', error);
+        setUsernameAvailable(null);
+        setUsernameMessage('');
+      } finally {
+        setCheckingUsername(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsername, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [username, originalUsername]);
+
+  // Check if save should be disabled (username changed but not available)
+  const isUsernameChanged = username.toLowerCase() !== originalUsername.toLowerCase();
+  const canSave = !uploading && (!isUsernameChanged || usernameAvailable === true);
 
   const handleFileUpload = async (file: File, type: 'profile' | 'cover') => {
     if (!file) return;
@@ -1525,6 +1578,15 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
   };
 
   const handleSave = async () => {
+    // Validate username if changed
+    if (isUsernameChanged && usernameAvailable !== true) {
+      toast({ 
+        description: usernameMessage || "Please choose a valid, available username", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     try {
       const idToken = await getCognitoToken();
       if (!idToken) {
@@ -1570,12 +1632,34 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Username</label>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-              data-testid="input-username"
-            />
+            <div className="relative">
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                placeholder="Enter username"
+                className="pr-10"
+                data-testid="input-username"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {checkingUsername && (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" data-testid="icon-checking-username" />
+                )}
+                {!checkingUsername && isUsernameChanged && usernameAvailable === true && (
+                  <CheckCircle className="h-4 w-4 text-green-500" data-testid="icon-username-available" />
+                )}
+                {!checkingUsername && isUsernameChanged && usernameAvailable === false && (
+                  <X className="h-4 w-4 text-red-500" data-testid="icon-username-unavailable" />
+                )}
+              </div>
+            </div>
+            {usernameMessage && isUsernameChanged && (
+              <p 
+                className={`text-xs mt-1 ${usernameAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                data-testid="text-username-message"
+              >
+                {usernameMessage}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Display Name</label>
@@ -1626,8 +1710,8 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
             <Button variant="outline" onClick={onClose} data-testid="button-cancel-profile">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={uploading} data-testid="button-save-profile">
-              {uploading ? 'Uploading...' : 'Save'}
+            <Button onClick={handleSave} disabled={!canSave || checkingUsername} data-testid="button-save-profile">
+              {uploading ? 'Uploading...' : checkingUsername ? 'Checking...' : 'Save'}
             </Button>
           </div>
         </div>
