@@ -1930,12 +1930,15 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   });
 
   // Follow/Unfollow mutation with Cognito authentication
+  // IMPORTANT: Pass action explicitly to avoid stale closure issues
   const followMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ action }: { action: 'follow' | 'unfollow' }) => {
       const idToken = await getCognitoToken();
       if (!idToken) throw new Error('Not authenticated');
       
-      const endpoint = isFollowing 
+      console.log(`🔄 Follow mutation starting: action=${action}, target=${authorUsername}`);
+      
+      const endpoint = action === 'unfollow'
         ? `/api/users/${authorUsername}/unfollow` 
         : `/api/users/${authorUsername}/follow`;
       
@@ -1951,43 +1954,51 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${isFollowing ? 'unfollow' : 'follow'}`);
+        throw new Error(errorData.error || `Failed to ${action}`);
       }
-      return response.json();
+      const data = await response.json();
+      console.log(`✅ Server response for ${action}:`, data);
+      return { ...data, requestedAction: action };
     },
-    onMutate: async () => {
-      const wasFollowing = isFollowing;
-      setIsFollowing(!isFollowing);
-      return { previousFollowing: wasFollowing };
-    },
-    onSuccess: (data, variables, context) => {
-      const wasFollowing = context?.previousFollowing;
-      console.log('✅ Follow action success:', { 
-        action: wasFollowing ? 'unfollowed' : 'followed',
-        author: authorUsername, 
-        currentUser: currentUserUsername,
+    onSuccess: (data) => {
+      console.log('✅ Follow action complete:', { 
+        requestedAction: data.requestedAction,
         serverFollowing: data.following,
-        responseData: data
+        author: authorUsername, 
+        currentUser: currentUserUsername
       });
       
+      // Use server response as source of truth
       setIsFollowing(data.following);
       
-      // Invalidate all follow-related queries with correct keys matching user-profile.tsx
+      // Invalidate all follow-related queries
       queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/followers-count`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/followers-list`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/following-list`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-count`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-list`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/following-list`] });
+      if (currentUserUsername) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-count`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-list`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/following-list`] });
+      }
       
-      toast({ description: data.following ? "Following!" : "Unfollowed" });
+      // Show success message based on server response
+      toast({ description: data.following ? "Now following!" : "Unfollowed" });
     },
-    onError: (err: any, variables, context) => {
-      setIsFollowing(context?.previousFollowing || false);
+    onError: (err: any) => {
+      console.error('❌ Follow action failed:', err);
+      // Refetch the actual status from server on error
+      queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername] });
       toast({ description: err?.message || "Failed to update follow status", variant: "destructive" });
     }
   });
+  
+  // Handler that explicitly passes the intended action
+  const handleFollowClick = () => {
+    const action = isFollowing ? 'unfollow' : 'follow';
+    console.log(`👆 Follow button clicked: current isFollowing=${isFollowing}, action will be=${action}`);
+    followMutation.mutate({ action });
+  };
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
@@ -2119,7 +2130,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               <Button
                 variant={isFollowing ? "outline" : "default"}
                 size="sm"
-                onClick={() => followMutation.mutate()}
+                onClick={handleFollowClick}
                 disabled={followMutation.isPending}
                 className={`rounded-full px-4 text-xs font-semibold min-w-[80px] ${
                   isFollowing 

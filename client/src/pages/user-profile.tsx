@@ -204,6 +204,7 @@ export default function UserProfile() {
   }, [userPosts.length]);
 
   // Handle follow/unfollow - Instagram/Twitter style with Cognito authentication
+  // Capture the intended action at click time to avoid stale closure issues
   const handleFollowToggle = async () => {
     if (!username || !currentUserProfile?.username) {
       console.log('Cannot follow: missing username or not logged in');
@@ -215,6 +216,12 @@ export default function UserProfile() {
       return;
     }
 
+    // CRITICAL: Capture the action at the moment of click
+    const currentIsFollowing = isFollowing;
+    const action = currentIsFollowing ? 'unfollow' : 'follow';
+    
+    console.log(`👆 Profile follow button clicked: isFollowing=${currentIsFollowing}, action=${action}, target=${username}`);
+
     setIsFollowLoading(true);
 
     try {
@@ -225,11 +232,11 @@ export default function UserProfile() {
         return;
       }
       
-      const endpoint = isFollowing 
+      const endpoint = action === 'unfollow'
         ? `/api/users/${username}/unfollow` 
         : `/api/users/${username}/follow`;
       
-      console.log(`${isFollowing ? 'Unfollowing' : 'Following'} ${username}...`);
+      console.log(`🔄 Calling ${action} endpoint: ${endpoint}`);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -244,32 +251,32 @@ export default function UserProfile() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Follow response:', data);
+        console.log(`✅ ${action} response:`, data);
         
-        // Sync state with server response (not just toggle)
+        // Use server response as source of truth
         setIsFollowing(data.following);
         
         // Invalidate all related queries to refresh counts for BOTH users
-        // Target user's counts and lists
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-count`] });
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-list`] });
         queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/following-list`] });
         
-        // Current user's counts and lists (their following count changes)
         if (currentUserProfile?.username) {
           queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile.username}/followers-count`] });
           queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile.username}/followers-list`] });
           queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserProfile.username}/following-list`] });
         }
         
-        // Follow status queries
         queryClient.invalidateQueries({ queryKey: ['follow-status', username] });
       } else {
         const errorData = await response.json();
         console.error('Follow/unfollow failed:', errorData);
+        // Refetch to get correct state
+        queryClient.invalidateQueries({ queryKey: ['follow-status', username] });
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
+      queryClient.invalidateQueries({ queryKey: ['follow-status', username] });
     } finally {
       setIsFollowLoading(false);
     }

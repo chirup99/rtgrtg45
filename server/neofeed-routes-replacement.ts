@@ -499,26 +499,34 @@ export function registerNeoFeedAwsRoutes(app: any) {
       const targetUsername = req.params.username;
       const { targetUserData } = req.body;
       
+      console.log(`📥 FOLLOW REQUEST: target=${targetUsername}`);
+      
       const currentUser = await getAuthenticatedUser(req);
       if (!currentUser) {
+        console.log('❌ FOLLOW: No authenticated user');
         return res.status(401).json({ error: 'Authentication required' });
       }
+      
+      console.log(`📥 FOLLOW: currentUser=${currentUser.username}, target=${targetUsername}`);
       
       if (!targetUsername) {
         return res.status(400).json({ error: 'Target username is required' });
       }
       
-      if (currentUser.username === targetUsername) {
+      if (currentUser.username.toLowerCase() === targetUsername.toLowerCase()) {
+        console.log('❌ FOLLOW: Cannot follow yourself');
         return res.status(400).json({ error: 'Cannot follow yourself' });
       }
       
       const alreadyFollowing = await isFollowing(currentUser.username, targetUsername);
+      console.log(`🔍 FOLLOW: Already following check: ${alreadyFollowing}`);
+      
       if (alreadyFollowing) {
         const targetFollowers = await getFollowersCount(targetUsername);
         const targetFollowing = await getFollowingCount(targetUsername);
         const currentUserFollowing = await getFollowingCount(currentUser.username);
         const currentUserFollowers = await getFollowersCount(currentUser.username);
-        console.log(`⚠️ ${currentUser.username} already follows ${targetUsername}`);
+        console.log(`⚠️ ${currentUser.username} already follows ${targetUsername} - returning following: true`);
         return res.json({ 
           success: true, 
           following: true, 
@@ -526,6 +534,8 @@ export function registerNeoFeedAwsRoutes(app: any) {
           currentUser: { followers: currentUserFollowers, following: currentUserFollowing }
         });
       }
+      
+      console.log(`🔄 FOLLOW: Creating new follow record: ${currentUser.username} -> ${targetUsername}`);
       
       await createFollow(
         currentUser.username, 
@@ -540,9 +550,10 @@ export function registerNeoFeedAwsRoutes(app: any) {
       const currentUserFollowing = await getFollowingCount(currentUser.username);
       const currentUserFollowers = await getFollowersCount(currentUser.username);
       
-      console.log(`✅ ${currentUser.username} followed ${targetUsername}`);
+      console.log(`✅ FOLLOW SUCCESS: ${currentUser.username} followed ${targetUsername}`);
       console.log(`   Target ${targetUsername}: ${targetFollowers} followers, ${targetFollowing} following`);
       console.log(`   Current ${currentUser.username}: ${currentUserFollowers} followers, ${currentUserFollowing} following`);
+      console.log(`   Returning: following: true`);
       
       res.json({ 
         success: true, 
@@ -560,14 +571,21 @@ export function registerNeoFeedAwsRoutes(app: any) {
     try {
       const targetUsername = req.params.username;
       
+      console.log(`📤 UNFOLLOW REQUEST: target=${targetUsername}`);
+      
       const currentUser = await getAuthenticatedUser(req);
       if (!currentUser) {
+        console.log('❌ UNFOLLOW: No authenticated user');
         return res.status(401).json({ error: 'Authentication required' });
       }
+      
+      console.log(`📤 UNFOLLOW: currentUser=${currentUser.username}, target=${targetUsername}`);
       
       if (!targetUsername) {
         return res.status(400).json({ error: 'Target username is required' });
       }
+      
+      console.log(`🔄 UNFOLLOW: Deleting follow record: ${currentUser.username} -> ${targetUsername}`);
       
       await deleteFollow(currentUser.username, targetUsername);
       
@@ -577,9 +595,10 @@ export function registerNeoFeedAwsRoutes(app: any) {
       const currentUserFollowing = await getFollowingCount(currentUser.username);
       const currentUserFollowers = await getFollowersCount(currentUser.username);
       
-      console.log(`✅ ${currentUser.username} unfollowed ${targetUsername}`);
+      console.log(`✅ UNFOLLOW SUCCESS: ${currentUser.username} unfollowed ${targetUsername}`);
       console.log(`   Target ${targetUsername}: ${targetFollowers} followers, ${targetFollowing} following`);
       console.log(`   Current ${currentUser.username}: ${currentUserFollowers} followers, ${currentUserFollowing} following`);
+      console.log(`   Returning: following: false`);
       
       res.json({ 
         success: true, 
