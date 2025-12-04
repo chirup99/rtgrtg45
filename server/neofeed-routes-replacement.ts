@@ -680,10 +680,22 @@ export function registerNeoFeedAwsRoutes(app: any) {
   app.delete('/api/social-posts/:postId/like-v2', async (req: any, res: any) => {
     try {
       const { postId } = req.params;
-      const userId = req.body?.userId || 'anonymous';
+      // Support userId from both query params (preferred for DELETE) and body (fallback)
+      const userId = req.query?.userId || req.body?.userId || 'anonymous';
+      
+      console.log(`🗑️ Unlike request: postId=${postId}, userId=${userId}`);
+      
+      // Check if user actually liked this post first
+      const wasLiked = await userLikedPost(userId, postId);
+      if (!wasLiked) {
+        const count = await getPostLikesCount(postId);
+        console.log(`⚠️ User ${userId} has not liked post ${postId}, nothing to delete`);
+        return res.json({ success: true, liked: false, likes: count, wasNotLiked: true });
+      }
 
       await deleteLike(userId, postId);
       const count = await getPostLikesCount(postId);
+      console.log(`✅ Post ${postId} unliked by ${userId}, new count: ${count}`);
       res.json({ success: true, liked: false, likes: count });
     } catch (error: any) {
       console.error('❌ Error unliking post:', error);

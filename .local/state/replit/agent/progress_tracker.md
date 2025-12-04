@@ -2,6 +2,37 @@
 # Trading Platform Migration - Progress Tracker
 
 =========================================================
+NEOFEED UNLIKE & PROFILE TAB FIX - December 4, 2025 ✅
+
+[x] 1. Fixed unlike functionality - DELETE endpoint now uses query params for userId
+[x] 2. Used useRef to track current liked state avoiding closure issues
+[x] 3. DELETE requests now properly pass userId via query params
+[x] 4. Added validation to check if user actually liked post before unliking
+[x] 5. Fixed Profile tab loading speed - added prefetching of profile data
+[x] 6. Increased cache duration for profile queries (5 min staleTime)
+[x] 7. Prefetch profile stats when main component loads
+[x] 8. Added refetchOnMount: false to prevent refetching on tab switch
+
+UNLIKE FIX DETAILS:
+- Problem: Unlike wasn't working because closure captured stale liked state
+- Problem: DELETE body wasn't being parsed correctly by some clients
+- Solution: Used useRef to track current liked state for mutation
+- Solution: Changed DELETE endpoint to accept userId from query params
+- Solution: Added server-side validation to check if user has liked before deleting
+
+PROFILE TAB FIX DETAILS:
+- Problem: Profile tab was slow to load due to new API calls each time
+- Solution: Prefetch profile data into query cache when social feed loads
+- Solution: Increased cache duration to 5 minutes (staleTime)
+- Solution: Added refetchOnMount: false to use cached data on tab switch
+
+FILES CHANGED:
+- server/neofeed-routes-replacement.ts: DELETE /like-v2 accepts query param userId
+- client/src/components/neofeed-social-feed.tsx: useRef for liked state, prefetch profile
+
+🎉 UNLIKE AND PROFILE TAB ISSUES FIXED!
+
+=========================================================
 REPLIT IMPORT MIGRATION - December 4, 2025 ✅
 
 [x] 1. Install the required packages (cross-env was missing)

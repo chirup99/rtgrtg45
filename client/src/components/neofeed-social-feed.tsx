@@ -868,7 +868,7 @@ function ProfileHeader() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Simple profile fetch - cached to prevent slow repeated calls
+  // Simple profile fetch - heavily cached to load instantly when switching tabs
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['my-profile'],
     queryFn: async () => {
@@ -881,13 +881,15 @@ function ProfileHeader() {
       const data = await response.json();
       return data.profile || null;
     },
-    staleTime: 60000, // Cache for 1 minute to avoid slow repeated fetches
-    gcTime: 300000, // Keep in cache for 5 minutes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - profile data rarely changes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnMount: false, // Don't refetch when component remounts (tab switching)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const username = profileData?.username || '';
 
-  // Simple stats fetch - cached with longer interval
+  // Simple stats fetch - cached with longer interval, don't refetch on mount
   const { data: stats = { followers: 0, following: 0 } } = useQuery({
     queryKey: ['profile-stats', username],
     queryFn: async () => {
@@ -900,8 +902,10 @@ function ProfileHeader() {
       return data;
     },
     enabled: !!username,
-    staleTime: 30000, // Cache for 30 seconds
-    refetchInterval: 30000, // Refresh every 30s instead of 5s
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnMount: false, // Don't refetch when component remounts (tab switching)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Followers list - only when dialog opens
@@ -1898,44 +1902,66 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     });
   };
 
+  // Use ref to track current liked state to avoid closure issues
+  const likedRef = useRef(liked);
+  useEffect(() => {
+    likedRef.current = liked;
+  }, [liked]);
+
   // Like mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const method = liked ? 'DELETE' : 'POST';
-      console.log(`❤️ Like mutation: ${method} for post ${post.id}`);
-      const response = await fetch(`/api/social-posts/${post.id}/like-v2`, {
+      // Use ref to get the CURRENT liked state (not stale closure value)
+      const currentLiked = likedRef.current;
+      const method = currentLiked ? 'DELETE' : 'POST';
+      const userId = currentUserUsername || 'anonymous';
+      console.log(`❤️ Like mutation: ${method} for post ${post.id}, currentLiked=${currentLiked}, userId=${userId}`);
+      
+      // For DELETE requests, use query params (more reliable than body)
+      let url = `/api/social-posts/${post.id}/like-v2`;
+      if (method === 'DELETE') {
+        url += `?userId=${encodeURIComponent(userId)}`;
+      }
+      
+      const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserUsername || 'anonymous' })
+        body: method === 'POST' ? JSON.stringify({ userId }) : undefined
       });
       if (!response.ok) throw new Error('Failed to update like');
       return response.json();
     },
     onMutate: () => {
       // Optimistic update - toggle state AND count immediately
-      const wasLiked = liked;
+      // Use ref to get the current value
+      const wasLiked = likedRef.current;
       const prevCount = likeCount;
-      setLiked(!liked);
-      setLikeCount(prev => liked ? Math.max(0, prev - 1) : prev + 1);
-      console.log(`❤️ Optimistic: liked=${!liked}, count=${liked ? prevCount - 1 : prevCount + 1}`);
+      const newLiked = !wasLiked;
+      setLiked(newLiked);
+      likedRef.current = newLiked; // Update ref immediately for next mutation
+      setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
+      console.log(`❤️ Optimistic: wasLiked=${wasLiked}, newLiked=${newLiked}, count=${wasLiked ? prevCount - 1 : prevCount + 1}`);
       return { wasLiked, prevCount };
     },
     onSuccess: (data) => {
       // Update with server response - sync both liked state AND count
       if (data?.liked !== undefined) {
         setLiked(data.liked);
+        likedRef.current = data.liked; // Keep ref in sync
         console.log(`❤️ Server confirmed: liked=${data.liked}`);
       }
       if (data?.likes !== undefined) {
         setLikeCount(data.likes);
         console.log(`❤️ Server confirmed: likes=${data.likes}`);
       }
-      // Invalidate queries to sync state (include userId for proper cache matching)
-      queryClient.invalidateQueries({ queryKey: ['like-status', post.id, currentUserUsername] });
+      // Don't invalidate queries - we already have the server response
+      // This prevents race conditions where stale data overwrites the mutation result
     },
     onError: (err, variables, context) => {
       // Revert both state and count on error
-      setLiked(context?.wasLiked || false);
+      const wasLiked = context?.wasLiked || false;
+      setLiked(wasLiked);
+      likedRef.current = wasLiked;
       setLikeCount(context?.prevCount || 0);
       toast({ description: "Failed to update like", variant: "destructive" });
     }
@@ -2595,6 +2621,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
   const [pageNumber, setPageNumber] = useState(1);
   const loaderRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Audio mode for text selection
   const { selectedTextSnippets } = useAudioMode();
@@ -2678,6 +2705,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
 
 
   // Check if user has profile (username) when component mounts and fetch real username
+  // Also prefetch data into query cache for instant Profile tab loading
   useEffect(() => {
     const checkUserProfile = async () => {
       try {
@@ -2706,9 +2734,23 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
             profileData: profileData.profile
           });
 
+          // Prefetch profile data into query cache for instant Profile tab loading
+          if (profileData.profile) {
+            queryClient.setQueryData(['my-profile'], profileData.profile);
+          }
+
           // Store real username from Firebase for Profile filter
           if (profileData.profile?.username) {
             setCurrentUserUsername(profileData.profile.username);
+            
+            // Prefetch profile stats for instant Profile tab loading
+            fetch(`/api/profile/${profileData.profile.username}/stats`)
+              .then(res => res.ok ? res.json() : { followers: 0, following: 0 })
+              .then(stats => {
+                queryClient.setQueryData(['profile-stats', profileData.profile.username], stats);
+                console.log('📊 Prefetched profile stats:', stats);
+              })
+              .catch(() => {});
           }
 
           // Show dialog only if user doesn't have username or DOB
@@ -2727,7 +2769,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     };
 
     checkUserProfile();
-  }, []);
+  }, [queryClient]);
 
   // Smart "All" button functionality
   const handleAllClick = () => {
