@@ -9,6 +9,10 @@ import {
   createLike, 
   deleteLike, 
   userLikedPost, 
+  createDowntrend,
+  deleteDowntrend,
+  userDowntrendedPost,
+  getPostDowntrendsCount,
   userRetweetedPost,
   createRetweet, 
   deleteRetweet, 
@@ -712,6 +716,74 @@ export function registerNeoFeedAwsRoutes(app: any) {
       res.json({ liked, likes: count });
     } catch (error: any) {
       res.json({ liked: false, likes: 0 });
+    }
+  });
+
+  app.post('/api/social-posts/:postId/downtrend', async (req: any, res: any) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.body?.userId || 'anonymous';
+
+      await createDowntrend(userId, postId);
+      const downtrendCount = await getPostDowntrendsCount(postId);
+      const uptrendCount = await getPostLikesCount(postId);
+      console.log(`📉 Post ${postId} downtrended by ${userId}`);
+      res.json({ success: true, downtrended: true, downtrends: downtrendCount, uptrends: uptrendCount });
+    } catch (error: any) {
+      console.error('❌ Error downtrending post:', error);
+      res.status(500).json({ error: 'Failed to downtrend post' });
+    }
+  });
+
+  app.delete('/api/social-posts/:postId/downtrend', async (req: any, res: any) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.query?.userId || req.body?.userId || 'anonymous';
+      
+      console.log(`🗑️ Remove downtrend request: postId=${postId}, userId=${userId}`);
+      
+      const wasDowntrended = await userDowntrendedPost(userId, postId);
+      if (!wasDowntrended) {
+        const count = await getPostDowntrendsCount(postId);
+        console.log(`⚠️ User ${userId} has not downtrended post ${postId}, nothing to delete`);
+        return res.json({ success: true, downtrended: false, downtrends: count, wasNotDowntrended: true });
+      }
+
+      await deleteDowntrend(userId, postId);
+      const count = await getPostDowntrendsCount(postId);
+      console.log(`✅ Post ${postId} downtrend removed by ${userId}, new count: ${count}`);
+      res.json({ success: true, downtrended: false, downtrends: count });
+    } catch (error: any) {
+      console.error('❌ Error removing downtrend:', error);
+      res.status(500).json({ error: 'Failed to remove downtrend' });
+    }
+  });
+
+  app.get('/api/social-posts/:postId/downtrend-status', async (req: any, res: any) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.query?.userId || 'anonymous';
+      const downtrended = await userDowntrendedPost(userId as string, postId);
+      const count = await getPostDowntrendsCount(postId);
+      res.json({ downtrended, downtrends: count });
+    } catch (error: any) {
+      res.json({ downtrended: false, downtrends: 0 });
+    }
+  });
+
+  app.get('/api/social-posts/:postId/vote-status', async (req: any, res: any) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.query?.userId || 'anonymous';
+      const [uptrended, downtrended, uptrendCount, downtrendCount] = await Promise.all([
+        userLikedPost(userId as string, postId),
+        userDowntrendedPost(userId as string, postId),
+        getPostLikesCount(postId),
+        getPostDowntrendsCount(postId)
+      ]);
+      res.json({ uptrended, downtrended, uptrends: uptrendCount, downtrends: downtrendCount });
+    } catch (error: any) {
+      res.json({ uptrended: false, downtrended: false, uptrends: 0, downtrends: 0 });
     }
   });
 
