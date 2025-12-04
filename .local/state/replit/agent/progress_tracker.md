@@ -2,6 +2,40 @@
 # Trading Platform Migration - Progress Tracker
 
 =========================================================
+TWITTER/X-STYLE REPOST FUNCTIONALITY - December 4, 2025 ✅
+
+[x] 1. Updated backend POST /api/social-posts/:id/retweet to create reposts as separate posts
+[x] 2. Each repost has its own engagement counts (likes=0, comments=0, reposts=0)
+[x] 3. Reposts store originalPostId, originalAuthorUsername, originalAuthorDisplayName
+[x] 4. Updated FeedPost interface with repost fields (isRepost, originalAuthor*, originalPostId)
+[x] 5. Updated PostCard component to display "Author reposted from @original_author"
+[x] 6. Original author name is clickable and navigates to their profile (/user/:username)
+[x] 7. Fixed repost-of-repost to trace back to TRUE original author
+[x] 8. Updated deduplication logic to not filter out reposts (same content allowed)
+
+REPOST BEHAVIOR (Twitter/X-style):
+- When you repost, a NEW post is created with YOUR name as author
+- Original author is shown with green repost icon: "Author [repost icon] OriginalAuthor"
+- Clicking original author name navigates to their profile
+- Each repost has its own independent engagement counts (likes, comments, reposts)
+- Reposting a repost traces back to the TRUE original author (not intermediary)
+
+BACKEND CHANGES (server/neofeed-routes-replacement.ts):
+- POST /api/social-posts/:postId/retweet creates new post with isRepost=true
+- Stores original author info (username, displayName, avatar, verified)
+- Repost-of-repost: Uses originalAuthor* from source post if isRepost=true
+- DELETE /api/social-posts/:postId/retweet removes both tracking record and repost post
+
+FRONTEND CHANGES (client/src/components/neofeed-social-feed.tsx):
+- FeedPost interface includes repost fields
+- PostCard shows reposter as main author with repost attribution inline
+- Green repost icon indicates attribution to original author
+- Original author clickable button navigates to /user/:username
+- Deduplication skips reposts (allows same content multiple times)
+
+🎉 TWITTER/X-STYLE REPOST FUNCTIONALITY COMPLETE!
+
+=========================================================
 REPLIT IMPORT MIGRATION - December 3, 2025 ✅
 
 [x] 1. Install the required packages
