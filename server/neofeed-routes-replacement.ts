@@ -68,6 +68,30 @@ async function getAuthenticatedUser(req: any): Promise<{ userId: string; usernam
 export function registerNeoFeedAwsRoutes(app: any) {
   console.log('🔷 Registering NeoFeed AWS DynamoDB routes...');
 
+  // Admin endpoint to fix posts with uppercase authorUsername
+  app.post('/api/admin/fix-usernames', async (req: any, res: any) => {
+    try {
+      const { items: userPosts } = await getAllUserPosts(200);
+      let fixedCount = 0;
+      
+      for (const post of userPosts) {
+        if (post.authorUsername && post.authorUsername !== post.authorUsername.toLowerCase()) {
+          await updateUserPost(post.id, { 
+            authorUsername: post.authorUsername.toLowerCase() 
+          });
+          console.log(`✅ Fixed authorUsername for post ${post.id}: ${post.authorUsername} -> ${post.authorUsername.toLowerCase()}`);
+          fixedCount++;
+        }
+      }
+      
+      console.log(`✅ Fixed ${fixedCount} posts with uppercase authorUsername`);
+      res.json({ success: true, fixed: fixedCount });
+    } catch (error: any) {
+      console.error('❌ Error fixing usernames:', error);
+      res.status(500).json({ error: 'Failed to fix usernames' });
+    }
+  });
+
   app.get('/api/social-posts', async (req: any, res: any) => {
     try {
       console.log('📱 Fetching social posts from AWS DynamoDB');
@@ -137,7 +161,7 @@ export function registerNeoFeedAwsRoutes(app: any) {
 
       const postData = {
         content: content.trim(),
-        authorUsername: authorUsername || 'anonymous',
+        authorUsername: (authorUsername || 'anonymous').toLowerCase(),
         authorDisplayName: authorDisplayName || 'User',
         userId: userId || nanoid(),
         stockMentions: stockMentions || [],
@@ -288,7 +312,7 @@ export function registerNeoFeedAwsRoutes(app: any) {
         postId,
         content: content.trim(),
         userId: userId || 'anonymous',
-        authorUsername: authorUsername || 'anonymous',
+        authorUsername: (authorUsername || 'anonymous').toLowerCase(),
         authorDisplayName: authorDisplayName || 'User'
       });
 
@@ -411,7 +435,7 @@ export function registerNeoFeedAwsRoutes(app: any) {
       // Create a NEW post entry as a repost with its own engagement counts
       const repostData = {
         content: originalPost.content,
-        authorUsername: userUsername,
+        authorUsername: (userUsername || 'anonymous').toLowerCase(),
         authorDisplayName: userDisplayName,
         userId: userId,
         // Repost-specific fields - always point to TRUE original author
@@ -506,7 +530,7 @@ export function registerNeoFeedAwsRoutes(app: any) {
         postId,
         content: content.trim(),
         userId: userId || 'anonymous',
-        authorUsername: authorUsername || 'anonymous',
+        authorUsername: (authorUsername || 'anonymous').toLowerCase(),
         authorDisplayName: authorDisplayName || 'User'
       });
 
