@@ -948,6 +948,36 @@ function ProfileHeader() {
     staleTime: 30000,
   });
 
+  // Get current user's votes for filtering Likes tab
+  const { data: currentUserVotes = {} } = useQuery({
+    queryKey: ['my-votes'],
+    queryFn: async () => {
+      const idToken = await getCognitoToken();
+      if (!idToken) return {};
+      const response = await fetch('/api/user/votes', {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+      if (!response.ok) return {};
+      const data = await response.json();
+      // Create a map of postId -> vote status for quick lookup
+      const votesMap: Record<string, { uptrend: boolean; downtrend: boolean }> = {};
+      if (data.votes && Array.isArray(data.votes)) {
+        data.votes.forEach((vote: any) => {
+          votesMap[vote.postId] = {
+            uptrend: vote.voteType === 'uptrend',
+            downtrend: vote.voteType === 'downtrend'
+          };
+        });
+      }
+      return votesMap;
+    },
+    enabled: !!username,
+    staleTime: 10000,
+  });
+
+  // Filter posts based on current user's votes
+  const likedPosts = userPosts.filter(post => currentUserVotes[post.id]);
+
   const postCount = userPosts.length;
   const displayName = profileData?.displayName || '';
   const bio = profileData?.bio || '';
@@ -1093,6 +1123,40 @@ function ProfileHeader() {
             </Card>
           ) : (
             userPosts.map((post) => (
+              <PostCard 
+                key={post.id} 
+                post={post as FeedPost}
+                currentUserUsername={username}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      {/* User Liked Posts Display */}
+      {activeTab === 'Likes' && (
+        <div className="space-y-4 mb-6">
+          {postsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="p-4 animate-pulse">
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-full mb-1"></div>
+                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : likedPosts.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-gray-500 dark:text-gray-400">No liked posts yet. Like posts by tapping the voting button!</p>
+            </Card>
+          ) : (
+            likedPosts.map((post) => (
               <PostCard 
                 key={post.id} 
                 post={post as FeedPost}

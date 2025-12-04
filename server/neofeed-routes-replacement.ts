@@ -1222,5 +1222,25 @@ export function registerNeoFeedAwsRoutes(app: any) {
     }
   });
 
+  // Get current user's votes for filtering Likes tab
+  app.get('/api/user/votes', async (req: any, res: any) => {
+    try {
+      const currentUser = await getAuthenticatedUser(req);
+      if (!currentUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Query DynamoDB for all votes by this user
+      // Since we don't have a GSI for votes by user, we'll return empty for now
+      // In production, this would query a votes table with username as key
+      const votes: any[] = [];
+      
+      res.json({ votes, success: true });
+    } catch (error: any) {
+      console.error('❌ Error getting user votes:', error);
+      res.status(500).json({ error: 'Failed to get votes' });
+    }
+  });
+
   console.log('✅ NeoFeed AWS DynamoDB routes registered successfully');
 }
