@@ -843,12 +843,13 @@ function FeedHeader({ onAllClick, isRefreshing, selectedFilter, onFilterChange, 
 
 function ProfileHeader() {
   const [activeTab, setActiveTab] = useState('Posts');
-  const [postCount, setPostCount] = useState(0);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowersDialog, setShowFollowersDialog] = useState(false);
   const [showFollowingDialog, setShowFollowingDialog] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
+  // Fetch profile data with stable caching
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile-header-data'],
     queryFn: async () => {
@@ -876,6 +877,7 @@ function ProfileHeader() {
 
   const currentUsername = profileData?.username || '';
 
+  // Fetch follower/following counts with stable caching - prevent flickering
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
     queryKey: ['followers-count', currentUsername],
     queryFn: async () => {
@@ -885,89 +887,67 @@ function ProfileHeader() {
       return response.json();
     },
     enabled: !!currentUsername,
-    staleTime: 60000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
-  // Fetch followers list (only when dialog opens)
-  const { data: followersList = { followers: [] }, refetch: refetchFollowers } = useQuery({
-    queryKey: [`/api/users/${currentUsername}/followers-list`],
+  // Fetch followers list only when dialog opens
+  const { data: followersList = { followers: [] } } = useQuery({
+    queryKey: ['followers-list', currentUsername],
     queryFn: async () => {
       if (!currentUsername) return { followers: [] };
       const response = await fetch(`/api/users/${currentUsername}/followers-list`);
       if (!response.ok) return { followers: [] };
       return response.json();
     },
-    enabled: !!currentUsername && showFollowersDialog
+    enabled: !!currentUsername && showFollowersDialog,
+    staleTime: 60000,
   });
 
-  // Fetch following list (only when dialog opens)
-  const { data: followingList = { following: [] }, refetch: refetchFollowing } = useQuery({
-    queryKey: [`/api/users/${currentUsername}/following-list`],
+  // Fetch following list only when dialog opens
+  const { data: followingList = { following: [] } } = useQuery({
+    queryKey: ['following-list', currentUsername],
     queryFn: async () => {
       if (!currentUsername) return { following: [] };
       const response = await fetch(`/api/users/${currentUsername}/following-list`);
       if (!response.ok) return { following: [] };
       return response.json();
     },
-    enabled: !!currentUsername && showFollowingDialog
+    enabled: !!currentUsername && showFollowingDialog,
+    staleTime: 60000,
   });
 
-  // Fetch all posts
-  const { data: allPosts = [], refetch: refetchPosts, isLoading: isLoadingPosts } = useQuery({
+  // Fetch posts with stable caching
+  const { data: allPosts = [] } = useQuery({
     queryKey: ['/api/social-posts'],
     queryFn: async (): Promise<SocialPost[]> => {
-      try {
-        const response = await fetch(`/api/social-posts?refresh=${Date.now()}`);
-        if (!response.ok) throw new Error('Failed to fetch posts');
-        const posts = await response.json();
-        console.log('📥 ProfileHeader - Fetched posts:', {
-          totalPosts: posts.length,
-          samplePost: posts[0] ? {
-            id: posts[0].id,
-            authorUsername: posts[0].authorUsername,
-            authorDisplayName: posts[0].authorDisplayName
-          } : null
-        });
-        return posts;
-      } catch (error) {
-        console.error('❌ ProfileHeader - Error fetching posts:', error);
-        throw error;
-      }
-    }
+      const response = await fetch('/api/social-posts');
+      if (!response.ok) throw new Error('Failed to fetch posts');
+      return response.json();
+    },
+    staleTime: 30000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Get current user email from localStorage for matching
   const currentUserEmail = localStorage.getItem('currentUserEmail') || '';
   
-  // Filter user's posts (works for regular users and bots)
-  const userPosts = allPosts.filter(post => {
-    if (!profileData) return false;
+  // Filter user's posts - memoized to prevent recalculations
+  const userPosts = useMemo(() => {
+    if (!profileData) return [];
     
-    const matches = (
+    return allPosts.filter(post => 
       post.authorUsername === profileData.username || 
       post.authorUsername === currentUserEmail?.split('@')[0] ||
       post.authorDisplayName === profileData.displayName
     );
-    
-    if (matches) {
-      console.log('✅ ProfileHeader - Post matched user:', {
-        postId: post.id,
-        postAuthor: post.authorUsername,
-        postDisplayName: post.authorDisplayName,
-        profileUsername: profileData.username,
-        profileDisplayName: profileData.displayName
-      });
-    }
-    return matches;
-  });
+  }, [allPosts, profileData, currentUserEmail]);
 
-  useEffect(() => {
-    if (profileData) {
-      setPostCount(userPosts.length);
-    }
-  }, [userPosts.length, profileData]);
+  const postCount = userPosts.length;
 
   const displayName = profileData?.displayName || localStorage.getItem('currentDisplayName') || '';
   const username = profileData?.username || currentUserEmail?.split('@')[0] || '';
@@ -1102,7 +1082,7 @@ function ProfileHeader() {
             userPosts.map((post) => (
               <PostCard 
                 key={post.id} 
-                post={post}
+                post={post as FeedPost}
                 currentUserUsername={username}
               />
             ))
@@ -1790,16 +1770,20 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Get the author username for follow functionality
   const authorUsername = post.user?.handle || post.authorUsername || 'user';
   
-  // Fetch follow status for this author
+  // Fetch follow status for this author - with stable caching to prevent flickering
   const { data: followStatus } = useQuery({
-    queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername],
+    queryKey: ['follow-status', authorUsername, currentUserUsername],
     queryFn: async () => {
       if (isOwnPost || !currentUserUsername) return { following: false };
       const response = await fetch(`/api/users/${authorUsername}/follow-status?currentUsername=${encodeURIComponent(currentUserUsername)}`);
       if (!response.ok) return { following: false };
       return response.json();
     },
-    enabled: !!currentUserUsername && !isOwnPost
+    enabled: !!currentUserUsername && !isOwnPost,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
   
   // Update local state when query data changes
@@ -1841,89 +1825,48 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   };
 
   // Like mutation
+  // Simple like mutation with optimistic UI update
   const likeMutation = useMutation({
     mutationFn: async () => {
-      if (!currentUserUsername) throw new Error('Not authenticated');
-      
       const method = liked ? 'DELETE' : 'POST';
       const response = await fetch(`/api/social-posts/${post.id}/like`, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserUsername })
+        body: JSON.stringify({ userId: currentUserUsername || 'anonymous' })
       });
       if (!response.ok) throw new Error('Failed to update like');
       return response.json();
     },
-    onMutate: async () => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['/api/social-posts'] });
-      const previousPosts = queryClient.getQueryData(['/api/social-posts']);
-      
-      queryClient.setQueryData(['/api/social-posts'], (old: any) => {
-        return old?.map((p: any) => 
-          p.id === post.id 
-            ? { 
-                ...p, 
-                likes: liked ? (p.likes || 0) - 1 : (p.likes || 0) + 1,
-                metrics: p.metrics ? {
-                  ...p.metrics,
-                  likes: liked ? (p.metrics.likes || 0) - 1 : (p.metrics.likes || 0) + 1
-                } : undefined
-              }
-            : p
-        );
-      });
-      
+    onMutate: () => {
+      const wasLiked = liked;
       setLiked(!liked);
-      return { previousPosts };
+      return { wasLiked };
     },
     onError: (err, variables, context) => {
-      setLiked(!liked); // Revert on error
-      queryClient.setQueryData(['/api/social-posts'], context?.previousPosts);
+      setLiked(context?.wasLiked || false);
       toast({ description: "Failed to update like", variant: "destructive" });
     }
   });
 
-  // Repost mutation
+  // Simple repost mutation with optimistic UI update
   const repostMutation = useMutation({
     mutationFn: async () => {
-      if (!currentUserUsername) throw new Error('Not authenticated');
-      
       const method = reposted ? 'DELETE' : 'POST';
       const response = await fetch(`/api/social-posts/${post.id}/repost`, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserUsername })
+        body: JSON.stringify({ userId: currentUserUsername || 'anonymous' })
       });
       if (!response.ok) throw new Error('Failed to update repost');
       return response.json();
     },
-    onMutate: async () => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['/api/social-posts'] });
-      const previousPosts = queryClient.getQueryData(['/api/social-posts']);
-      
-      queryClient.setQueryData(['/api/social-posts'], (old: any) => {
-        return old?.map((p: any) => 
-          p.id === post.id 
-            ? { 
-                ...p, 
-                reposts: reposted ? (p.reposts || 0) - 1 : (p.reposts || 0) + 1,
-                metrics: p.metrics ? {
-                  ...p.metrics,
-                  reposts: reposted ? (p.metrics.reposts || 0) - 1 : (p.metrics.reposts || 0) + 1
-                } : undefined
-              }
-            : p
-        );
-      });
-      
+    onMutate: () => {
+      const wasReposted = reposted;
       setReposted(!reposted);
-      return { previousPosts };
+      return { wasReposted };
     },
     onError: (err, variables, context) => {
-      setReposted(!reposted); // Revert on error
-      queryClient.setQueryData(['/api/social-posts'], context?.previousPosts);
+      setReposted(context?.wasReposted || false);
       toast({ description: "Failed to update repost", variant: "destructive" });
     }
   });
@@ -1981,6 +1924,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   });
 
   // Follow/Unfollow mutation
+  // Simple follow/unfollow mutation - optimistic updates, targeted invalidation
   const followMutation = useMutation({
     mutationFn: async () => {
       if (!currentUserUsername) throw new Error('Not authenticated');
@@ -2005,48 +1949,22 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       return response.json();
     },
     onMutate: async () => {
-      // Optimistic update
+      const wasFollowing = isFollowing;
       setIsFollowing(!isFollowing);
-      // Invalidate follow status query
-      await queryClient.cancelQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername] });
-      return { previousFollowing: isFollowing };
+      return { previousFollowing: wasFollowing };
     },
     onSuccess: (data, variables, context) => {
-      // Use context.previousFollowing to determine the correct message
-      // previousFollowing is the state BEFORE the action was taken
       const wasFollowing = context?.previousFollowing;
-      
-      // Invalidate related queries to update counts
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername] });
-      queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/social-posts'] });
-      // Invalidate follower counts for both users (using partial match)
-      queryClient.invalidateQueries({ 
-        predicate: (query) => {
-          const key = query.queryKey;
-          return Array.isArray(key) && 
-                 typeof key[0] === 'string' && 
-                 key[0].includes('/followers-count');
-        }
-      });
-      // Invalidate followers/following list dialogs
-      queryClient.invalidateQueries({ 
-        predicate: (query) => {
-          const key = query.queryKey;
-          return Array.isArray(key) && 
-                 typeof key[0] === 'string' && 
-                 (key[0].includes('/followers-list') || key[0].includes('/following-list'));
-        }
-      });
-      // If wasFollowing was true, we just unfollowed. If false, we just followed.
-      toast({ description: wasFollowing ? "Unfollowed successfully!" : "Following!" });
+      // Only invalidate the specific follow status for this user pair
+      queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername, currentUserUsername] });
+      // Invalidate follower counts
+      queryClient.invalidateQueries({ queryKey: ['followers-count', authorUsername] });
+      queryClient.invalidateQueries({ queryKey: ['followers-count', currentUserUsername] });
+      toast({ description: wasFollowing ? "Unfollowed" : "Following!" });
     },
     onError: (err: any, variables, context) => {
-      // Revert on error
       setIsFollowing(context?.previousFollowing || false);
-      const errorMsg = err?.message || `Failed to ${isFollowing ? 'unfollow' : 'follow'}`;
-      console.error('Follow error:', errorMsg);
-      toast({ description: errorMsg, variant: "destructive" });
+      toast({ description: err?.message || "Failed to update follow status", variant: "destructive" });
     }
   });
 
@@ -2554,25 +2472,22 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
     };
   }, []);
   
+  // Fetch posts with stable caching to prevent flickering
   const { data: posts = [], isLoading, error, isFetching } = useQuery({
-    queryKey: ['/api/social-posts', pageNumber],
+    queryKey: ['/api/social-posts'],
     queryFn: async (): Promise<SocialPost[]> => {
-      const limit = 15;
-      const offset = (pageNumber - 1) * limit;
-      const response = await fetch(`/api/social-posts?limit=${limit}&offset=${offset}`);
+      const response = await fetch('/api/social-posts');
       if (!response.ok) {
         throw new Error('Failed to fetch posts');
       }
       return await response.json();
     },
-    staleTime: 60000,
-    gcTime: 300000,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     retry: 1,
-    refetchInterval: false,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    refetchIntervalInBackground: false,
-    networkMode: 'always'
+    refetchOnReconnect: false,
   });
 
   // Infinite scroll observer
