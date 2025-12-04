@@ -442,3 +442,37 @@ APPLICATION STATUS:
 🎉 IMPORT COMPLETE - Trading Platform is fully operational and ready for development!
 
 =========================================================
+USER PROFILE ROUTES MIGRATION TO AWS COGNITO + DYNAMODB - December 4, 2025 ✅
+
+[x] 1. Updated GET /api/user/profile to use verifyCognitoToken() instead of Firebase auth
+[x] 2. Changed profile storage from Firebase Firestore to AWS DynamoDB (neofeed-user-profiles table)
+[x] 3. Updated POST /api/user/profile to save profiles to DynamoDB with username + DOB
+[x] 4. Updated PATCH /api/user/profile to use Cognito auth + DynamoDB for bio/displayName updates
+[x] 5. Updated GET /api/user/check-username/:username to check DynamoDB for availability
+[x] 6. Added AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets to environment
+[x] 7. Verified Cognito JWT verification working (logs show user ID extraction)
+[x] 8. UserIdSetupDialog will now display for new users without profiles
+
+PROFILE ROUTES MIGRATED:
+✅ GET /api/user/profile - Fetches profile from DynamoDB using Cognito user ID
+✅ POST /api/user/profile - Creates/updates profile in DynamoDB
+✅ PATCH /api/user/profile - Updates displayName and bio in DynamoDB
+✅ GET /api/user/check-username/:username - Checks username mapping in DynamoDB
+
+DYNAMODB TABLE STRUCTURE:
+- Table: neofeed-user-profiles
+- Primary Key: pk = USER#<cognitoUserId>, sk = PROFILE
+- Username Mapping: pk = USERNAME#<username>, sk = MAPPING
+- Fields: username, displayName, dob, email, bio, createdAt, updatedAt
+
+HOW IT WORKS:
+1. New user opens NeoFeed tab
+2. App calls GET /api/user/profile with Cognito token
+3. If no profile exists in DynamoDB, returns profile: null
+4. UserIdSetupDialog displays asking for username and DOB
+5. User submits form, POST /api/user/profile saves to DynamoDB
+6. User can now access all NeoFeed social features
+
+🎉 PROFILE ROUTES MIGRATION COMPLETE - AWS Cognito + DynamoDB is now used for user profiles!
+
+=========================================================
