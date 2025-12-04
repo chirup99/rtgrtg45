@@ -1902,20 +1902,14 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     });
   };
 
-  // Use ref to track current liked state to avoid closure issues
-  const likedRef = useRef(liked);
-  useEffect(() => {
-    likedRef.current = liked;
-  }, [liked]);
-
   // Like mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
+  // Fixed: Pass wasLiked as variable to avoid race condition between onMutate and mutationFn
   const likeMutation = useMutation({
-    mutationFn: async () => {
-      // Use ref to get the CURRENT liked state (not stale closure value)
-      const currentLiked = likedRef.current;
-      const method = currentLiked ? 'DELETE' : 'POST';
+    mutationFn: async ({ wasLiked }: { wasLiked: boolean }) => {
+      // wasLiked is passed from the mutate() call to ensure we use the state BEFORE onMutate modifies it
+      const method = wasLiked ? 'DELETE' : 'POST';
       const userId = currentUserUsername || 'anonymous';
-      console.log(`❤️ Like mutation: ${method} for post ${post.id}, currentLiked=${currentLiked}, userId=${userId}`);
+      console.log(`❤️ Like mutation: ${method} for post ${post.id}, wasLiked=${wasLiked}, userId=${userId}`);
       
       // For DELETE requests, use query params (more reliable than body)
       let url = `/api/social-posts/${post.id}/like-v2`;
@@ -1931,14 +1925,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       if (!response.ok) throw new Error('Failed to update like');
       return response.json();
     },
-    onMutate: () => {
+    onMutate: ({ wasLiked }) => {
       // Optimistic update - toggle state AND count immediately
-      // Use ref to get the current value
-      const wasLiked = likedRef.current;
       const prevCount = likeCount;
       const newLiked = !wasLiked;
       setLiked(newLiked);
-      likedRef.current = newLiked; // Update ref immediately for next mutation
       setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
       console.log(`❤️ Optimistic: wasLiked=${wasLiked}, newLiked=${newLiked}, count=${wasLiked ? prevCount - 1 : prevCount + 1}`);
       return { wasLiked, prevCount };
@@ -1947,32 +1938,28 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       // Update with server response - sync both liked state AND count
       if (data?.liked !== undefined) {
         setLiked(data.liked);
-        likedRef.current = data.liked; // Keep ref in sync
         console.log(`❤️ Server confirmed: liked=${data.liked}`);
       }
       if (data?.likes !== undefined) {
         setLikeCount(data.likes);
         console.log(`❤️ Server confirmed: likes=${data.likes}`);
       }
-      // Don't invalidate queries - we already have the server response
-      // This prevents race conditions where stale data overwrites the mutation result
     },
     onError: (err, variables, context) => {
       // Revert both state and count on error
       const wasLiked = context?.wasLiked || false;
       setLiked(wasLiked);
-      likedRef.current = wasLiked;
       setLikeCount(context?.prevCount || 0);
       toast({ description: "Failed to update like", variant: "destructive" });
     }
   });
 
   // Repost mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
-  // Now creates a separate repost post with its own engagement counts
+  // Fixed: Pass wasReposted as variable to avoid race condition between onMutate and mutationFn
   const repostMutation = useMutation({
-    mutationFn: async () => {
-      const method = reposted ? 'DELETE' : 'POST';
-      console.log(`🔁 Repost mutation: ${method} for post ${post.id}`);
+    mutationFn: async ({ wasReposted }: { wasReposted: boolean }) => {
+      const method = wasReposted ? 'DELETE' : 'POST';
+      console.log(`🔁 Repost mutation: ${method} for post ${post.id}, wasReposted=${wasReposted}`);
       const userDisplayName = localStorage.getItem('currentDisplayName') || currentUserUsername || 'anonymous';
       const userUsername = currentUserUsername || 'anonymous';
       const response = await fetch(`/api/social-posts/${post.id}/retweet`, {
@@ -1987,13 +1974,12 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       if (!response.ok) throw new Error('Failed to update repost');
       return response.json();
     },
-    onMutate: () => {
+    onMutate: ({ wasReposted }) => {
       // Optimistic update - toggle state AND count immediately
-      const wasReposted = reposted;
       const prevCount = repostCount;
-      setReposted(!reposted);
-      setRepostCount(prev => reposted ? Math.max(0, prev - 1) : prev + 1);
-      console.log(`🔁 Optimistic: reposted=${!reposted}, count=${reposted ? prevCount - 1 : prevCount + 1}`);
+      setReposted(!wasReposted);
+      setRepostCount(prev => wasReposted ? Math.max(0, prev - 1) : prev + 1);
+      console.log(`🔁 Optimistic: wasReposted=${wasReposted}, newReposted=${!wasReposted}, count=${wasReposted ? prevCount - 1 : prevCount + 1}`);
       return { wasReposted, prevCount };
     },
     onSuccess: (data) => {
@@ -2464,7 +2450,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => repostMutation.mutate()}
+              onClick={() => repostMutation.mutate({ wasReposted: reposted })}
               disabled={repostMutation.isPending}
               className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
                 reposted ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
@@ -2478,7 +2464,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => likeMutation.mutate()}
+              onClick={() => likeMutation.mutate({ wasLiked: liked })}
               disabled={likeMutation.isPending}
               className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
                 liked ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
