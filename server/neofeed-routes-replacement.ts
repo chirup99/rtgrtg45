@@ -29,6 +29,7 @@ import {
   getFollowingCount,
   getFollowersList,
   getFollowingList,
+  getAllRepostsForFeed,
   TABLES 
 } from './neofeed-dynamodb-migration';
 
@@ -73,13 +74,43 @@ export function registerNeoFeedAwsRoutes(app: any) {
       
       const { items: userPosts } = await getAllUserPosts(50);
       const financePosts = await getFinanceNews(20);
+      const allReposts = await getAllRepostsForFeed();
+      
+      // Create a map of posts by ID for quick lookup
+      const postsById = new Map<string, any>();
+      userPosts.forEach((post: any) => postsById.set(post.id, post));
+      financePosts.forEach((post: any) => postsById.set(post.id, post));
+      
+      // Create repost entries as separate feed items
+      const repostFeedItems: any[] = [];
+      for (const repost of allReposts) {
+        const originalPost = postsById.get(repost.postId);
+        if (originalPost) {
+          repostFeedItems.push({
+            ...originalPost,
+            id: `repost_${repost.userId}_${originalPost.id}`, // Unique ID for the repost entry
+            isRepost: true,
+            repostedBy: {
+              userId: repost.userId,
+              displayName: repost.userDisplayName || repost.userId,
+              repostedAt: repost.createdAt
+            },
+            originalPostId: originalPost.id,
+            originalAuthorUsername: originalPost.authorUsername,
+            originalAuthorDisplayName: originalPost.authorDisplayName,
+            createdAt: repost.createdAt, // Use repost time for sorting
+            source: 'aws'
+          });
+        }
+      }
       
       const allPosts = [
         ...userPosts.map((post: any) => ({ ...post, source: 'aws' })),
-        ...financePosts.map((post: any) => ({ ...post, source: 'aws', isFinanceNews: true }))
+        ...financePosts.map((post: any) => ({ ...post, source: 'aws', isFinanceNews: true })),
+        ...repostFeedItems
       ].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      console.log(`✅ Retrieved ${allPosts.length} posts from AWS DynamoDB`);
+      console.log(`✅ Retrieved ${allPosts.length} posts from AWS DynamoDB (including ${repostFeedItems.length} reposts)`);
       res.json(allPosts);
     } catch (error: any) {
       console.error('❌ Error fetching posts from AWS:', error);
@@ -363,9 +394,17 @@ export function registerNeoFeedAwsRoutes(app: any) {
     try {
       const { postId } = req.params;
       const userId = req.body?.userId || 'anonymous';
+      const userDisplayName = req.body?.userDisplayName || userId;
 
-      await createRetweet(userId, postId);
+      const result = await createRetweet(userId, postId, userDisplayName);
       const count = await getPostRetweetsCount(postId);
+      
+      // Check if it was already reposted
+      if (result && 'alreadyRetweeted' in result && result.alreadyRetweeted) {
+        console.log(`⚠️ User ${userId} already reposted this post`);
+        return res.json({ success: true, alreadyReposted: true, reposts: count });
+      }
+      
       res.json({ success: true, reposts: count });
     } catch (error: any) {
       console.error('❌ Error retweeting:', error);

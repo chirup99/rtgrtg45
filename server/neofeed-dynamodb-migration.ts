@@ -213,9 +213,17 @@ export async function getAllUserPosts(limit = 50) {
 export async function createLike(userId: string, postId: string) {
   try {
     const likeId = `${userId}_${postId}`;
+    
+    // Check if user already liked this post
+    const existingLike = await userLikedPost(userId, postId);
+    if (existingLike) {
+      console.log(`⚠️ User ${userId} already liked post ${postId}`);
+      return { alreadyLiked: true, likeId };
+    }
+    
     const item = {
       pk: `like#${likeId}`,
-      sk: new Date().toISOString(),
+      sk: 'LIKE', // Fixed sk to ensure uniqueness per user/post
       likeId,
       userId,
       postId,
@@ -234,19 +242,14 @@ export async function createLike(userId: string, postId: string) {
 export async function deleteLike(userId: string, postId: string) {
   try {
     const likeId = `${userId}_${postId}`;
-    const result = await docClient.send(new ScanCommand({
+    
+    // Direct delete using known pk and sk
+    await docClient.send(new DeleteCommand({
       TableName: TABLES.LIKES,
-      FilterExpression: 'likeId = :likeId',
-      ExpressionAttributeValues: { ':likeId': likeId }
+      Key: { pk: `like#${likeId}`, sk: 'LIKE' }
     }));
     
-    if (result.Items && result.Items.length > 0) {
-      const item = result.Items[0];
-      await docClient.send(new DeleteCommand({
-        TableName: TABLES.LIKES,
-        Key: { pk: item.pk, sk: item.sk }
-      }));
-    }
+    console.log(`✅ Like deleted: ${likeId}`);
     return true;
   } catch (error) {
     console.error('❌ Error deleting like:', error);
@@ -270,25 +273,36 @@ export async function getPostLikesCount(postId: string) {
 export async function userLikedPost(userId: string, postId: string) {
   try {
     const likeId = `${userId}_${postId}`;
-    const result = await docClient.send(new ScanCommand({
+    
+    // Direct lookup using known pk and sk
+    const result = await docClient.send(new GetCommand({
       TableName: TABLES.LIKES,
-      FilterExpression: 'likeId = :likeId',
-      ExpressionAttributeValues: { ':likeId': likeId }
+      Key: { pk: `like#${likeId}`, sk: 'LIKE' }
     }));
-    return (result.Items?.length || 0) > 0;
+    
+    return !!result.Item;
   } catch (error) {
     return false;
   }
 }
 
-export async function createRetweet(userId: string, postId: string) {
+export async function createRetweet(userId: string, postId: string, userDisplayName?: string) {
   try {
     const retweetId = `${userId}_${postId}`;
+    
+    // Check if user already retweeted this post
+    const existingRetweet = await userRetweetedPost(userId, postId);
+    if (existingRetweet) {
+      console.log(`⚠️ User ${userId} already retweeted post ${postId}`);
+      return { alreadyRetweeted: true, retweetId };
+    }
+    
     const item = {
       pk: `retweet#${retweetId}`,
-      sk: new Date().toISOString(),
+      sk: 'RETWEET', // Fixed sk to ensure uniqueness per user/post
       retweetId,
       userId,
+      userDisplayName: userDisplayName || userId,
       postId,
       createdAt: new Date().toISOString()
     };
@@ -305,19 +319,14 @@ export async function createRetweet(userId: string, postId: string) {
 export async function deleteRetweet(userId: string, postId: string) {
   try {
     const retweetId = `${userId}_${postId}`;
-    const result = await docClient.send(new ScanCommand({
+    
+    // Direct delete using known pk and sk
+    await docClient.send(new DeleteCommand({
       TableName: TABLES.RETWEETS,
-      FilterExpression: 'retweetId = :retweetId',
-      ExpressionAttributeValues: { ':retweetId': retweetId }
+      Key: { pk: `retweet#${retweetId}`, sk: 'RETWEET' }
     }));
     
-    if (result.Items && result.Items.length > 0) {
-      const item = result.Items[0];
-      await docClient.send(new DeleteCommand({
-        TableName: TABLES.RETWEETS,
-        Key: { pk: item.pk, sk: item.sk }
-      }));
-    }
+    console.log(`✅ Retweet deleted: ${retweetId}`);
     return true;
   } catch (error) {
     console.error('❌ Error deleting retweet:', error);
@@ -341,14 +350,31 @@ export async function getPostRetweetsCount(postId: string) {
 export async function userRetweetedPost(userId: string, postId: string) {
   try {
     const retweetId = `${userId}_${postId}`;
-    const result = await docClient.send(new ScanCommand({
+    
+    // Direct lookup using known pk and sk
+    const result = await docClient.send(new GetCommand({
       TableName: TABLES.RETWEETS,
-      FilterExpression: 'retweetId = :retweetId',
-      ExpressionAttributeValues: { ':retweetId': retweetId }
+      Key: { pk: `retweet#${retweetId}`, sk: 'RETWEET' }
     }));
-    return (result.Items?.length || 0) > 0;
+    
+    return !!result.Item;
   } catch (error) {
     return false;
+  }
+}
+
+// Get all retweets for a post with user details
+export async function getPostRetweets(postId: string) {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.RETWEETS,
+      FilterExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId }
+    }));
+    return result.Items || [];
+  } catch (error) {
+    console.error('❌ Error fetching post retweets:', error);
+    return [];
   }
 }
 
@@ -670,5 +696,18 @@ export async function getUserProfileByUsername(username: string): Promise<any> {
     return result.Items?.[0] || null;
   } catch (error) {
     return null;
+  }
+}
+
+// Get all reposts with original post data for feed display
+export async function getAllRepostsForFeed() {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.RETWEETS
+    }));
+    return result.Items || [];
+  } catch (error) {
+    console.error('❌ Error fetching all reposts:', error);
+    return [];
   }
 }

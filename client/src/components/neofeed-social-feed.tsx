@@ -62,6 +62,16 @@ interface FeedPost {
   updatedAt?: string | Date;
   ticker?: string;
   timestamp?: string;
+  // Repost support
+  isRepost?: boolean;
+  repostedBy?: {
+    userId: string;
+    displayName: string;
+    repostedAt: string;
+  };
+  originalPostId?: string;
+  originalAuthorUsername?: string;
+  originalAuthorDisplayName?: string;
   // Legacy support for the old structure
   user?: {
     initial: string;
@@ -1927,10 +1937,14 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     mutationFn: async () => {
       const method = reposted ? 'DELETE' : 'POST';
       console.log(`🔁 Repost mutation: ${method} for post ${post.id}`);
+      const userDisplayName = localStorage.getItem('currentDisplayName') || currentUserUsername || 'anonymous';
       const response = await fetch(`/api/social-posts/${post.id}/retweet`, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserUsername || 'anonymous' })
+        body: JSON.stringify({ 
+          userId: currentUserUsername || 'anonymous',
+          userDisplayName: userDisplayName
+        })
       });
       if (!response.ok) throw new Error('Failed to update repost');
       return response.json();
@@ -1952,6 +1966,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       }
       // Invalidate queries to sync state (include userId for proper cache matching)
       queryClient.invalidateQueries({ queryKey: ['retweet-status', post.id, currentUserUsername] });
+      // Also invalidate the main posts feed to show the repost
+      queryClient.invalidateQueries({ queryKey: ['/api/social-posts'] });
     },
     onError: (err, variables, context) => {
       // Revert both state and count on error
@@ -2150,6 +2166,16 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
 
   return (
     <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md mb-4 transition-none">
+      
+      {/* Reposted by header - shows when this is a repost */}
+      {post.isRepost && post.repostedBy && (
+        <div className="flex items-center gap-2 px-3 xl:px-4 pt-2 text-gray-500 dark:text-gray-400 text-sm">
+          <Repeat className="h-4 w-4" />
+          <span>
+            <span className="font-medium">{post.repostedBy.displayName}</span> reposted
+          </span>
+        </div>
+      )}
       
       <CardContent className="p-3 xl:p-4 transition-none">
         {/* User Header */}
