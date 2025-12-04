@@ -11,7 +11,7 @@ import {
   TrendingUp, TrendingDown, Activity, Plus, Home, PenTool,
   Copy, ExternalLink, X, Send, Bot, Trash2, User, MapPin, Calendar,
   ChevronDown, ChevronUp, ArrowLeft, Check, Layers, Mic, Newspaper,
-  Users, UserPlus, ThumbsUp, Loader2
+  Users, UserPlus, ThumbsUp, Loader2, Camera, ZoomIn, ZoomOut, Move
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts';
 import { Button } from './ui/button';
@@ -1063,6 +1063,12 @@ function ProfileHeader() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowersDialog, setShowFollowersDialog] = useState(false);
   const [showFollowingDialog, setShowFollowingDialog] = useState(false);
+  const [showImageCropModal, setShowImageCropModal] = useState(false);
+  const [imageType, setImageType] = useState<'profile' | 'cover'>('profile');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -1185,6 +1191,68 @@ function ProfileHeader() {
   const coverPicUrl = profileData?.coverPicUrl;
   const initials = displayName ? displayName.charAt(0).toUpperCase() : username.charAt(0).toUpperCase();
 
+  // Handle image selection for editing
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+      setImageType(type);
+      setShowImageCropModal(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle cropped image upload
+  const handleCroppedImageUpload = async (croppedImageBlob: Blob) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', croppedImageBlob, `${imageType}-image.jpg`);
+      formData.append('type', imageType);
+
+      const idToken = await getCognitoToken();
+      const response = await fetch('/api/upload-profile-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const { url } = await response.json();
+      
+      // Update profile with the new image URL
+      const updateResponse = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          [imageType === 'profile' ? 'profilePicUrl' : 'coverPicUrl']: url
+        })
+      });
+
+      if (!updateResponse.ok) throw new Error('Failed to update profile');
+      
+      toast({ description: `${imageType === 'profile' ? 'Profile' : 'Cover'} photo updated successfully!` });
+      
+      // Invalidate profile cache to refresh
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      setShowImageCropModal(false);
+      setSelectedImage(null);
+    } catch (error) {
+      toast({ description: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-6 animate-pulse">
@@ -1199,23 +1267,61 @@ function ProfileHeader() {
 
   return (
     <>
+      {/* Hidden file inputs for image selection */}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleImageSelect(e, 'cover')}
+        data-testid="input-cover-image-hidden"
+      />
+      <input
+        ref={profileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleImageSelect(e, 'profile')}
+        data-testid="input-profile-image-hidden"
+      />
+
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-6">
         {/* Cover Photo */}
         <div className={`h-48 relative ${coverPicUrl ? '' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
           {coverPicUrl && (
             <img src={coverPicUrl} alt="Cover" className="w-full h-full object-cover" />
           )}
+          {/* Cover Edit Button - Twitter style camera icon */}
+          <button
+            onClick={() => coverInputRef.current?.click()}
+            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+            disabled={uploading}
+            data-testid="button-edit-cover"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
           {/* Profile Picture - overlapping cover */}
           <div className="absolute -bottom-16 left-4">
-            <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800">
-              {profilePicUrl ? (
-                <AvatarImage src={profilePicUrl} />
-              ) : (
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-4xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              )}
-            </Avatar>
+            <div className="relative group">
+              <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800">
+                {profilePicUrl ? (
+                  <AvatarImage src={profilePicUrl} />
+                ) : (
+                  <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-4xl font-bold">
+                    {initials}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              {/* Profile Picture Edit Button - Twitter style camera icon */}
+              <button
+                onClick={() => profileInputRef.current?.click()}
+                className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                disabled={uploading}
+                data-testid="button-edit-profile-pic"
+              >
+                <Camera className="w-8 h-8 text-white" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1459,7 +1565,258 @@ function ProfileHeader() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Crop Modal - Twitter style adjustment */}
+      <ImageCropModal
+        isOpen={showImageCropModal}
+        onClose={() => {
+          setShowImageCropModal(false);
+          setSelectedImage(null);
+        }}
+        imageSrc={selectedImage}
+        imageType={imageType}
+        onSave={handleCroppedImageUpload}
+        uploading={uploading}
+      />
     </>
+  );
+}
+
+// Twitter-style Image Crop Modal for adjusting profile/cover images
+function ImageCropModal({ 
+  isOpen, 
+  onClose, 
+  imageSrc, 
+  imageType, 
+  onSave, 
+  uploading 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  imageSrc: string | null; 
+  imageType: 'profile' | 'cover';
+  onSave: (blob: Blob) => void;
+  uploading: boolean;
+}) {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset state when modal opens with new image
+  useEffect(() => {
+    if (isOpen) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [isOpen, imageSrc]);
+
+  // Load image when source changes
+  useEffect(() => {
+    if (imageSrc) {
+      const img = new Image();
+      img.onload = () => {
+        imageRef.current = img;
+      };
+      img.src = imageSrc;
+    }
+  }, [imageSrc]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.touches[0].clientX - position.x, 
+        y: e.touches[0].clientY - position.y 
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    setPosition({
+      x: e.touches[0].clientX - dragStart.x,
+      y: e.touches[0].clientY - dragStart.y
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleSave = () => {
+    if (!imageRef.current || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = imageRef.current;
+    
+    // Set canvas dimensions based on image type
+    if (imageType === 'profile') {
+      canvas.width = 400;
+      canvas.height = 400;
+    } else {
+      canvas.width = 1500;
+      canvas.height = 500;
+    }
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate scaled dimensions
+    const containerWidth = imageType === 'profile' ? 300 : 600;
+    const containerHeight = imageType === 'profile' ? 300 : 200;
+    
+    const scaleRatioX = canvas.width / containerWidth;
+    const scaleRatioY = canvas.height / containerHeight;
+
+    const scaledImgWidth = img.width * scale;
+    const scaledImgHeight = img.height * scale;
+    
+    // Calculate aspect ratio to fit image in container
+    const aspectRatio = img.width / img.height;
+    let displayWidth, displayHeight;
+    
+    if (imageType === 'profile') {
+      if (aspectRatio > 1) {
+        displayHeight = containerHeight * scale;
+        displayWidth = displayHeight * aspectRatio;
+      } else {
+        displayWidth = containerWidth * scale;
+        displayHeight = displayWidth / aspectRatio;
+      }
+    } else {
+      displayWidth = containerWidth * scale;
+      displayHeight = displayWidth / aspectRatio;
+      if (displayHeight < containerHeight) {
+        displayHeight = containerHeight * scale;
+        displayWidth = displayHeight * aspectRatio;
+      }
+    }
+
+    const drawX = (position.x + (containerWidth - displayWidth) / 2) * scaleRatioX;
+    const drawY = (position.y + (containerHeight - displayHeight) / 2) * scaleRatioY;
+    const drawWidth = displayWidth * scaleRatioX;
+    const drawHeight = displayHeight * scaleRatioY;
+
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        onSave(blob);
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
+  if (!isOpen || !imageSrc) return null;
+
+  const containerClass = imageType === 'profile' 
+    ? 'w-[300px] h-[300px] rounded-full' 
+    : 'w-full max-w-[600px] h-[200px] rounded-lg';
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Camera className="w-5 h-5" />
+            Adjust {imageType === 'profile' ? 'Profile' : 'Cover'} Photo
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex flex-col items-center gap-6 py-4">
+          {/* Preview Container */}
+          <div 
+            ref={containerRef}
+            className={`relative overflow-hidden bg-gray-900 ${containerClass} cursor-move`}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <img 
+              src={imageSrc} 
+              alt="Preview"
+              className="absolute select-none"
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transformOrigin: 'center',
+                maxWidth: 'none',
+                width: imageType === 'profile' ? '100%' : 'auto',
+                height: imageType === 'cover' ? '100%' : 'auto',
+                minWidth: imageType === 'cover' ? '100%' : 'auto',
+                minHeight: imageType === 'profile' ? '100%' : 'auto',
+              }}
+              draggable={false}
+            />
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-4 w-full max-w-md">
+            <ZoomOut className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            <input
+              type="range"
+              min="0.5"
+              max="3"
+              step="0.1"
+              value={scale}
+              onChange={(e) => setScale(parseFloat(e.target.value))}
+              className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              data-testid="slider-zoom"
+            />
+            <ZoomIn className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </div>
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <Move className="w-4 h-4" />
+            Drag to reposition
+          </p>
+        </div>
+
+        <canvas ref={canvasRef} className="hidden" />
+
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" onClick={onClose} disabled={uploading} data-testid="button-cancel-crop">
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={uploading} data-testid="button-apply-crop">
+            {uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              'Apply'
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1472,13 +1829,11 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
   const [username, setUsername] = useState(profileData?.username || '');
   const [displayName, setDisplayName] = useState(profileData?.displayName || '');
   const [bio, setBio] = useState(profileData?.bio || '');
-  const [uploading, setUploading] = useState(false);
-  const [profilePicUrl, setProfilePicUrl] = useState(profileData?.profilePicUrl || '');
-  const [coverPicUrl, setCoverPicUrl] = useState(profileData?.coverPicUrl || '');
   const [originalUsername, setOriginalUsername] = useState(profileData?.username || '');
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameMessage, setUsernameMessage] = useState('');
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   // Update state when profileData changes
@@ -1487,8 +1842,6 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
       setUsername(profileData.username || '');
       setDisplayName(profileData.displayName || '');
       setBio(profileData.bio || '');
-      setProfilePicUrl(profileData.profilePicUrl || '');
-      setCoverPicUrl(profileData.coverPicUrl || '');
       setOriginalUsername(profileData.username || '');
       setUsernameAvailable(null);
       setUsernameMessage('');
@@ -1539,43 +1892,7 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
 
   // Check if save should be disabled (username changed but not available)
   const isUsernameChanged = username.toLowerCase() !== originalUsername.toLowerCase();
-  const canSave = !uploading && (!isUsernameChanged || usernameAvailable === true);
-
-  const handleFileUpload = async (file: File, type: 'profile' | 'cover') => {
-    if (!file) return;
-    
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type);
-
-      const idToken = await getCognitoToken();
-      const response = await fetch('/api/upload-profile-image', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) throw new Error('Upload failed');
-      
-      const { url } = await response.json();
-      
-      if (type === 'profile') {
-        setProfilePicUrl(url);
-      } else {
-        setCoverPicUrl(url);
-      }
-      
-      toast({ description: `${type === 'profile' ? 'Profile' : 'Cover'} photo uploaded successfully!` });
-    } catch (error) {
-      toast({ description: "Failed to upload image", variant: "destructive" });
-    } finally {
-      setUploading(false);
-    }
-  };
+  const canSave = !saving && (!isUsernameChanged || usernameAvailable === true);
 
   const handleSave = async () => {
     // Validate username if changed
@@ -1587,10 +1904,12 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
       return;
     }
 
+    setSaving(true);
     try {
       const idToken = await getCognitoToken();
       if (!idToken) {
         toast({ description: "Please log in to update your profile", variant: "destructive" });
+        setSaving(false);
         return;
       }
 
@@ -1603,9 +1922,7 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
         body: JSON.stringify({
           username: username || undefined,
           displayName: displayName || undefined,
-          bio: bio || undefined,
-          profilePicUrl: profilePicUrl || undefined,
-          coverPicUrl: coverPicUrl || undefined
+          bio: bio || undefined
         })
       });
 
@@ -1620,6 +1937,8 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
     } catch (error: any) {
       console.error('Profile update error:', error);
       toast({ description: error.message || "Failed to update profile", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1680,38 +1999,15 @@ function EditProfileDialog({ isOpen, onClose, profileData, onSuccess }: {
               data-testid="textarea-bio"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Profile Picture</label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'profile')}
-              disabled={uploading}
-              data-testid="input-profile-pic"
-            />
-            {profilePicUrl && (
-              <img src={profilePicUrl} alt="Profile preview" className="mt-2 w-20 h-20 rounded-full object-cover" />
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Cover Picture</label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'cover')}
-              disabled={uploading}
-              data-testid="input-cover-pic"
-            />
-            {coverPicUrl && (
-              <img src={coverPicUrl} alt="Cover preview" className="mt-2 w-full h-32 rounded-lg object-cover" />
-            )}
-          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+            To change your profile or cover photo, use the camera buttons on your profile header above.
+          </p>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={onClose} data-testid="button-cancel-profile">
+            <Button variant="outline" onClick={onClose} disabled={saving} data-testid="button-cancel-profile">
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={!canSave || checkingUsername} data-testid="button-save-profile">
-              {uploading ? 'Uploading...' : checkingUsername ? 'Checking...' : 'Save'}
+              {saving ? 'Saving...' : checkingUsername ? 'Checking...' : 'Save'}
             </Button>
           </div>
         </div>
