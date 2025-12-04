@@ -849,7 +849,7 @@ function ProfileHeader() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch profile data with stable caching
+  // Fetch profile data - quick fetch on mount
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile-header-data'],
     queryFn: async () => {
@@ -857,9 +857,7 @@ function ProfileHeader() {
       if (!idToken) return null;
 
       const response = await fetch('/api/user/profile', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
+        headers: { 'Authorization': `Bearer ${idToken}` }
       });
 
       if (response.ok) {
@@ -868,34 +866,27 @@ function ProfileHeader() {
       }
       return null;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    staleTime: 60 * 1000, // 1 minute cache
+    gcTime: 5 * 60 * 1000,
   });
 
   const currentUsername = profileData?.username || '';
 
-  // Fetch follower/following counts - allow refetch after invalidation
+  // Fetch follower/following counts - immediate fetch, no stale cache
   const { data: countsData = { followers: 0, following: 0 } } = useQuery({
     queryKey: ['followers-count', currentUsername],
     queryFn: async () => {
       if (!currentUsername) return { followers: 0, following: 0 };
-      console.log('📊 Fetching follower counts for:', currentUsername);
       const response = await fetch(`/api/users/${currentUsername}/followers-count`);
       if (!response.ok) return { followers: 0, following: 0 };
-      const data = await response.json();
-      console.log('📊 Follower counts received:', data);
-      return data;
+      return response.json();
     },
     enabled: !!currentUsername,
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 0, // Always refetch after invalidation
+    gcTime: 60 * 1000,
   });
 
-  // Fetch followers list only when dialog opens
+  // Fetch followers list - immediate when dialog opens
   const { data: followersList = { followers: [] } } = useQuery({
     queryKey: ['followers-list', currentUsername],
     queryFn: async () => {
@@ -905,10 +896,10 @@ function ProfileHeader() {
       return response.json();
     },
     enabled: !!currentUsername && showFollowersDialog,
-    staleTime: 60000,
+    staleTime: 0,
   });
 
-  // Fetch following list only when dialog opens
+  // Fetch following list - immediate when dialog opens
   const { data: followingList = { following: [] } } = useQuery({
     queryKey: ['following-list', currentUsername],
     queryFn: async () => {
@@ -918,7 +909,7 @@ function ProfileHeader() {
       return response.json();
     },
     enabled: !!currentUsername && showFollowingDialog,
-    staleTime: 60000,
+    staleTime: 0,
   });
 
   // Fetch posts with stable caching
@@ -1971,15 +1962,15 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       // Use server response as source of truth
       setIsFollowing(data.following);
       
-      // Invalidate all follow-related queries
+      // Invalidate all follow-related queries - use CORRECT query keys that match ProfileHeader
       queryClient.invalidateQueries({ queryKey: ['follow-status', authorUsername] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/followers-count`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/followers-list`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/following-list`] });
+      queryClient.invalidateQueries({ queryKey: ['followers-count', authorUsername] });
+      queryClient.invalidateQueries({ queryKey: ['followers-list', authorUsername] });
+      queryClient.invalidateQueries({ queryKey: ['following-list', authorUsername] });
       if (currentUserUsername) {
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-count`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/followers-list`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUserUsername}/following-list`] });
+        queryClient.invalidateQueries({ queryKey: ['followers-count', currentUserUsername] });
+        queryClient.invalidateQueries({ queryKey: ['followers-list', currentUserUsername] });
+        queryClient.invalidateQueries({ queryKey: ['following-list', currentUserUsername] });
       }
       
       // Show success message based on server response
