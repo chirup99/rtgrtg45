@@ -1765,6 +1765,7 @@ function AnalysisPanel({ ticker, isOpen, onClose }: { ticker: string; isOpen: bo
 const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: FeedPost; currentUserUsername?: string }) {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [downtrended, setDowntrended] = useState(false);
   const [reposted, setReposted] = useState(false);
   const [showCommentSection, setShowCommentSection] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1775,8 +1776,9 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const [editContent, setEditContent] = useState(post.content);
   const [isFollowing, setIsFollowing] = useState(false);
   
-  // Real-time count state - initialize from post data
+  // Real-time count state - initialize from post data (uptrends = likes, downtrends = new)
   const [likeCount, setLikeCount] = useState(post.metrics?.likes || post.likes || 0);
+  const [downtrendCount, setDowntrendCount] = useState(0);
   const [repostCount, setRepostCount] = useState(post.metrics?.reposts || post.reposts || 0);
   const [commentCount, setCommentCount] = useState(post.metrics?.comments || post.comments || 0);
   
@@ -1819,13 +1821,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     }
   }, [followStatus]);
   
-  // Fetch like status for this post on mount
-  const { data: likeStatus } = useQuery({
-    queryKey: ['like-status', post.id, currentUserUsername],
+  // Fetch vote status for this post on mount (both uptrend and downtrend)
+  const { data: voteStatus } = useQuery({
+    queryKey: ['vote-status', post.id, currentUserUsername],
     queryFn: async () => {
-      if (!currentUserUsername) return { liked: false, likes: 0 };
-      const response = await fetch(`/api/social-posts/${post.id}/like-status?userId=${currentUserUsername}`);
-      if (!response.ok) return { liked: false, likes: likeCount };
+      if (!currentUserUsername) return { uptrended: false, downtrended: false, uptrends: 0, downtrends: 0 };
+      const response = await fetch(`/api/social-posts/${post.id}/vote-status?userId=${currentUserUsername}`);
+      if (!response.ok) return { uptrended: false, downtrended: false, uptrends: likeCount, downtrends: 0 };
       return response.json();
     },
     enabled: !!currentUserUsername,
@@ -1851,15 +1853,19 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     refetchOnWindowFocus: false,
   });
   
-  // Update like state from server
+  // Update vote state from server (both uptrend and downtrend)
   useEffect(() => {
-    if (likeStatus) {
-      setLiked(likeStatus.liked || false);
-      if (likeStatus.likes !== undefined) {
-        setLikeCount(likeStatus.likes);
+    if (voteStatus) {
+      setLiked(voteStatus.uptrended || false);
+      setDowntrended(voteStatus.downtrended || false);
+      if (voteStatus.uptrends !== undefined) {
+        setLikeCount(voteStatus.uptrends);
+      }
+      if (voteStatus.downtrends !== undefined) {
+        setDowntrendCount(voteStatus.downtrends);
       }
     }
-  }, [likeStatus]);
+  }, [voteStatus]);
   
   // Update retweet state from server
   useEffect(() => {
@@ -1902,16 +1908,14 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     });
   };
 
-  // Like mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
-  // Fixed: Pass wasLiked as variable to avoid race condition between onMutate and mutationFn
+  // Uptrend mutation (replaces like) with mutual exclusivity - uses AWS DynamoDB
+  // When uptrending, automatically deactivates any existing downtrend
   const likeMutation = useMutation({
     mutationFn: async ({ wasLiked }: { wasLiked: boolean }) => {
-      // wasLiked is passed from the mutate() call to ensure we use the state BEFORE onMutate modifies it
       const method = wasLiked ? 'DELETE' : 'POST';
       const userId = currentUserUsername || 'anonymous';
-      console.log(`❤️ Like mutation: ${method} for post ${post.id}, wasLiked=${wasLiked}, userId=${userId}`);
+      console.log(`📈 Uptrend mutation: ${method} for post ${post.id}, wasUptrended=${wasLiked}, userId=${userId}`);
       
-      // For DELETE requests, use query params (more reliable than body)
       let url = `/api/social-posts/${post.id}/like-v2`;
       if (method === 'DELETE') {
         url += `?userId=${encodeURIComponent(userId)}`;
@@ -1922,35 +1926,99 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
         headers: { 'Content-Type': 'application/json' },
         body: method === 'POST' ? JSON.stringify({ userId }) : undefined
       });
-      if (!response.ok) throw new Error('Failed to update like');
+      if (!response.ok) throw new Error('Failed to update uptrend');
       return response.json();
     },
     onMutate: ({ wasLiked }) => {
-      // Optimistic update - toggle state AND count immediately
-      const prevCount = likeCount;
+      const prevLikeCount = likeCount;
+      const prevDowntrendCount = downtrendCount;
+      const wasDowntrended = downtrended;
       const newLiked = !wasLiked;
       setLiked(newLiked);
       setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
-      console.log(`❤️ Optimistic: wasLiked=${wasLiked}, newLiked=${newLiked}, count=${wasLiked ? prevCount - 1 : prevCount + 1}`);
-      return { wasLiked, prevCount };
+      // Mutual exclusivity: if uptrending, deactivate downtrend
+      if (!wasLiked && wasDowntrended) {
+        setDowntrended(false);
+        setDowntrendCount(prev => Math.max(0, prev - 1));
+      }
+      console.log(`📈 Optimistic: wasUptrended=${wasLiked}, newUptrended=${newLiked}`);
+      return { wasLiked, prevLikeCount, prevDowntrendCount, wasDowntrended };
     },
     onSuccess: (data) => {
-      // Update with server response - sync both liked state AND count
       if (data?.liked !== undefined) {
         setLiked(data.liked);
-        console.log(`❤️ Server confirmed: liked=${data.liked}`);
       }
       if (data?.likes !== undefined) {
         setLikeCount(data.likes);
-        console.log(`❤️ Server confirmed: likes=${data.likes}`);
       }
+      // Refetch vote status to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['vote-status', post.id, currentUserUsername] });
     },
     onError: (err, variables, context) => {
-      // Revert both state and count on error
-      const wasLiked = context?.wasLiked || false;
-      setLiked(wasLiked);
-      setLikeCount(context?.prevCount || 0);
-      toast({ description: "Failed to update like", variant: "destructive" });
+      setLiked(context?.wasLiked || false);
+      setLikeCount(context?.prevLikeCount || 0);
+      if (context?.wasDowntrended) {
+        setDowntrended(true);
+        setDowntrendCount(context?.prevDowntrendCount || 0);
+      }
+      toast({ description: "Failed to update uptrend", variant: "destructive" });
+    }
+  });
+
+  // Downtrend mutation with mutual exclusivity - uses AWS DynamoDB
+  // When downtrending, automatically deactivates any existing uptrend
+  const downtrendMutation = useMutation({
+    mutationFn: async ({ wasDowntrended }: { wasDowntrended: boolean }) => {
+      const method = wasDowntrended ? 'DELETE' : 'POST';
+      const userId = currentUserUsername || 'anonymous';
+      console.log(`📉 Downtrend mutation: ${method} for post ${post.id}, wasDowntrended=${wasDowntrended}, userId=${userId}`);
+      
+      let url = `/api/social-posts/${post.id}/downtrend`;
+      if (method === 'DELETE') {
+        url += `?userId=${encodeURIComponent(userId)}`;
+      }
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: method === 'POST' ? JSON.stringify({ userId }) : undefined
+      });
+      if (!response.ok) throw new Error('Failed to update downtrend');
+      return response.json();
+    },
+    onMutate: ({ wasDowntrended }) => {
+      const prevDowntrendCount = downtrendCount;
+      const prevLikeCount = likeCount;
+      const wasLiked = liked;
+      const newDowntrended = !wasDowntrended;
+      setDowntrended(newDowntrended);
+      setDowntrendCount(prev => wasDowntrended ? Math.max(0, prev - 1) : prev + 1);
+      // Mutual exclusivity: if downtrending, deactivate uptrend
+      if (!wasDowntrended && wasLiked) {
+        setLiked(false);
+        setLikeCount(prev => Math.max(0, prev - 1));
+      }
+      console.log(`📉 Optimistic: wasDowntrended=${wasDowntrended}, newDowntrended=${newDowntrended}`);
+      return { wasDowntrended, prevDowntrendCount, prevLikeCount, wasLiked };
+    },
+    onSuccess: (data) => {
+      if (data?.downtrended !== undefined) {
+        setDowntrended(data.downtrended);
+      }
+      if (data?.downtrends !== undefined) {
+        setDowntrendCount(data.downtrends);
+      }
+      // Refetch vote status to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['vote-status', post.id, currentUserUsername] });
+    },
+    onError: (err, variables, context) => {
+      setDowntrended(context?.wasDowntrended || false);
+      setDowntrendCount(context?.prevDowntrendCount || 0);
+      if (context?.wasLiked) {
+        setLiked(true);
+        setLikeCount(context?.prevLikeCount || 0);
+      }
+      toast({ description: "Failed to update downtrend", variant: "destructive" });
     }
   });
 
@@ -2467,12 +2535,26 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               onClick={() => likeMutation.mutate({ wasLiked: liked })}
               disabled={likeMutation.isPending}
               className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
-                liked ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+                liked ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
               }`}
-              data-testid={`button-like-${post.id}`}
+              data-testid={`button-uptrend-${post.id}`}
             >
-              <Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
+              <TrendingUp className={`h-5 w-5 ${liked ? 'text-green-500' : ''}`} />
               <span>{likeCount}</span>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downtrendMutation.mutate({ wasDowntrended: downtrended })}
+              disabled={downtrendMutation.isPending}
+              className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
+                downtrended ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+              data-testid={`button-downtrend-${post.id}`}
+            >
+              <TrendingDown className={`h-5 w-5 ${downtrended ? 'text-red-500' : ''}`} />
+              <span>{downtrendCount}</span>
             </Button>
 
             {/* Only show analysis button if valid ticker exists */}
