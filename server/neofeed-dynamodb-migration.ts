@@ -15,6 +15,7 @@ export const docClient = DynamoDBDocumentClient.from(dynamoClient);
 export const TABLES = {
   USER_POSTS: 'neofeed-user-posts',
   LIKES: 'neofeed-likes',
+  DOWNTRENDS: 'neofeed-downtrends',
   RETWEETS: 'neofeed-retweets',
   COMMENTS: 'neofeed-comments',
   FINANCE_NEWS: 'neofeed-finance-news',
@@ -223,6 +224,9 @@ export async function createLike(userId: string, postId: string) {
       return { alreadyLiked: true, likeId };
     }
     
+    // Mutual exclusivity: Remove any existing downtrend when uptrending
+    await deleteDowntrend(normalizedUserId, postId);
+    
     const item = {
       pk: `like#${likeId}`,
       sk: 'LIKE', // Fixed sk to ensure uniqueness per user/post
@@ -284,6 +288,84 @@ export async function userLikedPost(userId: string, postId: string) {
     const result = await docClient.send(new GetCommand({
       TableName: TABLES.LIKES,
       Key: { pk: `like#${likeId}`, sk: 'LIKE' }
+    }));
+    
+    return !!result.Item;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function createDowntrend(userId: string, postId: string) {
+  try {
+    const normalizedUserId = userId.toLowerCase();
+    const downtrendId = `${normalizedUserId}_${postId}`;
+    
+    const existingDowntrend = await userDowntrendedPost(normalizedUserId, postId);
+    if (existingDowntrend) {
+      console.log(`⚠️ User ${normalizedUserId} already downtrended post ${postId}`);
+      return { alreadyDowntrended: true, downtrendId };
+    }
+    
+    await deleteLike(normalizedUserId, postId);
+    
+    const item = {
+      pk: `downtrend#${downtrendId}`,
+      sk: 'DOWNTREND',
+      downtrendId,
+      userId: normalizedUserId,
+      postId,
+      createdAt: new Date().toISOString()
+    };
+
+    await docClient.send(new PutCommand({ TableName: TABLES.DOWNTRENDS, Item: item }));
+    console.log(`✅ Downtrend created: ${downtrendId}`);
+    return item;
+  } catch (error) {
+    console.error('❌ Error creating downtrend:', error);
+    throw error;
+  }
+}
+
+export async function deleteDowntrend(userId: string, postId: string) {
+  try {
+    const normalizedUserId = userId.toLowerCase();
+    const downtrendId = `${normalizedUserId}_${postId}`;
+    
+    await docClient.send(new DeleteCommand({
+      TableName: TABLES.DOWNTRENDS,
+      Key: { pk: `downtrend#${downtrendId}`, sk: 'DOWNTREND' }
+    }));
+    
+    console.log(`✅ Downtrend deleted: ${downtrendId}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting downtrend:', error);
+    return false;
+  }
+}
+
+export async function getPostDowntrendsCount(postId: string) {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.DOWNTRENDS,
+      FilterExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId }
+    }));
+    return result.Count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+export async function userDowntrendedPost(userId: string, postId: string) {
+  try {
+    const normalizedUserId = userId.toLowerCase();
+    const downtrendId = `${normalizedUserId}_${postId}`;
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: TABLES.DOWNTRENDS,
+      Key: { pk: `downtrend#${downtrendId}`, sk: 'DOWNTREND' }
     }));
     
     return !!result.Item;
