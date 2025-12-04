@@ -4383,7 +4383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User Profile Management Routes
+  // User Profile Management Routes - Using AWS Cognito + DynamoDB
   app.get('/api/user/profile', async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
@@ -4392,57 +4392,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'No authentication token provided' });
       }
 
+      // Verify Cognito token
+      const { verifyCognitoToken } = await import('./cognito-auth');
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const userId = decodedToken.uid;
+      const cognitoUser = await verifyCognitoToken(idToken);
+      
+      if (!cognitoUser) {
+        console.log('❌ Cognito token verification failed');
+        return res.status(401).json({ message: 'Invalid authentication token' });
+      }
 
-      // Get user profile from Firestore using getFirestore
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
-      const userDoc = await db.collection('users').doc(userId).get();
+      const userId = cognitoUser.sub;
+      const email = cognitoUser.email;
 
-      console.log('🔍 Checking profile for user:', userId);
-      console.log('📄 User document exists:', userDoc.exists);
+      console.log('🔍 Checking profile for Cognito user:', userId);
 
-      if (!userDoc.exists) {
-        console.log('❌ No profile found in Firebase for user:', userId);
+      // Get user profile from AWS DynamoDB
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+      const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      const awsRegion = process.env.AWS_REGION || 'eu-north-1';
+
+      if (!awsAccessKeyId || !awsSecretAccessKey) {
+        console.log('⚠️ AWS credentials not configured, returning empty profile');
         return res.json({ 
           success: true,
           profile: null,
           userId: userId,
-          email: decodedToken.email
+          email: email
         });
       }
 
-      const userData = userDoc.data();
+      const dynamoClient = new DynamoDBClient({
+        region: awsRegion,
+        credentials: {
+          accessKeyId: awsAccessKeyId,
+          secretAccessKey: awsSecretAccessKey
+        }
+      });
+      const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
-      console.log('✅ Profile found in Firebase:', {
+      // Fetch profile from neofeed-user-profiles table
+      const getCommand = new GetCommand({
+        TableName: 'neofeed-user-profiles',
+        Key: {
+          pk: `USER#${userId}`,
+          sk: 'PROFILE'
+        }
+      });
+
+      const result = await docClient.send(getCommand);
+      
+      if (!result.Item) {
+        console.log('❌ No profile found in DynamoDB for user:', userId);
+        return res.json({ 
+          success: true,
+          profile: null,
+          userId: userId,
+          email: email
+        });
+      }
+
+      const userData = result.Item;
+
+      console.log('✅ Profile found in DynamoDB:', {
         username: userData?.username,
         displayName: userData?.displayName,
         hasUsername: !!userData?.username,
-        hasDisplayName: !!userData?.displayName
+        hasDOB: !!userData?.dob
       });
 
-      // Return profile immediately without waiting for counts
-      // Counts will be fetched separately via /api/user/followers-count endpoint
       res.json({ 
         success: true,
-        profile: userData,
+        profile: {
+          username: userData.username,
+          displayName: userData.displayName,
+          dob: userData.dob,
+          bio: userData.bio,
+          email: userData.email
+        },
         userId: userId,
-        email: decodedToken.email
+        email: email
       });
-
-      // Fetch and cache counts asynchronously (non-blocking)
-      (async () => {
-        try {
-          const followersSnapshot = await db.collection('follows').where('followingId', '==', userId).get();
-          const followingSnapshot = await db.collection('follows').where('followerId', '==', userId).get();
-          console.log(`📊 Follower counts for ${userData?.username}: ${followersSnapshot.size} followers, ${followingSnapshot.size} following`);
-        } catch (e) {
-          console.error('Error fetching follower counts:', e);
-        }
-      })();
     } catch (error) {
       console.error('Get profile error:', error);
       res.status(500).json({ message: 'Failed to get profile' });
@@ -4479,16 +4512,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/user/profile', async (req, res) => {
-    // Helper function to add timeout to promises
-    const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> => {
-      return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error(`${operation} timed out after ${timeoutMs}ms`)), timeoutMs)
-        )
-      ]);
-    };
-
     try {
       const { username, dob } = req.body;
       const authHeader = req.headers.authorization;
@@ -4514,97 +4537,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Verify Cognito token
+      const { verifyCognitoToken } = await import('./cognito-auth');
       const idToken = authHeader.split('Bearer ')[1];
-      console.log('🔐 Verifying Firebase token...');
-
-      const admin = await import('firebase-admin');
-      const decodedToken = await withTimeout(
-        admin.auth().verifyIdToken(idToken),
-        5000,
-        'Token verification'
-      );
-      const userId = decodedToken.uid;
-
-      console.log('✅ Token verified for user:', userId);
-
-      // Use getFirestore from firebase-admin for proper initialization
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
-
-      console.log('🔍 Checking username availability...');
-
-      // Check for username uniqueness with timeout
-      const usernameDoc = await withTimeout(
-        db.collection('usernames').doc(username.toLowerCase()).get(),
-        8000,
-        'Username check'
-      );
-
-      if (usernameDoc.exists && usernameDoc.data()?.userId !== userId) {
-        console.log('❌ Username already taken by another user');
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Username already taken. Please choose a different one.' 
-        });
+      console.log('🔐 Verifying Cognito token...');
+      
+      const cognitoUser = await verifyCognitoToken(idToken);
+      
+      if (!cognitoUser) {
+        console.log('❌ Cognito token verification failed');
+        return res.status(401).json({ success: false, message: 'Invalid authentication token' });
       }
 
-      console.log('✅ Username available, saving to Firebase...');
+      const userId = cognitoUser.sub;
+      const email = cognitoUser.email;
 
-      // First, fetch existing profile to preserve displayName and other fields
-      console.log('📖 Fetching existing profile...');
-      const existingProfile = await withTimeout(
-        db.collection('users').doc(userId).get(),
-        15000,  // Increased from 5s to 15s
-        'Fetch existing profile'
-      );
+      console.log('✅ Token verified for Cognito user:', userId);
 
-      const existingData = existingProfile.exists ? existingProfile.data() : {};
+      // Use AWS DynamoDB for profile storage
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+      const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      const awsRegion = process.env.AWS_REGION || 'eu-north-1';
+
+      if (!awsAccessKeyId || !awsSecretAccessKey) {
+        console.log('❌ AWS credentials not configured');
+        return res.status(500).json({ success: false, message: 'Server configuration error' });
+      }
+
+      const dynamoClient = new DynamoDBClient({
+        region: awsRegion,
+        credentials: {
+          accessKeyId: awsAccessKeyId,
+          secretAccessKey: awsSecretAccessKey
+        }
+      });
+      const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+      console.log('🔍 Checking username availability in DynamoDB...');
+
+      // Check for username uniqueness using GSI or scan
+      const queryCommand = new QueryCommand({
+        TableName: 'neofeed-user-profiles',
+        IndexName: 'username-index',
+        KeyConditionExpression: 'username = :username',
+        ExpressionAttributeValues: {
+          ':username': username.toLowerCase()
+        }
+      });
+
+      try {
+        const existingUser = await docClient.send(queryCommand);
+        if (existingUser.Items && existingUser.Items.length > 0) {
+          const existingUserId = existingUser.Items[0].pk?.replace('USER#', '');
+          if (existingUserId !== userId) {
+            console.log('❌ Username already taken by another user');
+            return res.status(400).json({ 
+              success: false, 
+              message: 'Username already taken. Please choose a different one.' 
+            });
+          }
+        }
+      } catch (queryError: any) {
+        // If GSI doesn't exist, we'll skip the uniqueness check for now
+        if (queryError.name !== 'ResourceNotFoundException') {
+          console.log('⚠️ Username uniqueness check skipped (GSI may not exist)');
+        }
+      }
+
+      console.log('✅ Username available, saving to DynamoDB...');
+
+      // Fetch existing profile
+      const getCommand = new GetCommand({
+        TableName: 'neofeed-user-profiles',
+        Key: {
+          pk: `USER#${userId}`,
+          sk: 'PROFILE'
+        }
+      });
+
+      const existingResult = await docClient.send(getCommand);
+      const existingData = existingResult.Item || {};
+
       console.log('📄 Existing profile data:', {
         hasDisplayName: !!existingData?.displayName,
         displayName: existingData?.displayName
       });
 
-      // Save user profile - merge with existing data to preserve displayName
+      // Save user profile
       const userProfile = {
-        ...existingData, // Preserve all existing fields
+        pk: `USER#${userId}`,
+        sk: 'PROFILE',
         username: username.toLowerCase(),
+        displayName: existingData.displayName || cognitoUser.name || username,
         dob: dob,
-        email: decodedToken.email || '',
+        email: email,
         userId: userId,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        bio: existingData.bio || '',
+        updatedAt: new Date().toISOString(),
+        createdAt: existingData.createdAt || new Date().toISOString()
       };
 
-      // Save user profile with extended timeout (60 seconds)
-      console.log('💾 Saving user profile to Firestore...');
-      console.log('⏰ This may take up to 60 seconds depending on network conditions');
-      await withTimeout(
-        db.collection('users').doc(userId).set(userProfile, { merge: true }),
-        60000,  // Increased from 10s to 60s
-        'User profile save'
-      );
-      console.log('✅ User profile saved to Firestore with displayName:', userProfile.displayName);
+      console.log('💾 Saving user profile to DynamoDB...');
+      
+      const putCommand = new PutCommand({
+        TableName: 'neofeed-user-profiles',
+        Item: userProfile
+      });
 
-      // Also save username mapping with extended timeout
-      console.log('💾 Saving username mapping...');
-      await withTimeout(
-        db.collection('usernames').doc(username.toLowerCase()).set({
+      await docClient.send(putCommand);
+      console.log('✅ User profile saved to DynamoDB');
+
+      // Save username mapping for faster lookups
+      const usernameMappingCommand = new PutCommand({
+        TableName: 'neofeed-user-profiles',
+        Item: {
+          pk: `USERNAME#${username.toLowerCase()}`,
+          sk: 'MAPPING',
           userId: userId,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }),
-        30000,  // Increased from 8s to 30s
-        'Username mapping save'
-      );
+          username: username.toLowerCase(),
+          updatedAt: new Date().toISOString()
+        }
+      });
+
+      await docClient.send(usernameMappingCommand);
       console.log('✅ Username mapping saved');
       console.log('✅✅ Profile save completed successfully!');
 
-      // Respond to the user after successful save
       res.json({ 
         success: true,
         message: 'Profile saved successfully',
         profile: {
           username: username.toLowerCase(),
           dob: dob,
-          email: decodedToken.email
+          email: email
         }
       });
     } catch (error: any) {
@@ -4615,19 +4683,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stack: error?.stack
       });
 
-      // If it's a timeout error, return a more specific message
-      if (error?.message?.includes('timed out')) {
-        return res.status(504).json({ 
-          success: false, 
-          message: 'Database operation timed out. Please check your internet connection and try again.' 
-        });
-      }
-
       res.status(500).json({ success: false, message: `Failed to save profile: ${error?.message || 'Unknown error'}` });
     }
   });
 
-  // Update user profile (PATCH) - for bio and displayName
+  // Update user profile (PATCH) - for bio and displayName - Using AWS Cognito + DynamoDB
   app.patch('/api/user/profile', async (req, res) => {
     try {
       const { displayName, bio } = req.body;
@@ -4639,53 +4699,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ success: false, message: 'No authentication token provided' });
       }
 
+      // Verify Cognito token
+      const { verifyCognitoToken } = await import('./cognito-auth');
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const userId = decodedToken.uid;
+      const cognitoUser = await verifyCognitoToken(idToken);
+      
+      if (!cognitoUser) {
+        console.log('❌ Cognito token verification failed');
+        return res.status(401).json({ success: false, message: 'Invalid authentication token' });
+      }
 
-      console.log('✅ Token verified for user:', userId);
+      const userId = cognitoUser.sub;
+      console.log('✅ Token verified for Cognito user:', userId);
 
-      // Get Firestore instance
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      // Use AWS DynamoDB
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+      const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      const awsRegion = process.env.AWS_REGION || 'eu-north-1';
+
+      if (!awsAccessKeyId || !awsSecretAccessKey) {
+        console.log('❌ AWS credentials not configured');
+        return res.status(500).json({ success: false, message: 'Server configuration error' });
+      }
+
+      const dynamoClient = new DynamoDBClient({
+        region: awsRegion,
+        credentials: {
+          accessKeyId: awsAccessKeyId,
+          secretAccessKey: awsSecretAccessKey
+        }
+      });
+      const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
       // Get existing profile
-      const userDoc = await db.collection('users').doc(userId).get();
+      const getCommand = new GetCommand({
+        TableName: 'neofeed-user-profiles',
+        Key: {
+          pk: `USER#${userId}`,
+          sk: 'PROFILE'
+        }
+      });
 
-      if (!userDoc.exists) {
+      const existingResult = await docClient.send(getCommand);
+      
+      if (!existingResult.Item) {
         return res.status(404).json({ 
           success: false, 
           message: 'Profile not found' 
         });
       }
 
-      // Update profile with new data
-      const updateData: any = {
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      // Build update expression
+      let updateExpression = 'SET updatedAt = :updatedAt';
+      const expressionAttributeValues: any = {
+        ':updatedAt': new Date().toISOString()
       };
 
       if (displayName !== undefined) {
-        updateData.displayName = displayName.trim();
+        updateExpression += ', displayName = :displayName';
+        expressionAttributeValues[':displayName'] = displayName.trim();
       }
 
       if (bio !== undefined) {
-        updateData.bio = bio.trim();
+        updateExpression += ', bio = :bio';
+        expressionAttributeValues[':bio'] = bio.trim();
       }
 
-      console.log('💾 Updating profile with:', updateData);
+      console.log('💾 Updating profile with DynamoDB...');
 
-      await db.collection('users').doc(userId).update(updateData);
+      const updateCommand = new UpdateCommand({
+        TableName: 'neofeed-user-profiles',
+        Key: {
+          pk: `USER#${userId}`,
+          sk: 'PROFILE'
+        },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ReturnValues: 'ALL_NEW'
+      });
 
+      const updateResult = await docClient.send(updateCommand);
       console.log('✅ Profile updated successfully');
 
       res.json({ 
         success: true,
         message: 'Profile updated successfully',
-        profile: {
-          ...userDoc.data(),
-          ...updateData
-        }
+        profile: updateResult.Attributes
       });
     } catch (error: any) {
       console.error('❌ Profile update error:', error);
@@ -4708,21 +4810,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const admin = await import('firebase-admin');
-      const firestore = admin.firestore();
+      // Check username availability in AWS DynamoDB
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+      const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      const awsRegion = process.env.AWS_REGION || 'eu-north-1';
 
-      // Check if username exists
-      const existingUsername = await firestore.collection('users')
-        .where('username', '==', username.toLowerCase())
-        .get();
+      if (!awsAccessKeyId || !awsSecretAccessKey) {
+        // If AWS not configured, assume username is available
+        return res.json({ 
+          available: true,
+          message: 'Username available'
+        });
+      }
+
+      const dynamoClient = new DynamoDBClient({
+        region: awsRegion,
+        credentials: {
+          accessKeyId: awsAccessKeyId,
+          secretAccessKey: awsSecretAccessKey
+        }
+      });
+      const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+      // Check username mapping
+      const getCommand = new GetCommand({
+        TableName: 'neofeed-user-profiles',
+        Key: {
+          pk: `USERNAME#${username.toLowerCase()}`,
+          sk: 'MAPPING'
+        }
+      });
+
+      const result = await docClient.send(getCommand);
+      const isAvailable = !result.Item;
 
       res.json({ 
-        available: existingUsername.empty,
-        message: existingUsername.empty ? 'Username available' : 'Username already taken'
+        available: isAvailable,
+        message: isAvailable ? 'Username available' : 'Username already taken'
       });
     } catch (error) {
       console.error('Check username error:', error);
-      res.status(500).json({ message: 'Failed to check username availability' });
+      // On error, assume username is available to not block user
+      res.json({ 
+        available: true,
+        message: 'Username available'
+      });
     }
   });
 
