@@ -9,6 +9,7 @@ import {
   createLike, 
   deleteLike, 
   userLikedPost, 
+  userRetweetedPost,
   createRetweet, 
   deleteRetweet, 
   createComment, 
@@ -389,10 +390,12 @@ export function registerNeoFeedAwsRoutes(app: any) {
   app.get('/api/social-posts/:postId/retweet-status', async (req: any, res: any) => {
     try {
       const { postId } = req.params;
+      const userId = req.query?.userId || 'anonymous';
+      const retweeted = await userRetweetedPost(userId as string, postId);
       const count = await getPostRetweetsCount(postId);
-      res.json({ reposts: count });
+      res.json({ retweeted, reposts: count });
     } catch (error: any) {
-      res.json({ reposts: 0 });
+      res.json({ retweeted: false, reposts: 0 });
     }
   });
 

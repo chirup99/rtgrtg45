@@ -80,7 +80,7 @@ interface FeedPost {
 }
 
 // Inline Comment Section Component
-function InlineCommentSection({ post, isVisible, onClose }: { post: FeedPost; isVisible: boolean; onClose: () => void }) {
+function InlineCommentSection({ post, isVisible, onClose, onCommentAdded }: { post: FeedPost; isVisible: boolean; onClose: () => void; onCommentAdded?: () => void }) {
   const [comment, setComment] = useState('');
   const [localComments, setLocalComments] = useState<any[]>([]);
   const [showDeleteMenu, setShowDeleteMenu] = useState<string | null>(null);
@@ -134,8 +134,14 @@ function InlineCommentSection({ post, isVisible, onClose }: { post: FeedPost; is
       };
       setLocalComments(prev => [...prev, immediateComment]);
       
-      // Only invalidate the comments query, NOT all posts
+      // Update comment count in parent PostCard
+      if (onCommentAdded) {
+        onCommentAdded();
+      }
+      
+      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: [`/api/social-posts/${post.id}/comments`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/social-posts'] });
       setComment('');
       toast({ description: "Comment added successfully!" });
     },
@@ -1751,6 +1757,12 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [isFollowing, setIsFollowing] = useState(false);
+  
+  // Real-time count state - initialize from post data
+  const [likeCount, setLikeCount] = useState(post.metrics?.likes || post.likes || 0);
+  const [repostCount, setRepostCount] = useState(post.metrics?.reposts || post.reposts || 0);
+  const [commentCount, setCommentCount] = useState(post.metrics?.comments || post.comments || 0);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -1788,6 +1800,58 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     }
   }, [followStatus]);
   
+  // Fetch like status for this post on mount
+  const { data: likeStatus } = useQuery({
+    queryKey: ['like-status', post.id, currentUserUsername],
+    queryFn: async () => {
+      if (!currentUserUsername) return { liked: false, likes: 0 };
+      const response = await fetch(`/api/social-posts/${post.id}/like-status?userId=${currentUserUsername}`);
+      if (!response.ok) return { liked: false, likes: likeCount };
+      return response.json();
+    },
+    enabled: !!currentUserUsername,
+    staleTime: 60000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+  
+  // Fetch retweet status for this post on mount - uses AWS DynamoDB
+  const { data: retweetStatus } = useQuery({
+    queryKey: ['retweet-status', post.id, currentUserUsername],
+    queryFn: async () => {
+      if (!currentUserUsername) return { retweeted: false, reposts: 0 };
+      const response = await fetch(`/api/social-posts/${post.id}/retweet-status?userId=${encodeURIComponent(currentUserUsername)}`);
+      if (!response.ok) return { retweeted: false, reposts: repostCount };
+      const data = await response.json();
+      console.log(`🔁 Retweet status for post ${post.id}: retweeted=${data.retweeted}, reposts=${data.reposts}`);
+      return data;
+    },
+    enabled: !!currentUserUsername,
+    staleTime: 60000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+  
+  // Update like state from server
+  useEffect(() => {
+    if (likeStatus) {
+      setLiked(likeStatus.liked || false);
+      if (likeStatus.likes !== undefined) {
+        setLikeCount(likeStatus.likes);
+      }
+    }
+  }, [likeStatus]);
+  
+  // Update retweet state from server
+  useEffect(() => {
+    if (retweetStatus) {
+      setReposted(retweetStatus.retweeted || false);
+      if (retweetStatus.reposts !== undefined) {
+        setRepostCount(retweetStatus.reposts);
+      }
+    }
+  }, [retweetStatus]);
+  
   // Audio mode text selection
   const { isAudioMode, selectedTextSnippets, addTextSnippet } = useAudioMode();
   
@@ -1819,12 +1883,12 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
     });
   };
 
-  // Like mutation
-  // Simple like mutation with optimistic UI update
+  // Like mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
   const likeMutation = useMutation({
     mutationFn: async () => {
       const method = liked ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/social-posts/${post.id}/like`, {
+      console.log(`❤️ Like mutation: ${method} for post ${post.id}`);
+      const response = await fetch(`/api/social-posts/${post.id}/like-v2`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserUsername || 'anonymous' })
@@ -1833,21 +1897,37 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       return response.json();
     },
     onMutate: () => {
+      // Optimistic update - toggle state AND count immediately
       const wasLiked = liked;
+      const prevCount = likeCount;
       setLiked(!liked);
-      return { wasLiked };
+      setLikeCount(prev => liked ? Math.max(0, prev - 1) : prev + 1);
+      console.log(`❤️ Optimistic: liked=${!liked}, count=${liked ? prevCount - 1 : prevCount + 1}`);
+      return { wasLiked, prevCount };
+    },
+    onSuccess: (data) => {
+      // Update with server response if available
+      if (data?.likes !== undefined) {
+        setLikeCount(data.likes);
+        console.log(`❤️ Server confirmed: likes=${data.likes}`);
+      }
+      // Invalidate queries to sync state (include userId for proper cache matching)
+      queryClient.invalidateQueries({ queryKey: ['like-status', post.id, currentUserUsername] });
     },
     onError: (err, variables, context) => {
+      // Revert both state and count on error
       setLiked(context?.wasLiked || false);
+      setLikeCount(context?.prevCount || 0);
       toast({ description: "Failed to update like", variant: "destructive" });
     }
   });
 
-  // Simple repost mutation with optimistic UI update
+  // Repost mutation with real-time count updates (Twitter-style) - uses AWS DynamoDB
   const repostMutation = useMutation({
     mutationFn: async () => {
       const method = reposted ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/social-posts/${post.id}/repost`, {
+      console.log(`🔁 Repost mutation: ${method} for post ${post.id}`);
+      const response = await fetch(`/api/social-posts/${post.id}/retweet`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserUsername || 'anonymous' })
@@ -1856,12 +1936,27 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       return response.json();
     },
     onMutate: () => {
+      // Optimistic update - toggle state AND count immediately
       const wasReposted = reposted;
+      const prevCount = repostCount;
       setReposted(!reposted);
-      return { wasReposted };
+      setRepostCount(prev => reposted ? Math.max(0, prev - 1) : prev + 1);
+      console.log(`🔁 Optimistic: reposted=${!reposted}, count=${reposted ? prevCount - 1 : prevCount + 1}`);
+      return { wasReposted, prevCount };
+    },
+    onSuccess: (data) => {
+      // Update with server response if available
+      if (data?.reposts !== undefined) {
+        setRepostCount(data.reposts);
+        console.log(`🔁 Server confirmed: reposts=${data.reposts}`);
+      }
+      // Invalidate queries to sync state (include userId for proper cache matching)
+      queryClient.invalidateQueries({ queryKey: ['retweet-status', post.id, currentUserUsername] });
     },
     onError: (err, variables, context) => {
+      // Revert both state and count on error
       setReposted(context?.wasReposted || false);
+      setRepostCount(context?.prevCount || 0);
       toast({ description: "Failed to update repost", variant: "destructive" });
     }
   });
@@ -2278,11 +2373,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               variant="ghost"
               size="sm"
               onClick={() => setShowCommentSection(!showCommentSection)}
-              className="flex items-center gap-2 text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-500/20  backdrop-blur-sm px-3 py-2 rounded-lg"
+              className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
+                showCommentSection ? 'text-blue-500 dark:text-blue-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
               data-testid={`button-comment-${post.id}`}
             >
-              <MessageCircle className="h-5 w-5" />
-              <span>{post.metrics?.comments || post.comments || 0}</span>
+              <MessageCircle className={`h-5 w-5 ${showCommentSection ? 'text-blue-500' : ''}`} />
+              <span>{commentCount}</span>
             </Button>
             
             <Button
@@ -2290,13 +2387,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               size="sm"
               onClick={() => repostMutation.mutate()}
               disabled={repostMutation.isPending}
-              className={`flex items-center gap-2  backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg ${
-                reposted ? 'text-black dark:text-white' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+              className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
+                reposted ? 'text-green-500 dark:text-green-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               data-testid={`button-repost-${post.id}`}
             >
-              <Repeat className="h-5 w-5" />
-              <span>{post.metrics?.reposts || post.reposts || 0}</span>
+              <Repeat className={`h-5 w-5 ${reposted ? 'text-green-500' : ''}`} />
+              <span>{repostCount}</span>
             </Button>
             
             <Button
@@ -2304,13 +2401,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
               size="sm"
               onClick={() => likeMutation.mutate()}
               disabled={likeMutation.isPending}
-              className={`flex items-center gap-2  backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg ${
-                liked ? 'text-black dark:text-white' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
+              className={`flex items-center gap-2 backdrop-blur-sm hover:bg-gray-500/20 px-3 py-2 rounded-lg transition-colors ${
+                liked ? 'text-red-500 dark:text-red-400' : 'text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               data-testid={`button-like-${post.id}`}
             >
-              <Heart className={`h-5 w-5 ${liked ? 'fill-current' : ''}`} />
-              <span>{post.metrics?.likes || post.likes || 0}</span>
+              <Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
+              <span>{likeCount}</span>
             </Button>
 
             {/* Only show analysis button if valid ticker exists */}
@@ -2353,6 +2450,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
           post={post}
           isVisible={showCommentSection}
           onClose={() => setShowCommentSection(false)}
+          onCommentAdded={() => setCommentCount(prev => prev + 1)}
         />
 
         {/* Share Modal */}

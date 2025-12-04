@@ -338,6 +338,20 @@ export async function getPostRetweetsCount(postId: string) {
   }
 }
 
+export async function userRetweetedPost(userId: string, postId: string) {
+  try {
+    const retweetId = `${userId}_${postId}`;
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.RETWEETS,
+      FilterExpression: 'retweetId = :retweetId',
+      ExpressionAttributeValues: { ':retweetId': retweetId }
+    }));
+    return (result.Items?.length || 0) > 0;
+  } catch (error) {
+    return false;
+  }
+}
+
 export async function createComment(commentData: any) {
   try {
     const commentId = nanoid();
