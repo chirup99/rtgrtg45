@@ -10,7 +10,7 @@ const dynamoClient = new DynamoDBClient({
   }
 });
 
-const docClient = DynamoDBDocumentClient.from(dynamoClient);
+export const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 export const TABLES = {
   USER_POSTS: 'neofeed-user-posts',
@@ -557,15 +557,18 @@ export async function getBanners() {
 
 export async function createFollow(followerUsername: string, followingUsername: string, followerData?: any, followingData?: any) {
   try {
-    const followId = `${followerUsername}_${followingUsername}`;
+    // Normalize usernames to lowercase for consistent matching
+    const normalizedFollower = followerUsername.toLowerCase();
+    const normalizedFollowing = followingUsername.toLowerCase();
+    const followId = `${normalizedFollower}_${normalizedFollowing}`;
     const timestamp = new Date().toISOString();
     
     const item = {
       pk: `follow#${followId}`,
       sk: timestamp,
       followId,
-      followerUsername,
-      followingUsername,
+      followerUsername: normalizedFollower,
+      followingUsername: normalizedFollowing,
       followerDisplayName: followerData?.displayName || followerUsername,
       followingDisplayName: followingData?.displayName || followingUsername,
       followerAvatar: followerData?.profilePicUrl || null,
@@ -574,7 +577,7 @@ export async function createFollow(followerUsername: string, followingUsername: 
     };
 
     await docClient.send(new PutCommand({ TableName: TABLES.FOLLOWS, Item: item }));
-    console.log(`✅ Follow created: ${followerUsername} -> ${followingUsername}`);
+    console.log(`✅ Follow created: ${normalizedFollower} -> ${normalizedFollowing}`);
     return item;
   } catch (error) {
     console.error('❌ Error creating follow:', error);
@@ -584,7 +587,10 @@ export async function createFollow(followerUsername: string, followingUsername: 
 
 export async function deleteFollow(followerUsername: string, followingUsername: string) {
   try {
-    const followId = `${followerUsername}_${followingUsername}`;
+    // Normalize usernames to lowercase for consistent matching
+    const normalizedFollower = followerUsername.toLowerCase();
+    const normalizedFollowing = followingUsername.toLowerCase();
+    const followId = `${normalizedFollower}_${normalizedFollowing}`;
     const result = await docClient.send(new ScanCommand({
       TableName: TABLES.FOLLOWS,
       FilterExpression: 'followId = :followId',
@@ -597,7 +603,7 @@ export async function deleteFollow(followerUsername: string, followingUsername: 
         TableName: TABLES.FOLLOWS,
         Key: { pk: item.pk, sk: item.sk }
       }));
-      console.log(`✅ Unfollowed: ${followerUsername} -> ${followingUsername}`);
+      console.log(`✅ Unfollowed: ${normalizedFollower} -> ${normalizedFollowing}`);
     }
     return true;
   } catch (error) {
@@ -608,7 +614,10 @@ export async function deleteFollow(followerUsername: string, followingUsername: 
 
 export async function isFollowing(followerUsername: string, followingUsername: string): Promise<boolean> {
   try {
-    const followId = `${followerUsername}_${followingUsername}`;
+    // Normalize usernames to lowercase for consistent matching
+    const normalizedFollower = followerUsername.toLowerCase();
+    const normalizedFollowing = followingUsername.toLowerCase();
+    const followId = `${normalizedFollower}_${normalizedFollowing}`;
     const result = await docClient.send(new ScanCommand({
       TableName: TABLES.FOLLOWS,
       FilterExpression: 'followId = :followId',
@@ -622,36 +631,46 @@ export async function isFollowing(followerUsername: string, followingUsername: s
 
 export async function getFollowersCount(username: string): Promise<number> {
   try {
+    // Normalize username to lowercase for consistent matching
+    const normalizedUsername = username.toLowerCase();
     const result = await docClient.send(new ScanCommand({
       TableName: TABLES.FOLLOWS,
       FilterExpression: 'followingUsername = :username',
-      ExpressionAttributeValues: { ':username': username }
+      ExpressionAttributeValues: { ':username': normalizedUsername }
     }));
+    console.log(`📊 getFollowersCount for ${normalizedUsername}: ${result.Count || 0} followers`);
     return result.Count || 0;
   } catch (error) {
+    console.error(`❌ Error getting followers count:`, error);
     return 0;
   }
 }
 
 export async function getFollowingCount(username: string): Promise<number> {
   try {
+    // Normalize username to lowercase for consistent matching
+    const normalizedUsername = username.toLowerCase();
     const result = await docClient.send(new ScanCommand({
       TableName: TABLES.FOLLOWS,
       FilterExpression: 'followerUsername = :username',
-      ExpressionAttributeValues: { ':username': username }
+      ExpressionAttributeValues: { ':username': normalizedUsername }
     }));
+    console.log(`📊 getFollowingCount for ${normalizedUsername}: ${result.Count || 0} following`);
     return result.Count || 0;
   } catch (error) {
+    console.error(`❌ Error getting following count:`, error);
     return 0;
   }
 }
 
 export async function getFollowersList(username: string): Promise<any[]> {
   try {
+    // Normalize username to lowercase for consistent matching
+    const normalizedUsername = username.toLowerCase();
     const result = await docClient.send(new ScanCommand({
       TableName: TABLES.FOLLOWS,
       FilterExpression: 'followingUsername = :username',
-      ExpressionAttributeValues: { ':username': username }
+      ExpressionAttributeValues: { ':username': normalizedUsername }
     }));
     
     return (result.Items || []).map((item: any) => ({
@@ -668,10 +687,12 @@ export async function getFollowersList(username: string): Promise<any[]> {
 
 export async function getFollowingList(username: string): Promise<any[]> {
   try {
+    // Normalize username to lowercase for consistent matching
+    const normalizedUsername = username.toLowerCase();
     const result = await docClient.send(new ScanCommand({
       TableName: TABLES.FOLLOWS,
       FilterExpression: 'followerUsername = :username',
-      ExpressionAttributeValues: { ':username': username }
+      ExpressionAttributeValues: { ':username': normalizedUsername }
     }));
     
     return (result.Items || []).map((item: any) => ({

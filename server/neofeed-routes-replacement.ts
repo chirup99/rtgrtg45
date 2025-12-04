@@ -65,6 +65,21 @@ async function getAuthenticatedUser(req: any): Promise<{ userId: string; usernam
   };
 }
 
+// Helper function to enrich posts with real engagement counts from DynamoDB
+async function enrichPostWithRealCounts(post: any): Promise<any> {
+  const [likes, reposts, comments] = await Promise.all([
+    getPostLikesCount(post.id),
+    getPostRetweetsCount(post.id),
+    getPostCommentsCount(post.id)
+  ]);
+  return {
+    ...post,
+    likes,
+    reposts,
+    comments
+  };
+}
+
 export function registerNeoFeedAwsRoutes(app: any) {
   console.log('🔷 Registering NeoFeed AWS DynamoDB routes...');
 
@@ -92,6 +107,94 @@ export function registerNeoFeedAwsRoutes(app: any) {
     }
   });
 
+  // Admin endpoint to list and fix follow records with uppercase usernames
+  app.get('/api/admin/follow-records', async (req: any, res: any) => {
+    try {
+      const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { docClient } = await import('./neofeed-dynamodb-migration');
+      
+      const result = await docClient.send(new ScanCommand({
+        TableName: 'neofeed-follows'
+      }));
+      
+      const records = result.Items || [];
+      console.log(`📊 Found ${records.length} follow records`);
+      
+      // Check for case issues
+      const caseIssues = records.filter((r: any) => 
+        (r.followerUsername && r.followerUsername !== r.followerUsername.toLowerCase()) ||
+        (r.followingUsername && r.followingUsername !== r.followingUsername.toLowerCase())
+      );
+      
+      res.json({ 
+        total: records.length, 
+        caseIssues: caseIssues.length,
+        records: records.map((r: any) => ({
+          followId: r.followId,
+          followerUsername: r.followerUsername,
+          followingUsername: r.followingUsername,
+          createdAt: r.createdAt
+        }))
+      });
+    } catch (error: any) {
+      console.error('❌ Error fetching follow records:', error);
+      res.status(500).json({ error: 'Failed to fetch follow records' });
+    }
+  });
+
+  // Admin endpoint to fix follow records with uppercase usernames
+  app.post('/api/admin/fix-follow-records', async (req: any, res: any) => {
+    try {
+      const { ScanCommand, DeleteCommand, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { docClient } = await import('./neofeed-dynamodb-migration');
+      
+      const result = await docClient.send(new ScanCommand({
+        TableName: 'neofeed-follows'
+      }));
+      
+      const records = result.Items || [];
+      let fixedCount = 0;
+      
+      for (const record of records) {
+        const followerLower = record.followerUsername?.toLowerCase();
+        const followingLower = record.followingUsername?.toLowerCase();
+        
+        // Check if any username needs fixing
+        if (record.followerUsername !== followerLower || record.followingUsername !== followingLower) {
+          // Delete old record
+          await docClient.send(new DeleteCommand({
+            TableName: 'neofeed-follows',
+            Key: { pk: record.pk, sk: record.sk }
+          }));
+          
+          // Create new record with lowercase usernames
+          const newFollowId = `${followerLower}_${followingLower}`;
+          const newRecord = {
+            ...record,
+            pk: `follow#${newFollowId}`,
+            followId: newFollowId,
+            followerUsername: followerLower,
+            followingUsername: followingLower
+          };
+          
+          await docClient.send(new PutCommand({
+            TableName: 'neofeed-follows',
+            Item: newRecord
+          }));
+          
+          console.log(`✅ Fixed follow record: ${record.followerUsername} -> ${record.followingUsername} (now lowercase)`);
+          fixedCount++;
+        }
+      }
+      
+      console.log(`✅ Fixed ${fixedCount} follow records with uppercase usernames`);
+      res.json({ success: true, fixed: fixedCount, total: records.length });
+    } catch (error: any) {
+      console.error('❌ Error fixing follow records:', error);
+      res.status(500).json({ error: 'Failed to fix follow records' });
+    }
+  });
+
   app.get('/api/social-posts', async (req: any, res: any) => {
     try {
       console.log('📱 Fetching social posts from AWS DynamoDB');
@@ -106,9 +209,14 @@ export function registerNeoFeedAwsRoutes(app: any) {
         ...financePosts.map((post: any) => ({ ...post, source: 'aws', isFinanceNews: true }))
       ].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
+      // Fetch real engagement counts for all posts from DynamoDB tables
+      const enrichedPosts = await Promise.all(
+        allPosts.map(post => enrichPostWithRealCounts(post))
+      );
+      
       const repostCount = userPosts.filter((p: any) => p.isRepost).length;
-      console.log(`✅ Retrieved ${allPosts.length} posts from AWS DynamoDB (including ${repostCount} reposts)`);
-      res.json(allPosts);
+      console.log(`✅ Retrieved ${enrichedPosts.length} posts from AWS DynamoDB (including ${repostCount} reposts) with real engagement counts`);
+      res.json(enrichedPosts);
     } catch (error: any) {
       console.error('❌ Error fetching posts from AWS:', error);
       res.status(500).json({ error: 'Failed to fetch posts' });
@@ -123,25 +231,19 @@ export function registerNeoFeedAwsRoutes(app: any) {
       
       const { items: userPosts } = await getAllUserPosts(100);
       
-      // Filter posts by authorUsername matching the requested username
+      // Filter posts by authorUsername matching the requested username (case-insensitive)
       const matchingPosts = userPosts.filter((post: any) => 
-        post.authorUsername === username || 
         post.authorUsername?.toLowerCase() === username?.toLowerCase()
       );
       
-      console.log(`✅ Found ${matchingPosts.length} posts for user ${username} (out of ${userPosts.length} total)`);
+      // Fetch real engagement counts for matching posts
+      const enrichedPosts = await Promise.all(
+        matchingPosts.map(post => enrichPostWithRealCounts(post))
+      );
       
-      // Log sample post structure for debugging
-      if (userPosts.length > 0) {
-        console.log(`📋 Sample post structure:`, JSON.stringify({
-          id: userPosts[0].id,
-          authorUsername: userPosts[0].authorUsername,
-          authorDisplayName: userPosts[0].authorDisplayName,
-          content: userPosts[0].content?.substring(0, 50)
-        }));
-      }
+      console.log(`✅ Found ${enrichedPosts.length} posts for user ${username} with real engagement counts`);
       
-      res.json(matchingPosts);
+      res.json(enrichedPosts);
     } catch (error: any) {
       console.error('❌ Error fetching user posts:', error);
       res.status(500).json({ error: 'Failed to fetch user posts' });
