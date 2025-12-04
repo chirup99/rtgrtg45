@@ -2563,9 +2563,9 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                 title="Click to vote"
               >
                 {liked ? (
-                  <TrendingUp className="h-5 w-5 fill-green-500 text-green-500" />
+                  <TrendingUp className="h-5 w-5 fill-green-600 dark:fill-green-400 text-green-600 dark:text-green-400" />
                 ) : downtrended ? (
-                  <TrendingDown className="h-5 w-5 fill-red-500 text-red-500" />
+                  <TrendingDown className="h-5 w-5 fill-red-600 dark:fill-red-400 text-red-600 dark:text-red-400" />
                 ) : (
                   <TrendingUp className="h-5 w-5" />
                 )}
@@ -2585,7 +2585,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                     disabled={likeMutation.isPending}
                     className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${
                       liked
-                        ? 'bg-green-500/20 text-green-500 dark:text-green-400'
+                        ? 'bg-green-600/20 text-green-600 dark:bg-green-400/20 dark:text-green-400'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white'
                     }`}
                     title="Uptrend (Bullish)"
@@ -2604,7 +2604,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                     disabled={downtrendMutation.isPending}
                     className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${
                       downtrended
-                        ? 'bg-red-500/20 text-red-500 dark:text-red-400'
+                        ? 'bg-red-600/20 text-red-600 dark:bg-red-400/20 dark:text-red-400'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-black dark:text-white'
                     }`}
                     title="Downtrend (Bearish)"
