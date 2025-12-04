@@ -103,10 +103,18 @@ function InlineCommentSection({ post, isVisible, onClose }: { post: FeedPost; is
 
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
+      const username = localStorage.getItem('currentUsername') || 'anonymous';
+      const displayName = getUserDisplayName() || username;
+      
       const response = await fetch(`/api/social-posts/${post.id}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment: content })
+        body: JSON.stringify({ 
+          content,
+          userId: username,
+          authorUsername: username,
+          authorDisplayName: displayName
+        })
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -1793,15 +1801,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   
   // Fetch follow status for this author
   const { data: followStatus } = useQuery({
-    queryKey: [`/api/users/${authorUsername}/follow-status`],
+    queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername],
     queryFn: async () => {
-      if (isOwnPost) return { isFollowing: false };
-      const idToken = await getCognitoToken();
-      if (!idToken) return { isFollowing: false };
-      const response = await fetch(`/api/users/${authorUsername}/follow-status`, {
-        headers: { 'Authorization': `Bearer ${idToken}` }
-      });
-      if (!response.ok) return { isFollowing: false };
+      if (isOwnPost || !currentUserUsername) return { following: false };
+      const response = await fetch(`/api/users/${authorUsername}/follow-status?currentUsername=${encodeURIComponent(currentUserUsername)}`);
+      if (!response.ok) return { following: false };
       return response.json();
     },
     enabled: !!currentUserUsername && !isOwnPost
@@ -1848,16 +1852,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const idToken = await getCognitoToken();
-      if (!idToken) throw new Error('Not authenticated');
+      if (!currentUserUsername) throw new Error('Not authenticated');
       
       const method = liked ? 'DELETE' : 'POST';
       const response = await fetch(`/api/social-posts/${post.id}/like`, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUserUsername })
       });
       if (!response.ok) throw new Error('Failed to update like');
       return response.json();
@@ -1895,16 +1896,13 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Repost mutation
   const repostMutation = useMutation({
     mutationFn: async () => {
-      const idToken = await getCognitoToken();
-      if (!idToken) throw new Error('Not authenticated');
+      if (!currentUserUsername) throw new Error('Not authenticated');
       
       const method = reposted ? 'DELETE' : 'POST';
       const response = await fetch(`/api/social-posts/${post.id}/repost`, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUserUsername })
       });
       if (!response.ok) throw new Error('Failed to update repost');
       return response.json();
@@ -1994,15 +1992,20 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   // Follow/Unfollow mutation
   const followMutation = useMutation({
     mutationFn: async () => {
-      const idToken = await getCognitoToken();
-      if (!idToken) throw new Error('Not authenticated');
-      const method = isFollowing ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/users/${authorUsername}/follow`, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        }
+      if (!currentUserUsername) throw new Error('Not authenticated');
+      
+      const endpoint = isFollowing 
+        ? `/api/users/${authorUsername}/unfollow` 
+        : `/api/users/${authorUsername}/follow`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          currentUsername: currentUserUsername,
+          currentUserData: { displayName: localStorage.getItem('currentDisplayName') || currentUserUsername },
+          targetUserData: { displayName: post.authorDisplayName || post.user?.username || authorUsername }
+        })
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -2014,12 +2017,12 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       // Optimistic update
       setIsFollowing(!isFollowing);
       // Invalidate follow status query
-      await queryClient.cancelQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`] });
+      await queryClient.cancelQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername] });
       return { previousFollowing: isFollowing };
     },
     onSuccess: () => {
       // Invalidate related queries to update counts
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${authorUsername}/follow-status`, currentUserUsername] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/social-posts'] });
       // Invalidate follower counts for both users (using partial match)
@@ -2046,7 +2049,7 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
       // Revert on error
       setIsFollowing(context?.previousFollowing || false);
       const errorMsg = err?.message || `Failed to ${isFollowing ? 'unfollow' : 'follow'}`;
-      console.error('❌ Follow error:', errorMsg);
+      console.error('Follow error:', errorMsg);
       toast({ description: errorMsg, variant: "destructive" });
     }
   });

@@ -35,8 +35,31 @@ Preferred communication style: Simple, everyday language.
 
 ## Authentication & Authorization
 
-**Strategy**: Session-based authentication.
-**User Management**: Account creation, profile management, and verification.
+**Strategy**: AWS Cognito for NeoFeed social features, session-based for other features.
+**User Management**: AWS Cognito handles user registration, login, and profile management with auto-confirmation (no email verification required). 
+**NeoFeed Authentication Flow**: Username/password stored locally (currentUsername), profile data synced with DynamoDB user-profiles table.
+
+## NeoFeed AWS Migration (Complete)
+
+**Primary Data Source**: AWS DynamoDB (eu-north-1 region)
+**Tables**:
+- `neofeed-user-posts`: Social feed posts with author info, content, media
+- `neofeed-likes`: Track user likes (pk: postId, sk: userId)
+- `neofeed-retweets`: Track reposts (pk: postId, sk: userId)
+- `neofeed-comments`: Post comments with author info
+- `neofeed-user-profiles`: User profile data (displayName, bio, avatar)
+- `neofeed-follows`: Follower/following relationships (pk: followerId, sk: followingId)
+- `neofeed-audio-posts`: Audio minicast posts
+- `neofeed-banners`: Feed banner content
+
+**API Endpoints**:
+- Follow: `POST /api/users/:username/follow` (requires currentUsername in body)
+- Unfollow: `POST /api/users/:username/unfollow`
+- Follow Status: `GET /api/users/:username/follow-status?currentUsername=xxx`
+- Follower Count: `GET /api/users/:username/followers-count`
+- Like/Unlike: `POST/DELETE /api/social-posts/:id/like` (requires userId in body)
+- Repost: `POST/DELETE /api/social-posts/:id/repost` (requires userId in body)
+- Comment: `POST /api/social-posts/:id/comment`
 
 ## Key Architectural Patterns
 

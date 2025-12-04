@@ -16,9 +16,17 @@ import {
   getFinanceNews, 
   createOrUpdateUserProfile, 
   getUserProfile,
+  getUserProfileByUsername,
   getPostLikesCount,
   getPostRetweetsCount,
   getPostCommentsCount,
+  createFollow,
+  deleteFollow,
+  isFollowing,
+  getFollowersCount,
+  getFollowingCount,
+  getFollowersList,
+  getFollowingList,
   TABLES 
 } from './neofeed-dynamodb-migration';
 
@@ -380,6 +388,145 @@ export function registerNeoFeedAwsRoutes(app: any) {
       res.json(news);
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to create finance news' });
+    }
+  });
+
+  app.get('/api/users/:username/followers-count', async (req: any, res: any) => {
+    try {
+      const username = req.params.username;
+      if (!username) {
+        return res.json({ followers: 0, following: 0 });
+      }
+      
+      const followers = await getFollowersCount(username);
+      const following = await getFollowingCount(username);
+      
+      console.log(`✅ Follower counts for ${username}: ${followers} followers, ${following} following`);
+      res.json({ followers, following });
+    } catch (error: any) {
+      console.error('❌ Error getting follower counts:', error);
+      res.json({ followers: 0, following: 0 });
+    }
+  });
+
+  app.get('/api/users/:username/followers-list', async (req: any, res: any) => {
+    try {
+      const username = req.params.username;
+      if (!username) {
+        return res.json({ followers: [] });
+      }
+      
+      const followers = await getFollowersList(username);
+      console.log(`✅ Retrieved ${followers.length} followers for ${username}`);
+      res.json({ followers });
+    } catch (error: any) {
+      console.error('❌ Error getting followers list:', error);
+      res.json({ followers: [] });
+    }
+  });
+
+  app.get('/api/users/:username/following-list', async (req: any, res: any) => {
+    try {
+      const username = req.params.username;
+      if (!username) {
+        return res.json({ following: [] });
+      }
+      
+      const following = await getFollowingList(username);
+      console.log(`✅ Retrieved ${following.length} following for ${username}`);
+      res.json({ following });
+    } catch (error: any) {
+      console.error('❌ Error getting following list:', error);
+      res.json({ following: [] });
+    }
+  });
+
+  app.get('/api/users/:username/follow-status', async (req: any, res: any) => {
+    try {
+      const targetUsername = req.params.username;
+      const currentUsername = req.query.currentUsername as string;
+      
+      if (!currentUsername || !targetUsername) {
+        return res.json({ following: false });
+      }
+      
+      const following = await isFollowing(currentUsername, targetUsername);
+      res.json({ following });
+    } catch (error: any) {
+      console.error('❌ Error checking follow status:', error);
+      res.json({ following: false });
+    }
+  });
+
+  app.post('/api/users/:username/follow', async (req: any, res: any) => {
+    try {
+      const targetUsername = req.params.username;
+      const { currentUsername, currentUserData, targetUserData } = req.body;
+      
+      if (!currentUsername || !targetUsername) {
+        return res.status(400).json({ error: 'Both usernames are required' });
+      }
+      
+      if (currentUsername === targetUsername) {
+        return res.status(400).json({ error: 'Cannot follow yourself' });
+      }
+      
+      const alreadyFollowing = await isFollowing(currentUsername, targetUsername);
+      if (alreadyFollowing) {
+        const followers = await getFollowersCount(targetUsername);
+        return res.json({ success: true, following: true, followers });
+      }
+      
+      await createFollow(currentUsername, targetUsername, currentUserData, targetUserData);
+      const followers = await getFollowersCount(targetUsername);
+      
+      console.log(`✅ ${currentUsername} followed ${targetUsername}`);
+      res.json({ success: true, following: true, followers });
+    } catch (error: any) {
+      console.error('❌ Error following user:', error);
+      res.status(500).json({ error: 'Failed to follow user' });
+    }
+  });
+
+  app.post('/api/users/:username/unfollow', async (req: any, res: any) => {
+    try {
+      const targetUsername = req.params.username;
+      const { currentUsername } = req.body;
+      
+      if (!currentUsername || !targetUsername) {
+        return res.status(400).json({ error: 'Both usernames are required' });
+      }
+      
+      await deleteFollow(currentUsername, targetUsername);
+      const followers = await getFollowersCount(targetUsername);
+      
+      console.log(`✅ ${currentUsername} unfollowed ${targetUsername}`);
+      res.json({ success: true, following: false, followers });
+    } catch (error: any) {
+      console.error('❌ Error unfollowing user:', error);
+      res.status(500).json({ error: 'Failed to unfollow user' });
+    }
+  });
+
+  app.get('/api/users/:username/profile', async (req: any, res: any) => {
+    try {
+      const username = req.params.username;
+      const profile = await getUserProfileByUsername(username);
+      
+      if (profile) {
+        const followers = await getFollowersCount(username);
+        const following = await getFollowingCount(username);
+        res.json({ 
+          ...profile, 
+          followers, 
+          following 
+        });
+      } else {
+        res.status(404).json({ error: 'Profile not found' });
+      }
+    } catch (error: any) {
+      console.error('❌ Error getting user profile:', error);
+      res.status(500).json({ error: 'Failed to get profile' });
     }
   });
 

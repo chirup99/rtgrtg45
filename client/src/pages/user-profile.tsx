@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CheckCircle, MapPin, Calendar, Users, UserPlus, ArrowLeft } from 'lucide-react';
-import { getCognitoToken } from '@/cognito';
 
 interface UserProfileData {
   username: string;
@@ -41,6 +40,7 @@ export default function UserProfile() {
   const [location, setLocation] = useLocation();
   const pathname = location;
   const username = pathname.split('/user/')[1];
+  const queryClient = useQueryClient();
   
   const [profileData, setProfileData] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,18 +83,14 @@ export default function UserProfile() {
       if (!username) return;
 
       try {
-        const idToken = await getCognitoToken();
-        if (!idToken) return;
+        const currentUsername = localStorage.getItem('currentUsername');
+        if (!currentUsername) return;
         
-        const response = await fetch(`/api/users/${username}/follow-status`, {
-          headers: {
-            'Authorization': `Bearer ${idToken}`
-          }
-        });
+        const response = await fetch(`/api/users/${username}/follow-status?currentUsername=${encodeURIComponent(currentUsername)}`);
 
         if (response.ok) {
           const data = await response.json();
-          setIsFollowing(data.isFollowing);
+          setIsFollowing(data.following || data.isFollowing || false);
         }
       } catch (error) {
         console.error('Error checking follow status:', error);
@@ -171,19 +167,31 @@ export default function UserProfile() {
     if (!username) return;
 
     try {
-      const idToken = await getCognitoToken();
-      if (!idToken) return;
+      const currentUsername = localStorage.getItem('currentUsername');
+      if (!currentUsername) return;
       
-      const response = await fetch(`/api/users/${username}/follow`, {
-        method: isFollowing ? 'DELETE' : 'POST',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json'
-        },
+      const endpoint = isFollowing 
+        ? `/api/users/${username}/unfollow` 
+        : `/api/users/${username}/follow`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          currentUsername,
+          currentUserData: { displayName: localStorage.getItem('currentDisplayName') || currentUsername },
+          targetUserData: { displayName: profileData?.displayName || username }
+        })
       });
 
       if (response.ok) {
         setIsFollowing(!isFollowing);
+        // Invalidate follower counts
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-count`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${currentUsername}/followers-count`] });
+        // Invalidate follower/following lists
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-list`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/following-list`] });
       }
     } catch (error) {
       console.error('Error toggling follow:', error);

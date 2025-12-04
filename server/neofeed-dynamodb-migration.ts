@@ -20,7 +20,8 @@ export const TABLES = {
   FINANCE_NEWS: 'neofeed-finance-news',
   USER_PROFILES: 'neofeed-user-profiles',
   AUDIO_POSTS: 'neofeed-audio-posts',
-  BANNERS: 'neofeed-banners'
+  BANNERS: 'neofeed-banners',
+  FOLLOWS: 'neofeed-follows'
 };
 
 async function tableExists(tableName: string): Promise<boolean> {
@@ -508,5 +509,149 @@ export async function getBanners() {
     return result.Items || [];
   } catch (error) {
     return [];
+  }
+}
+
+export async function createFollow(followerUsername: string, followingUsername: string, followerData?: any, followingData?: any) {
+  try {
+    const followId = `${followerUsername}_${followingUsername}`;
+    const timestamp = new Date().toISOString();
+    
+    const item = {
+      pk: `follow#${followId}`,
+      sk: timestamp,
+      followId,
+      followerUsername,
+      followingUsername,
+      followerDisplayName: followerData?.displayName || followerUsername,
+      followingDisplayName: followingData?.displayName || followingUsername,
+      followerAvatar: followerData?.profilePicUrl || null,
+      followingAvatar: followingData?.profilePicUrl || null,
+      createdAt: timestamp
+    };
+
+    await docClient.send(new PutCommand({ TableName: TABLES.FOLLOWS, Item: item }));
+    console.log(`✅ Follow created: ${followerUsername} -> ${followingUsername}`);
+    return item;
+  } catch (error) {
+    console.error('❌ Error creating follow:', error);
+    throw error;
+  }
+}
+
+export async function deleteFollow(followerUsername: string, followingUsername: string) {
+  try {
+    const followId = `${followerUsername}_${followingUsername}`;
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.FOLLOWS,
+      FilterExpression: 'followId = :followId',
+      ExpressionAttributeValues: { ':followId': followId }
+    }));
+    
+    if (result.Items && result.Items.length > 0) {
+      const item = result.Items[0];
+      await docClient.send(new DeleteCommand({
+        TableName: TABLES.FOLLOWS,
+        Key: { pk: item.pk, sk: item.sk }
+      }));
+      console.log(`✅ Unfollowed: ${followerUsername} -> ${followingUsername}`);
+    }
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting follow:', error);
+    return false;
+  }
+}
+
+export async function isFollowing(followerUsername: string, followingUsername: string): Promise<boolean> {
+  try {
+    const followId = `${followerUsername}_${followingUsername}`;
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.FOLLOWS,
+      FilterExpression: 'followId = :followId',
+      ExpressionAttributeValues: { ':followId': followId }
+    }));
+    return (result.Items?.length || 0) > 0;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function getFollowersCount(username: string): Promise<number> {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.FOLLOWS,
+      FilterExpression: 'followingUsername = :username',
+      ExpressionAttributeValues: { ':username': username }
+    }));
+    return result.Count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+export async function getFollowingCount(username: string): Promise<number> {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.FOLLOWS,
+      FilterExpression: 'followerUsername = :username',
+      ExpressionAttributeValues: { ':username': username }
+    }));
+    return result.Count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+export async function getFollowersList(username: string): Promise<any[]> {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.FOLLOWS,
+      FilterExpression: 'followingUsername = :username',
+      ExpressionAttributeValues: { ':username': username }
+    }));
+    
+    return (result.Items || []).map((item: any) => ({
+      id: item.followerUsername,
+      username: item.followerUsername,
+      displayName: item.followerDisplayName || item.followerUsername,
+      avatar: item.followerAvatar,
+      followedAt: item.createdAt
+    }));
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function getFollowingList(username: string): Promise<any[]> {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.FOLLOWS,
+      FilterExpression: 'followerUsername = :username',
+      ExpressionAttributeValues: { ':username': username }
+    }));
+    
+    return (result.Items || []).map((item: any) => ({
+      id: item.followingUsername,
+      username: item.followingUsername,
+      displayName: item.followingDisplayName || item.followingUsername,
+      avatar: item.followingAvatar,
+      followedAt: item.createdAt
+    }));
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function getUserProfileByUsername(username: string): Promise<any> {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.USER_PROFILES,
+      FilterExpression: 'username = :username',
+      ExpressionAttributeValues: { ':username': username }
+    }));
+    return result.Items?.[0] || null;
+  } catch (error) {
+    return null;
   }
 }
