@@ -607,3 +607,32 @@ APPLICATION STATUS:
 🎉 MIGRATION TO REPLIT ENVIRONMENT COMPLETE - Application is fully operational!
 
 =========================================================
+PROFILE TAB PERFORMANCE FIX - December 4, 2025 ✅
+
+[x] 1. Fixed React Query cache invalidation key mismatch
+[x] 2. Changed query keys from `/api/users/${username}/followers-count` to `['followers-count', username]`
+[x] 3. Simplified ProfileHeader staleTime from 5 minutes to immediate (0)
+[x] 4. Reduced gcTime for profile queries to 1 minute
+[x] 5. Verified follow/unfollow mutations properly invalidate related caches
+[x] 6. Tested follower count updates correctly after follow/unfollow actions
+
+QUERY KEY FIXES MADE:
+✅ followers-count: Now uses ['followers-count', username] for consistent invalidation
+✅ followers-list: Now uses ['followers-list', username] for consistent invalidation
+✅ following-list: Now uses ['following-list', username] for consistent invalidation
+✅ follow-status: Already using correct ['follow-status', authorUsername] format
+
+PERFORMANCE OPTIMIZATIONS:
+✅ profile-header-data: staleTime reduced to 60 seconds (was 5 minutes)
+✅ followers-count: staleTime set to 0 (always refetch after invalidation)
+✅ followers-list: staleTime set to 0 (always refetch when dialog opens)
+✅ following-list: staleTime set to 0 (always refetch when dialog opens)
+
+VERIFICATION:
+✅ Follow mutation logs: "✅ Follow action complete" with correct counts
+✅ Server response shows: {"currentUser":{"followers":0,"following":1}} after follow
+✅ Cache invalidation now works correctly after follow/unfollow actions
+
+🎉 PROFILE TAB PERFORMANCE FIX COMPLETE - Follow counts update immediately!
+
+=========================================================
