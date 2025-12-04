@@ -4334,6 +4334,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AWS Cognito Auto-Confirm User (for signup without email verification)
+  app.post('/api/auth/cognito/confirm', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      console.log('🔐 Auto-confirming Cognito user:', email);
+
+      const { CognitoIdentityProviderClient, AdminConfirmSignUpCommand } = await import('@aws-sdk/client-cognito-identity-provider');
+      
+      const cognitoClient = new CognitoIdentityProviderClient({
+        region: process.env.AWS_REGION || 'eu-north-1',
+        credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        } : undefined,
+      });
+
+      const confirmCommand = new AdminConfirmSignUpCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID || 'eu-north-1_rXrrnI6cZ',
+        Username: email,
+      });
+
+      await cognitoClient.send(confirmCommand);
+      console.log('✅ User auto-confirmed successfully:', email);
+
+      res.json({ 
+        success: true, 
+        message: 'User confirmed successfully',
+        email 
+      });
+    } catch (error: any) {
+      // If user is already confirmed, that's fine
+      if (error.name === 'NotAuthorizedException' && error.message?.includes('confirmed')) {
+        console.log('ℹ️ User already confirmed:', req.body.email);
+        return res.json({ success: true, message: 'User already confirmed' });
+      }
+      
+      console.error('❌ Cognito confirm error:', error);
+      res.status(500).json({ 
+        message: 'Failed to confirm user',
+        error: error.message 
+      });
+    }
+  });
+
   // User Profile Management Routes
   app.get('/api/user/profile', async (req, res) => {
     try {

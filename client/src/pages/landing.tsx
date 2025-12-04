@@ -131,15 +131,27 @@ export default function Landing() {
         user = await cognitoSignIn(email, password);
       } else {
         console.log('🔐 Signing up with AWS Cognito...');
-        user = await cognitoSignUp(email, password, name);
+        await cognitoSignUp(email, password, name);
+        
+        // Auto-confirm the user via backend API
+        console.log('🔐 Auto-confirming user...');
+        try {
+          await fetch('/api/auth/cognito/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+        } catch (confirmError) {
+          console.warn('⚠️ Auto-confirm failed, user may already be confirmed:', confirmError);
+        }
+        
+        console.log('🔐 Auto-signing in after signup...');
+        user = await cognitoSignIn(email, password);
         
         toast({
           title: "Account Created",
-          description: "Please check your email for a verification code, then log in.",
+          description: "Welcome! Your account has been created successfully.",
         });
-        setIsLogin(true);
-        setIsEmailLoading(false);
-        return;
       }
 
       localStorage.setItem('currentUserId', user.userId);

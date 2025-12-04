@@ -395,3 +395,26 @@ AFTER: AutoVerifiedAttributes: [] (no verification required)
 🎉 SIGNUP NOW WORKS WITHOUT EMAIL VERIFICATION CODE!
 
 =========================================================
+COGNITO AUTO-CONFIRM FIX - December 4, 2025 ✅
+
+[x] 1. Updated Cognito User Pool to completely disable email verification
+[x] 2. Auto-confirmed 2 existing unconfirmed users
+[x] 3. Added /api/auth/cognito/confirm endpoint to auto-confirm new signups
+[x] 4. Updated landing.tsx to call confirm API after signup
+[x] 5. Modified signup flow to auto-login after account creation
+
+SIGNUP FLOW NOW:
+1. User enters name, email, password
+2. cognitoSignUp() creates user account
+3. Backend auto-confirms user via Admin API
+4. cognitoSignIn() logs user in immediately
+5. User is redirected to home page
+
+LOGIN FLOW:
+1. User enters email, password
+2. cognitoSignIn() authenticates
+3. User is redirected to home page
+
+🎉 SIGNUP AND LOGIN NOW WORK WITHOUT EMAIL VERIFICATION!
+
+=========================================================
