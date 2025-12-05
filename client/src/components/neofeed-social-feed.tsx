@@ -3445,6 +3445,7 @@ function ViewUserProfile({
   const [showFollowingDialog, setShowFollowingDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Fetch user profile data
   const { data: profileData, isLoading: profileLoading } = useQuery({
@@ -3601,56 +3602,89 @@ function ViewUserProfile({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-4">
+    <div className="bg-white dark:bg-gray-900 min-h-screen">
+      {/* Back Button Header */}
+      <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+          data-testid="button-back-profile"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
+      
+      {/* Profile Header Card */}
+      <div className="bg-white dark:bg-gray-800 overflow-hidden">
         {/* Cover Photo */}
-        <div className={`h-48 relative overflow-hidden ${coverPicUrl ? 'bg-black' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
-          {coverPicUrl && (
+        <div className="h-44 relative overflow-hidden">
+          {coverPicUrl ? (
             <img src={coverPicUrl} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600" />
           )}
-          {/* Back Button - Twitter style */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="absolute top-4 left-4 bg-black/40 hover:bg-black/60 text-white rounded-full z-10"
-            data-testid="button-back-profile"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          
+          {/* Camera icon for cover editing (only for own profile) */}
+          {isOwnProfile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 right-3 bg-gray-800/60 hover:bg-gray-800/80 text-white rounded-lg"
+              data-testid="button-edit-cover"
+            >
+              <Camera className="h-5 w-5" />
+            </Button>
+          )}
+          
           {/* Profile Picture - overlapping cover */}
-          <div className="absolute -bottom-16 left-4">
-            <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800">
-              {profilePicUrl ? (
-                <AvatarImage src={profilePicUrl} className="object-cover" />
-              ) : (
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-4xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              )}
-            </Avatar>
+          <div className="absolute -bottom-14 left-4">
+            <div className="relative">
+              <Avatar className="w-28 h-28 border-4 border-white dark:border-gray-800 shadow-lg">
+                {profilePicUrl ? (
+                  <AvatarImage src={profilePicUrl} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-gradient-to-br from-slate-500 to-slate-600 text-white text-3xl font-bold">
+                    {initials}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </div>
           </div>
         </div>
 
         {/* Profile Info */}
-        <div className="pt-20 px-4 pb-4">
-          <div className="flex justify-between items-start mb-4">
+        <div className="pt-16 px-4 pb-4">
+          {/* Name and Edit/Follow Button Row */}
+          <div className="flex justify-between items-start mb-3">
             <div>
-              <h1 className="text-gray-900 dark:text-white font-bold text-2xl flex items-center gap-2">
+              <h1 className="text-gray-900 dark:text-white font-bold text-xl flex items-center gap-2">
                 {displayName}
                 {profileData?.verified && (
-                  <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400 fill-current" />
+                  <CheckCircle className="w-5 h-5 text-blue-500 fill-current" />
                 )}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">@{username}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">@{username}</p>
             </div>
-            {!isOwnProfile && currentUserUsername && (
+            
+            {/* Edit Profile or Follow Button */}
+            {isOwnProfile ? (
+              <Button
+                variant="outline"
+                className="rounded-full px-5 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                onClick={() => setLocation('/settings')}
+                data-testid="button-edit-profile"
+              >
+                Edit profile
+              </Button>
+            ) : currentUserUsername ? (
               <Button
                 variant={isFollowing ? "outline" : "default"}
-                className={`rounded-full px-6 min-w-[100px] ${
+                className={`rounded-full px-5 min-w-[100px] ${
                   isFollowing
-                    ? 'border-gray-300 dark:border-gray-600 hover:border-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'border-gray-300 dark:border-gray-600 hover:border-red-500 hover:text-red-500'
+                    : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 text-white'
                 }`}
                 onClick={handleFollowToggle}
                 disabled={isFollowLoading}
@@ -3664,14 +3698,16 @@ function ViewUserProfile({
                   'Follow'
                 )}
               </Button>
-            )}
+            ) : null}
           </div>
 
+          {/* Bio */}
           {bio && (
-            <p className="text-gray-900 dark:text-white mb-4 text-base">{bio}</p>
+            <p className="text-gray-800 dark:text-gray-200 mb-3 text-sm">{bio}</p>
           )}
 
-          <div className="flex flex-wrap gap-4 text-gray-600 dark:text-gray-400 text-sm mb-4">
+          {/* Location and Join Date */}
+          <div className="flex flex-wrap items-center gap-4 text-gray-500 dark:text-gray-400 text-sm mb-3">
             <div className="flex items-center gap-1">
               <MapPin className="w-4 h-4" />
               <span>India</span>
@@ -3682,6 +3718,7 @@ function ViewUserProfile({
             </div>
           </div>
 
+          {/* Following/Followers Counts */}
           <div className="flex gap-4 text-sm mb-4">
             <button
               className="hover:underline"
@@ -3689,7 +3726,7 @@ function ViewUserProfile({
               data-testid="button-view-following"
             >
               <span className="font-bold text-gray-900 dark:text-white">{countsData?.following || 0}</span>
-              <span className="text-gray-600 dark:text-gray-400 ml-1">Following</span>
+              <span className="text-gray-500 dark:text-gray-400 ml-1">Following</span>
             </button>
             <button
               className="hover:underline"
@@ -3697,25 +3734,26 @@ function ViewUserProfile({
               data-testid="button-view-followers"
             >
               <span className="font-bold text-gray-900 dark:text-white">{countsData?.followers || 0}</span>
-              <span className="text-gray-600 dark:text-gray-400 ml-1">Followers</span>
+              <span className="text-gray-500 dark:text-gray-400 ml-1">Followers</span>
             </button>
           </div>
 
-          <div className="flex gap-8 border-b border-gray-200 dark:border-gray-700">
-            {[`Posts ${userPosts.length > 0 ? `(${userPosts.length})` : ''}`, 'Media', 'Likes'].map((tab) => (
+          {/* Tabs: Posts, Media, Likes */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            {['Posts', 'Media', 'Likes'].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab.split(' ')[0])}
-                className={`pb-3 px-2 font-medium transition-colors relative ${
-                  activeTab === tab.split(' ')[0]
+                onClick={() => setActiveTab(tab)}
+                className={`pb-3 px-4 font-medium transition-colors relative ${
+                  activeTab === tab
                     ? 'text-gray-900 dark:text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
-                data-testid={`button-profile-tab-${tab.split(' ')[0].toLowerCase()}`}
+                data-testid={`button-profile-tab-${tab.toLowerCase()}`}
               >
                 {tab}
-                {activeTab === tab.split(' ')[0] && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 rounded-t-full"></div>
                 )}
               </button>
             ))}
