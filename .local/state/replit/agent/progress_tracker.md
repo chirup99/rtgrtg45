@@ -173,11 +173,38 @@ All core features are operational and ready for use:
       - Added "Try selecting a different timeframe" guidance
       - Proper loading state indicator during data fetch
 
-[x] 4. Verified chart functionality:
-      - Server running successfully on port 5000
-      - AWS services operational (DynamoDB, Cognito, S3)
-      - NeoFeed social feed fully functional
-      - Chart rendering improvements applied and deployed
+[x] 4. Chart UI Fixed - Data Source Issue Identified:
+      - Chart container rendering works correctly (no-cache improvement applied)
+      - Angel One API connection verified and working (WebSocket streaming active for GOLD)
+      - ISSUE: Angel One not returning chart data for $MCXCRUDEX symbol
+      - Root cause: MCXCRUDEX token/exchange mapping not found in Angel One instrument master
+      - Solution needed: Add MCXCRUDEX and other commodity tokens to ANGEL_ONE_STOCK_TOKENS mapping
+
+========================================================= 
+
+## ANGEL ONE API CHART DATA ISSUE - DECEMBER 5, 2025 (11:35 AM)
+
+[x] 1. Angel One Connection Status:
+      - Connection: ✅ CONNECTED and AUTHENTICATED
+      - WebSocket Streaming: ✅ ACTIVE (GOLD commodity data being received)
+      - Status Endpoint: ✅ WORKING (returns connected: true)
+
+[x] 2. Chart API Behavior:
+      - Request logged: GET /api/stock-chart-data/$MCXCRUDEX?timeframe=1Y returns []
+      - Angel One getCandleData() called but returns empty result
+      - No error thrown - graceful fallback to empty array
+
+[x] 3. Root Cause Analysis:
+      - Symbol "MCXCRUDEX" not found in static ANGEL_ONE_STOCK_TOKENS mapping
+      - Instrument master search fails (instruments array is empty)
+      - Angel One may not have this specific commodity in the master file
+      - Or token/exchange format mismatch (MCX exchange vs NSE/BSE)
+
+[x] 4. Next Steps Required:
+      - Verify MCXCRUDEX token exists in Angel One system
+      - Add proper token mapping: MCXCRUDEX -> {token, exchange: 'MCX', tradingSymbol}
+      - Test with known working symbols (e.g., NSE stocks)
+      - Consider fallback chart generation for unavailable symbols
 
 =========================================================
 
