@@ -4471,7 +4471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           displayName: userData.displayName,
           dob: userData.dob,
           bio: userData.bio,
-          email: userData.email
+          email: userData.email,
+          profilePicUrl: userData.profilePicUrl,
+          coverPicUrl: userData.coverPicUrl
         },
         userId: userId,
         email: email
