@@ -784,93 +784,95 @@ function PriceChartSection({ ticker, analysisData }: { ticker: string; analysisD
         </div>
         
         {/* Price Chart */}
-        <div className="h-40 mb-4">
+        <div className="w-full h-56 mb-4 bg-gray-100 dark:bg-gray-900/40 rounded-lg">
           {chartLoading ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full w-full">
               <div className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2">
                 <div className="animate-spin w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full"></div>
                 Loading real {timeframe} chart data...
               </div>
             </div>
           ) : chartData && chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
-                <XAxis 
-                  dataKey="time" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: '#64748b' }}
-                  tickCount={8}
-                />
-                <YAxis 
-                  domain={[(dataMin: number) => {
-                    const prices = chartData.map((d: any) => Number(d.price) || 0);
-                    const min = Math.min(...prices);
-                    return Math.floor(min - (min * 0.01));
-                  }, (dataMax: number) => {
-                    const prices = chartData.map((d: any) => Number(d.price) || 0);
-                    const max = Math.max(...prices);
-                    return Math.ceil(max + (max * 0.01));
-                  }]}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: '#64748b' }}
-                  width={40}
-                />
-                <Tooltip 
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const value = payload[0].value;
-                    return (
-                      <div style={{
-                        backgroundColor: '#1e293b',
-                        border: '1px solid #334155',
-                        borderRadius: '6px',
-                        color: '#e2e8f0',
-                        padding: '8px 16px',
-                        fontSize: '13px',
-                        minWidth: '140px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                      }}>
-                        <span style={{ fontSize: '13px', fontWeight: '500' }}>
-                          ₹{Number(value).toFixed(2)}
-                        </span>
+            <div className="w-full h-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <XAxis 
+                    dataKey="time" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickCount={8}
+                  />
+                  <YAxis 
+                    domain={[(dataMin: number) => {
+                      const prices = chartData.map((d: any) => Number(d.price) || 0);
+                      const min = Math.min(...prices);
+                      return Math.floor(min - (min * 0.01));
+                    }, (dataMax: number) => {
+                      const prices = chartData.map((d: any) => Number(d.price) || 0);
+                      const max = Math.max(...prices);
+                      return Math.ceil(max + (max * 0.01));
+                    }]}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    width={35}
+                  />
+                  <Tooltip 
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const value = payload[0].value;
+                      return (
                         <div style={{
-                          width: '1px',
-                          height: '20px',
-                          backgroundColor: '#475569'
-                        }}></div>
-                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                          {label}
-                        </span>
-                      </div>
-                    );
-                  }}
-                />
-                <Line 
-                  type="linear" 
-                  dataKey="price" 
-                  stroke={isPositive ? '#10b981' : '#ef4444'}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: isPositive ? '#10b981' : '#ef4444' }}
-                />
-                <ReferenceLine 
-                  y={baselinePrice} 
-                  stroke="#64748b" 
-                  strokeDasharray="2 2" 
-                  strokeWidth={1}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #334155',
+                          borderRadius: '6px',
+                          color: '#e2e8f0',
+                          padding: '8px 16px',
+                          fontSize: '13px',
+                          minWidth: '140px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <span style={{ fontSize: '13px', fontWeight: '500' }}>
+                            ₹{Number(value).toFixed(2)}
+                          </span>
+                          <div style={{
+                            width: '1px',
+                            height: '20px',
+                            backgroundColor: '#475569'
+                          }}></div>
+                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Line 
+                    type="linear" 
+                    dataKey="price" 
+                    stroke={isPositive ? '#10b981' : '#ef4444'}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: isPositive ? '#10b981' : '#ef4444' }}
+                  />
+                  <ReferenceLine 
+                    y={baselinePrice} 
+                    stroke="#64748b" 
+                    strokeDasharray="2 2" 
+                    strokeWidth={1}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full w-full">
               <div className="text-gray-500 dark:text-gray-400 text-sm text-center">
-                <div className="mb-1">📈 Real chart data</div>
-             
+                <div className="mb-1">No chart data available</div>
+                <p className="text-xs">Try selecting a different timeframe</p>
               </div>
             </div>
           )}
