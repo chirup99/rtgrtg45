@@ -11616,18 +11616,19 @@ ${
                                         const companyInsights =
                                           (window as any).companyInsightsData || null;
                                         
-                                        // Use structured data from API response
-                                        const chartData: Array<{quarter: string; value: number; trend: string; changePercent: number}> = [];
+                                        // Use structured data from API response - show ACTUAL revenue values
+                                        const chartData: Array<{quarter: string; value: number; revenue: number; trend: string; changePercent: number}> = [];
                                         
                                         if (companyInsights && companyInsights.quarterlyPerformance) {
-                                          let baseValue = 100;
                                           companyInsights.quarterlyPerformance.forEach((q: any) => {
-                                            baseValue = baseValue * (1 + q.changePercent / 100);
+                                            // Use actual revenue value from scraped data
+                                            const actualRevenue = q.value || q.revenue || 0;
                                             chartData.push({
                                               quarter: q.quarter,
-                                              value: Math.round(baseValue * 100) / 100,
+                                              value: actualRevenue, // Actual revenue in Crores
+                                              revenue: actualRevenue,
                                               trend: q.changePercent >= 0 ? 'positive' : 'negative',
-                                              changePercent: q.changePercent
+                                              changePercent: q.changePercent || 0
                                             });
                                           });
                                         }
@@ -11703,8 +11704,8 @@ ${
                                                           fontSize: 10,
                                                           fill: "#6b7280",
                                                         }}
-                                                        tickFormatter={(value) => `${value.toFixed(0)}`}
-                                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                                        tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K Cr`}
+                                                        domain={['dataMin - 1000', 'dataMax + 1000']}
                                                       />
                                                       <Tooltip
                                                         contentStyle={{
@@ -11716,8 +11717,8 @@ ${
                                                           padding: "8px 12px",
                                                         }}
                                                         formatter={(value: any, name: any, props: any) => [
-                                                          `${props.payload.trend === 'positive' ? '↑' : '↓'} ${value.toFixed(1)}`,
-                                                          "Performance Index"
+                                                          `₹${Number(value).toLocaleString()} Cr (${props.payload.changePercent >= 0 ? '+' : ''}${props.payload.changePercent.toFixed(2)}%)`,
+                                                          "Revenue"
                                                         ]}
                                                         labelFormatter={(label) => `${label}`}
                                                       />
