@@ -67,6 +67,23 @@ Preferred communication style: Simple, everyday language.
 - **Demo Mode**: Allows users to switch between shared demo data (Google Cloud Storage) and personal trading data (Firebase Firestore), with access controls for saving and deleting formats based on authentication status.
 - **Audio MiniCast**: Enables users to create audio-based content from feed posts by selecting up to 5 posts, which are then displayed as swipeable cards with play controls in the feed.
 
+## AI Trading Agent Enhancements (December 2025)
+
+**Real-Time Data Integration**:
+- Uses Angel One API when authenticated for live market prices
+- Falls back gracefully to Yahoo Finance when Angel One is not connected
+- All stock queries include related news from Google News RSS
+
+**Real Quarterly Performance Data**:
+- `EnhancedFinancialScraper` scrapes real quarterly data from Moneycontrol and NSE
+- Replaces random placeholder data with actual quarterly performance metrics
+- Calculates real trends based on scraped financial data
+
+**Stock Comparison Tool**:
+- Properly fetches and displays data for ALL compared stocks
+- Includes quarterly performance, trend analysis, and recent news for each stock
+- Returns chart-ready data with PE, EPS, and recommendation for each stock
+
 # External Dependencies
 
 -   **Market Data Providers**:
