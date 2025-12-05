@@ -84,9 +84,12 @@ async function enrichPostWithRealCounts(post: any): Promise<any> {
       const authorProfile = await getUserProfileByUsername(post.authorUsername);
       if (authorProfile?.profilePicUrl) {
         authorAvatar = authorProfile.profilePicUrl;
+        console.log(`🖼️ [AVATAR] Found avatar for ${post.authorUsername}: ${authorAvatar.substring(0, 80)}...`);
+      } else {
+        console.log(`🖼️ [AVATAR] No profilePicUrl for ${post.authorUsername}, profile found: ${!!authorProfile}`);
       }
     } catch (err) {
-      // Silently fail - avatar is optional
+      console.log(`🖼️ [AVATAR] Error fetching avatar for ${post.authorUsername}:`, err);
     }
   }
   

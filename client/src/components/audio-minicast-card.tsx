@@ -23,6 +23,7 @@ interface AudioMinicastCardProps {
   author: {
     displayName: string;
     username: string;
+    avatar?: string;
   };
   selectedPostIds?: (string | number)[];
   selectedPosts?: SelectedPost[];
@@ -315,9 +316,20 @@ export function AudioMinicastCard({
       <CardContent className="p-0">
         {/* Author Header */}
         <div className="p-4 flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-semibold">
-            {author.displayName.charAt(0)}
-          </div>
+          {(() => {
+            const avatarUrl = author.avatar;
+            const isValidAvatar = avatarUrl && avatarUrl.includes('s3.') && !avatarUrl.includes('ui-avatars.com');
+            console.log('🖼️ AudioMinicastCard avatar debug:', { avatarUrl, isValidAvatar });
+            return (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+                {isValidAvatar ? (
+                  <img src={avatarUrl} alt={author.displayName} className="w-full h-full object-cover" />
+                ) : (
+                  author.displayName.charAt(0)
+                )}
+              </div>
+            );
+          })()}
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900 dark:text-white">{author.displayName}</span>

@@ -803,13 +803,46 @@ export async function getFollowingList(username: string): Promise<any[]> {
 
 export async function getUserProfileByUsername(username: string): Promise<any> {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Normalize to lowercase for consistent matching
+    const normalizedUsername = username.toLowerCase();
+    
+    // Step 1: Get the userId from username mapping (pk: USERNAME#username, sk: MAPPING)
+    const mappingResult = await docClient.send(new GetCommand({
       TableName: TABLES.USER_PROFILES,
-      FilterExpression: 'username = :username',
-      ExpressionAttributeValues: { ':username': username }
+      Key: {
+        pk: `USERNAME#${normalizedUsername}`,
+        sk: 'MAPPING'
+      }
     }));
-    return result.Items?.[0] || null;
+    
+    if (!mappingResult.Item) {
+      console.log(`🖼️ [getUserProfileByUsername] No username mapping found for ${normalizedUsername}`);
+      return null;
+    }
+    
+    const userId = mappingResult.Item.userId;
+    console.log(`🖼️ [getUserProfileByUsername] Found userId ${userId} for username ${normalizedUsername}`);
+    
+    // Step 2: Get the actual profile using the userId (pk: USER#userId, sk: PROFILE)
+    const profileResult = await docClient.send(new GetCommand({
+      TableName: TABLES.USER_PROFILES,
+      Key: {
+        pk: `USER#${userId}`,
+        sk: 'PROFILE'
+      }
+    }));
+    
+    const profile = profileResult.Item || null;
+    if (profile) {
+      console.log(`🖼️ [getUserProfileByUsername] Found profile for ${normalizedUsername}:`, {
+        username: profile.username,
+        hasProfilePicUrl: !!profile.profilePicUrl,
+        profilePicUrl: profile.profilePicUrl ? profile.profilePicUrl.substring(0, 60) + '...' : 'NONE'
+      });
+    }
+    return profile;
   } catch (error) {
+    console.log(`🖼️ [getUserProfileByUsername] Error for ${username}:`, error);
     return null;
   }
 }

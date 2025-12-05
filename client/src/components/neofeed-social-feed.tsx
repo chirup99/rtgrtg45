@@ -1301,9 +1301,9 @@ function ProfileHeader() {
 
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-6">
         {/* Cover Photo */}
-        <div className={`h-48 relative ${coverPicUrl ? '' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
+        <div className={`h-48 relative overflow-hidden ${coverPicUrl ? 'bg-black' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
           {coverPicUrl && (
-            <img src={coverPicUrl} alt="Cover" className="w-full h-full object-cover" />
+            <img src={coverPicUrl} alt="Cover" className="w-full h-full object-contain" />
           )}
           {/* Cover Edit Button - Twitter style camera icon */}
           <button
@@ -1679,13 +1679,14 @@ function ImageCropModal({
   };
 
   const handleSave = () => {
-    if (!imageRef.current || !canvasRef.current) return;
+    if (!imageRef.current || !canvasRef.current || !containerRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const img = imageRef.current;
+    const container = containerRef.current;
     
     // Set canvas dimensions based on image type
     if (imageType === 'profile') {
@@ -1699,41 +1700,45 @@ function ImageCropModal({
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate scaled dimensions
-    const containerWidth = imageType === 'profile' ? 300 : 600;
-    const containerHeight = imageType === 'profile' ? 300 : 200;
+    // Get actual container dimensions
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
     
-    const scaleRatioX = canvas.width / containerWidth;
-    const scaleRatioY = canvas.height / containerHeight;
-
-    const scaledImgWidth = img.width * scale;
-    const scaledImgHeight = img.height * scale;
+    // Calculate base image size to fill container (like object-fit: cover)
+    // Image maintains aspect ratio while covering the entire container
+    const imgAspect = img.width / img.height;
+    const containerAspect = containerWidth / containerHeight;
     
-    // Calculate aspect ratio to fit image in container
-    const aspectRatio = img.width / img.height;
-    let displayWidth, displayHeight;
+    let baseWidth, baseHeight;
     
-    if (imageType === 'profile') {
-      if (aspectRatio > 1) {
-        displayHeight = containerHeight * scale;
-        displayWidth = displayHeight * aspectRatio;
-      } else {
-        displayWidth = containerWidth * scale;
-        displayHeight = displayWidth / aspectRatio;
-      }
+    if (imgAspect > containerAspect) {
+      // Image is wider - height fills container, width overflows
+      baseHeight = containerHeight;
+      baseWidth = baseHeight * imgAspect;
     } else {
-      displayWidth = containerWidth * scale;
-      displayHeight = displayWidth / aspectRatio;
-      if (displayHeight < containerHeight) {
-        displayHeight = containerHeight * scale;
-        displayWidth = displayHeight * aspectRatio;
-      }
+      // Image is taller - width fills container, height overflows
+      baseWidth = containerWidth;
+      baseHeight = baseWidth / imgAspect;
     }
-
-    const drawX = (position.x + (containerWidth - displayWidth) / 2) * scaleRatioX;
-    const drawY = (position.y + (containerHeight - displayHeight) / 2) * scaleRatioY;
-    const drawWidth = displayWidth * scaleRatioX;
-    const drawHeight = displayHeight * scaleRatioY;
+    
+    // Apply user's scale adjustment
+    const scaledWidth = baseWidth * scale;
+    const scaledHeight = baseHeight * scale;
+    
+    // Image is centered via flexbox, then translate applied
+    // Calculate where image starts in preview coordinates
+    const previewX = (containerWidth - scaledWidth) / 2 + position.x;
+    const previewY = (containerHeight - scaledHeight) / 2 + position.y;
+    
+    // Scale from preview coordinates to canvas coordinates
+    const scaleX = canvas.width / containerWidth;
+    const scaleY = canvas.height / containerHeight;
+    
+    const drawX = previewX * scaleX;
+    const drawY = previewY * scaleY;
+    const drawWidth = scaledWidth * scaleX;
+    const drawHeight = scaledHeight * scaleY;
 
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
 
@@ -1764,7 +1769,7 @@ function ImageCropModal({
           {/* Preview Container */}
           <div 
             ref={containerRef}
-            className={`relative overflow-hidden bg-gray-900 ${containerClass} cursor-move`}
+            className={`relative overflow-hidden bg-gray-900 ${containerClass} cursor-move flex items-center justify-center`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -1776,15 +1781,16 @@ function ImageCropModal({
             <img 
               src={imageSrc} 
               alt="Preview"
-              className="absolute select-none"
+              className="select-none pointer-events-none"
               style={{
                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transformOrigin: 'center',
                 maxWidth: 'none',
-                width: imageType === 'profile' ? '100%' : 'auto',
-                height: imageType === 'cover' ? '100%' : 'auto',
-                minWidth: imageType === 'cover' ? '100%' : 'auto',
-                minHeight: imageType === 'profile' ? '100%' : 'auto',
+                maxHeight: 'none',
+                width: imageType === 'profile' ? 'auto' : 'auto',
+                height: imageType === 'profile' ? 'auto' : 'auto',
+                minWidth: imageType === 'profile' ? '100%' : '100%',
+                minHeight: imageType === 'profile' ? '100%' : '100%',
+                objectFit: 'cover',
               }}
               draggable={false}
             />
@@ -2934,7 +2940,8 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
         content={post.content}
         author={{
           displayName: post.user?.username || post.authorDisplayName || 'Unknown User',
-          username: post.user?.handle || post.authorUsername || 'user'
+          username: post.user?.handle || post.authorUsername || 'user',
+          avatar: post.authorAvatar || post.user?.avatar || undefined
         }}
         selectedPostIds={post.selectedPostIds}
         selectedPosts={selectedPosts}
@@ -2956,14 +2963,30 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
         <div className="flex items-start justify-between mb-2 xl:mb-4">
           <div className="flex items-center gap-2 xl:gap-3">
             <div className="relative">
-              <Avatar className="w-10 h-10 border border-gray-200 dark:border-gray-600 ">
-                <AvatarFallback className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold text-sm ">
-                  {post.user?.initial || 
-                   post.authorDisplayName?.charAt(0) || 
-                   post.authorUsername?.charAt(0) || 
-                   'U'}
-                </AvatarFallback>
-              </Avatar>
+              {(() => {
+                const avatarUrl = post.authorAvatar || post.user?.avatar;
+                const isValidAvatar = avatarUrl && avatarUrl.includes('s3.') && !avatarUrl.includes('ui-avatars.com');
+                console.log('🖼️ PostCard avatar debug:', { 
+                  postId: post.id, 
+                  authorAvatar: post.authorAvatar, 
+                  userAvatar: post.user?.avatar,
+                  avatarUrl, 
+                  isValidAvatar 
+                });
+                return (
+                  <Avatar className="w-10 h-10 border border-gray-200 dark:border-gray-600 ">
+                    {isValidAvatar ? (
+                      <AvatarImage src={avatarUrl} alt={post.authorDisplayName || post.authorUsername} className="object-cover" />
+                    ) : null}
+                    <AvatarFallback className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold text-sm ">
+                      {post.user?.initial || 
+                       post.authorDisplayName?.charAt(0) || 
+                       post.authorUsername?.charAt(0) || 
+                       'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                );
+              })()}
               {post.user?.online && (
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-lg animate-pulse ring-1 ring-emerald-400/40"></div>
               )}
