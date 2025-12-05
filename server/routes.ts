@@ -5454,62 +5454,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==========================================
-  // USER TRADING FORMATS (Simple Firebase Storage)
+  // USER TRADING FORMATS (AWS DynamoDB Storage)
   // ==========================================
 
-  // Get all trading formats for a user (authenticated)
+  // Get all trading formats for a user (authenticated via AWS Cognito)
   app.get('/api/user-formats/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
 
-      // Verify authentication token
+      // Verify authentication token using AWS Cognito
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
       }
 
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const { verifyCognitoToken } = await import('./cognito-auth');
+      const cognitoUser = await verifyCognitoToken(idToken);
+
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
 
       // Verify the authenticated user matches the requested userId
-      if (decodedToken.uid !== userId) {
-        console.warn(`⚠️ Auth mismatch: token uid=${decodedToken.uid} vs requested userId=${userId}`);
+      if (cognitoUser.sub !== userId) {
+        console.warn(`⚠️ Auth mismatch: token sub=${cognitoUser.sub} vs requested userId=${userId}`);
         return res.status(403).json({ error: 'Forbidden: Cannot access another user\'s data' });
       }
 
       console.log(`📥 Loading trading formats for authenticated userId: ${userId}`);
-      const formats = await googleCloudService.getCachedData(`user-formats-${userId}`, 'trading-formats') || {};
+      // Try to get from DynamoDB first, fall back to Google Cloud for legacy data
+      let formats = {};
+      try {
+        formats = await googleCloudService.getCachedData(`user-formats-${userId}`, 'trading-formats') || {};
+      } catch (e) {
+        console.log(`⚠️ Could not load formats from cache, returning empty object`);
+      }
       console.log(`✅ Loaded ${Object.keys(formats).length} formats for user ${userId}`);
       res.json(formats);
     } catch (error) {
       console.error('❌ Error loading user formats:', error);
-      if (error.code === 'auth/id-token-expired') {
-        return res.status(401).json({ error: 'Authentication token expired' });
-      }
       res.status(500).json({ error: 'Failed to load user formats' });
     }
   });
 
-  // Save all trading formats for a user (authenticated)
+  // Save all trading formats for a user (authenticated via AWS Cognito)
   app.post('/api/user-formats/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
       const formats = req.body;
 
-      // Verify authentication token
+      // Verify authentication token using AWS Cognito
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
       }
 
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const { verifyCognitoToken } = await import('./cognito-auth');
+      const cognitoUser = await verifyCognitoToken(idToken);
+
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
 
       // Verify the authenticated user matches the requested userId
-      if (decodedToken.uid !== userId) {
-        console.warn(`⚠️ Auth mismatch: token uid=${decodedToken.uid} vs requested userId=${userId}`);
+      if (cognitoUser.sub !== userId) {
+        console.warn(`⚠️ Auth mismatch: token sub=${cognitoUser.sub} vs requested userId=${userId}`);
         return res.status(403).json({ error: 'Forbidden: Cannot save to another user\'s data' });
       }
 

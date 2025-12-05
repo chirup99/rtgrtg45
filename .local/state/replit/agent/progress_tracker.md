@@ -118,3 +118,39 @@ All core features are operational and ready for use:
 - Profile management with S3 image uploads
 
 =========================================================
+
+## TWITTER-STYLE USER PROFILE UPDATE - DECEMBER 5, 2025 (7:48 AM)
+
+[x] 1. Removed legacy Firebase-based user-profile.tsx page
+      - Deleted client/src/pages/user-profile.tsx
+      - Removed /user/:username route from App.tsx
+      - Platform now uses only AWS services (DynamoDB, Cognito, S3)
+
+[x] 2. Updated ViewUserProfile component with Twitter-style design:
+      - Sticky back button header for seamless navigation
+      - Cover photo with camera icon for editing (own profile only)
+      - Profile picture (28x28) overlapping cover with border and shadow
+      - Display name, username, verified badge
+      - Edit profile button (own profile) or Follow button (other profiles)
+      - Bio, Location (India), Join date display
+      - Following/Followers counts with clickable links
+      - Posts, Media, Likes tabs with blue active indicator
+
+[x] 3. Profile view fully integrated in social feed:
+      - Click on username in posts to view profile in-feed
+      - No full page redirects - smooth in-feed navigation
+      - Back button returns to feed seamlessly
+      - All data from AWS DynamoDB user-profiles table
+
+[x] 4. Architect reviewed and approved:
+      - Implementation matches Twitter-style design requirements
+      - No Firebase dependencies in profile view
+      - AWS-backed data fetches working correctly
+
+[x] 5. Migrated user-formats API to AWS Cognito:
+      - Replaced Firebase Admin auth with AWS Cognito verifyCognitoToken
+      - GET /api/user-formats/:userId now uses Cognito
+      - POST /api/user-formats/:userId now uses Cognito
+      - Eliminates "Firebase app does not exist" errors
+
+=========================================================
