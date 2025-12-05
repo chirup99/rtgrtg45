@@ -123,3 +123,4 @@ VITE_COGNITO_REDIRECT_URI = "https://91ba2c3a-68d3-4f1e-a4a1-f685b7b4c03c-00-3ag
 VITE_COGNITO_LOGOUT_URI = "https://91ba2c3a-68d3-4f1e-a4a1-f685b7b4c03c-00-3ag6v7nizv6rm.pike.replit.dev/landing"
 AWS_COGNITO_USER_POOL_ID = "eu-north-1_rXrrnI6cZ"
 AWS_COGNITO_APP_CLIENT_ID = "65plb5ei051fh8qr52mispdqq"
+AWS_S3_BUCKET = "neofeed-profile-images"

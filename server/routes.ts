@@ -4461,7 +4461,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: userData?.username,
         displayName: userData?.displayName,
         hasUsername: !!userData?.username,
-        hasDOB: !!userData?.dob
+        hasDOB: !!userData?.dob,
+        hasProfilePic: !!userData?.profilePicUrl,
+        hasCoverPic: !!userData?.coverPicUrl,
+        profilePicUrl: userData?.profilePicUrl?.substring(0, 80),
+        coverPicUrl: userData?.coverPicUrl?.substring(0, 80)
       });
 
       res.json({ 
@@ -6132,30 +6136,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fileExtension = file.name?.split('.').pop() || 'jpg';
         const key = `profiles/${userId}/${imageType}-${timestamp}.${fileExtension}`;
 
-        // Upload to S3
+        // Upload to S3 (without ACL - use bucket policy for public access instead)
         const uploadCommand = new PutObjectCommand({
           Bucket: bucketName,
           Key: key,
           Body: file.data,
-          ContentType: file.mimetype || 'image/jpeg',
-          ACL: 'public-read'
+          ContentType: file.mimetype || 'image/jpeg'
         });
 
+        console.log(`📤 Uploading ${imageType} image to S3 bucket: ${bucketName}, key: ${key}`);
         await s3Client.send(uploadCommand);
         
         // Construct public URL
         const publicUrl = `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${key}`;
         
         console.log(`✅ ${imageType} image uploaded to S3:`, publicUrl);
-        res.json({ url: publicUrl });
+        res.json({ url: publicUrl, success: true });
       } catch (s3Error: any) {
         console.error('❌ S3 upload error:', s3Error.message);
-        // Fall back to placeholder URL if S3 fails
-        const timestamp = Date.now();
-        const displayName = cognitoUser.name || userId.substring(0, 8);
-        const placeholderUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=200&background=random&time=${timestamp}`;
-        console.log('⚠️ S3 failed, using placeholder URL:', placeholderUrl);
-        res.json({ url: placeholderUrl });
+        console.error('❌ S3 error details:', JSON.stringify({
+          code: s3Error.Code || s3Error.code,
+          name: s3Error.name,
+          statusCode: s3Error.$metadata?.httpStatusCode,
+          bucket: bucketName,
+          region: awsRegion
+        }));
+        // Return error instead of fallback URL - don't save fake placeholder images
+        res.status(500).json({ 
+          error: 'S3 upload failed', 
+          message: s3Error.message,
+          details: 'Image could not be uploaded to storage. Please try again.'
+        });
       }
     } catch (error: any) {
       console.error('❌ Error uploading profile image:', error);

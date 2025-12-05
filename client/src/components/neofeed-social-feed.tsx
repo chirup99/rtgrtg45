@@ -1222,9 +1222,19 @@ function ProfileHeader() {
         body: formData
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      const responseData = await response.json();
       
-      const { url } = await response.json();
+      if (!response.ok || responseData.error) {
+        console.error('Image upload failed:', responseData);
+        throw new Error(responseData.details || responseData.message || 'Upload failed');
+      }
+      
+      const { url } = responseData;
+      
+      // Don't save placeholder/fallback URLs - only save real S3 URLs
+      if (!url || url.includes('ui-avatars.com')) {
+        throw new Error('Image storage failed. Please try again.');
+      }
       
       // Update profile with the new image URL
       const updateResponse = await fetch('/api/user/profile', {
@@ -1246,8 +1256,12 @@ function ProfileHeader() {
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
       setShowImageCropModal(false);
       setSelectedImage(null);
-    } catch (error) {
-      toast({ description: "Failed to upload image", variant: "destructive" });
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      toast({ 
+        description: error?.message || "Failed to upload image. Please try again.", 
+        variant: "destructive" 
+      });
     } finally {
       setUploading(false);
     }
