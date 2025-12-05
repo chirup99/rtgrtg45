@@ -2268,20 +2268,73 @@ export default function Home() {
         message.includes(stock),
       );
 
-      // USE ADVANCED QUERY PROCESSOR FOR ALL QUERIES - Like Replit Agent
-      // This handles ANY question with web search + intelligent analysis
+      // USE TRADING AI AGENT FOR ALL QUERIES - Like Replit Agent for Trading
+      // This agent uses tool calling to intelligently gather data from multiple sources
       console.log(
-        "🤖 [FRONTEND] Triggering Advanced AI Query Processor (Web Search Enabled)...",
+        "🤖 [TRADING-AGENT] Triggering AI Trading Agent (Tool Calling Enabled)...",
       );
 
       try {
-        console.log("📊 [FRONTEND] Fetching trading journal data...");
+        // Call the new Trading AI Agent endpoint
+        const response = await fetch(getFullApiUrl("/api/trading-agent"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: query,
+            context: {
+              userId: currentUser?.userId || localStorage.getItem('currentUserId'),
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.success && data.message) {
+            let result = data.message;
+
+            // Store chart data for rendering if available
+            if (data.charts && data.charts.length > 0) {
+              (window as any).tradingAgentCharts = data.charts;
+              console.log("📊 [TRADING-AGENT] Received chart data:", data.charts.length, "charts");
+            }
+
+            // Store stock insights for rendering
+            if (data.stocks && data.stocks.length > 0) {
+              (window as any).tradingAgentStocks = data.stocks;
+              console.log("📈 [TRADING-AGENT] Received stock insights:", data.stocks.length, "stocks");
+            }
+
+            // Store company insights data on window for chart rendering
+            if (data.companyInsights) {
+              (window as any).companyInsightsData = data.companyInsights;
+              console.log("✅ [TRADING-AGENT] Received company insights:", data.companyInsights.symbol, data.companyInsights.trend);
+            } else {
+              (window as any).companyInsightsData = null;
+            }
+
+            // Add sources footer if available
+            if (data.sources && data.sources.length > 0) {
+              result += `\n\n---\n**Sources:** ${data.sources.join(' | ')}`;
+            }
+
+            setSearchResults(result);
+            console.log("✅ [TRADING-AGENT] Query processing complete!");
+            setIsSearchLoading(false);
+            return;
+          }
+        }
+
+        // Fallback to advanced-query if trading-agent fails
+        console.log("⚠️ [TRADING-AGENT] Falling back to advanced query...");
+        
         let journalTrades: any[] = [];
         try {
           const journalResponse = await fetch(getFullApiUrl("/api/journal/all-dates"));
           if (journalResponse.ok) {
             const allJournalData = await journalResponse.json();
-            // Flatten all trades from all dates
             Object.entries(allJournalData).forEach(
               ([date, data]: [string, any]) => {
                 if (data.tradeHistory && Array.isArray(data.tradeHistory)) {
@@ -2294,54 +2347,28 @@ export default function Home() {
                 }
               },
             );
-            console.log(
-              `✅ [FRONTEND] Loaded ${journalTrades.length} trades from journal`,
-            );
           }
         } catch (journalError) {
-          console.warn(
-            "⚠️ [FRONTEND] Could not load journal data:",
-            journalError,
-          );
+          console.warn("⚠️ Could not load journal data:", journalError);
         }
 
-        const response = await fetch(getFullApiUrl("/api/advanced-query"), {
+        const fallbackResponse = await fetch(getFullApiUrl("/api/advanced-query"), {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: query,
-            journalTrades: journalTrades,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, journalTrades: journalTrades }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-
-          let result = data.answer;
-
-          // Store company insights data on window for chart rendering
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
           if (data.companyInsights) {
             (window as any).companyInsightsData = data.companyInsights;
-            console.log("✅ [FRONTEND] Received company insights:", data.companyInsights.symbol, data.companyInsights.trend);
-          } else {
-            (window as any).companyInsightsData = null;
           }
-
-          setSearchResults(result);
-          console.log("✅ [FRONTEND] Advanced query processing complete!");
+          setSearchResults(data.answer);
           setIsSearchLoading(false);
           return;
-        } else {
-          console.error(
-            "❌ [FRONTEND] Advanced query failed:",
-            response.statusText,
-          );
-          // Fall through to other handlers
         }
       } catch (error) {
-        console.error("❌ [FRONTEND] Advanced query error:", error);
+        console.error("❌ [TRADING-AGENT] Error:", error);
         // Fall through to other handlers
       }
 

@@ -15,6 +15,7 @@ import {
   type ArbitrageOpportunity,
   type StockData 
 } from "./gemini-service";
+import { tradingAIAgent } from "./trading-ai-agent";
 
 export default function setupGeminiRoutes(app: Express) {
   console.log("🤖 Setting up Gemini AI routes...");
@@ -1384,5 +1385,80 @@ Try any command to get started!`;
     }
   });
 
+  // =============================================================================
+  // ADVANCED TRADING AI AGENT - Like Replit Agent for Trading
+  // =============================================================================
+  
+  /**
+   * POST /api/trading-agent
+   * 
+   * Intelligent AI trading assistant that can:
+   * - Analyze stocks with real-time data
+   * - Search news and market sentiment
+   * - Access trading journal for personalized insights
+   * - Query social feed for community discussions
+   * - Generate comprehensive reports with charts
+   */
+  app.post("/api/trading-agent", async (req, res) => {
+    try {
+      const { query, context } = req.body;
+      
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          error: "Query is required"
+        });
+      }
+
+      console.log(`🤖 [TRADING-AGENT] Received query: ${query}`);
+      
+      const response = await tradingAIAgent.processQuery(query, context);
+      
+      res.json({
+        success: true,
+        ...response
+      });
+      
+    } catch (error) {
+      console.error("❌ Error in trading AI agent:", error);
+      res.status(500).json({
+        success: false,
+        error: "Trading AI agent encountered an error. Please try again.",
+        message: "I apologize, but I encountered an issue processing your request. Please try rephrasing your question."
+      });
+    }
+  });
+
+  // GET endpoint for simple queries
+  app.get("/api/trading-agent", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          error: "Query parameter 'q' is required"
+        });
+      }
+
+      console.log(`🤖 [TRADING-AGENT] GET query: ${query}`);
+      
+      const response = await tradingAIAgent.processQuery(query);
+      
+      res.json({
+        success: true,
+        ...response
+      });
+      
+    } catch (error) {
+      console.error("❌ Error in trading AI agent:", error);
+      res.status(500).json({
+        success: false,
+        error: "Trading AI agent encountered an error."
+      });
+    }
+  });
+
   console.log("✅ Gemini AI routes configured successfully");
+  console.log("🤖 Trading AI Agent endpoint ready at /api/trading-agent");
 }
