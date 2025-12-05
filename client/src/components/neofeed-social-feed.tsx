@@ -2434,7 +2434,7 @@ function AnalysisPanel({ ticker, isOpen, onClose }: { ticker: string; isOpen: bo
   );
 }
 
-const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: FeedPost; currentUserUsername?: string }) {
+const PostCard = memo(function PostCard({ post, currentUserUsername, onViewUserProfile }: { post: FeedPost; currentUserUsername?: string; onViewUserProfile?: (username: string) => void }) {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [liked, setLiked] = useState(false);
   const [downtrended, setDowntrended] = useState(false);
@@ -2997,7 +2997,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                   onClick={() => {
                     const username = post.user?.handle || post.authorUsername || '';
                     if (username) {
-                      window.location.href = `/user/${username}`;
+                      if (onViewUserProfile) {
+                        onViewUserProfile(username);
+                      } else {
+                        window.location.href = `/user/${username}`;
+                      }
                     }
                   }}
                   className="text-gray-900 dark:text-white font-bold text-lg hover:underline cursor-pointer transition-colors"
@@ -3019,7 +3023,11 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
                       onClick={(e) => {
                         e.stopPropagation();
                         if (post.originalAuthorUsername) {
-                          window.location.href = `/user/${post.originalAuthorUsername}`;
+                          if (onViewUserProfile) {
+                            onViewUserProfile(post.originalAuthorUsername);
+                          } else {
+                            window.location.href = `/user/${post.originalAuthorUsername}`;
+                          }
                         }
                       }}
                       className="text-sm hover:underline cursor-pointer text-green-600 dark:text-green-400 font-medium"
@@ -3420,12 +3428,471 @@ const PostCard = memo(function PostCard({ post, currentUserUsername }: { post: F
   );
 });
 
+// Twitter-style User Profile View Component
+function ViewUserProfile({ 
+  username, 
+  onBack, 
+  currentUserUsername 
+}: { 
+  username: string; 
+  onBack: () => void; 
+  currentUserUsername: string;
+}) {
+  const [activeTab, setActiveTab] = useState('Posts');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [showFollowersDialog, setShowFollowersDialog] = useState(false);
+  const [showFollowingDialog, setShowFollowingDialog] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch user profile data
+  const { data: profileData, isLoading: profileLoading } = useQuery({
+    queryKey: [`/api/users/${username}/profile`],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${username}/profile`);
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
+    staleTime: 60000,
+  });
+
+  // Fetch followers/following counts
+  const { data: countsData = { followers: 0, following: 0 } } = useQuery({
+    queryKey: [`/api/users/${username}/followers-count`],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${username}/followers-count`);
+      if (!response.ok) return { followers: 0, following: 0 };
+      return response.json();
+    },
+    staleTime: 60000,
+  });
+
+  // Fetch user posts
+  const { data: allPosts = [], isLoading: postsLoading } = useQuery({
+    queryKey: ['/api/social-posts'],
+    queryFn: async (): Promise<SocialPost[]> => {
+      const response = await fetch('/api/social-posts');
+      if (!response.ok) throw new Error('Failed to fetch posts');
+      return response.json();
+    },
+    staleTime: 120000,
+  });
+
+  // Fetch followers list
+  const { data: followersList = { followers: [] } } = useQuery({
+    queryKey: [`/api/users/${username}/followers-list`],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${username}/followers-list`);
+      if (!response.ok) return { followers: [] };
+      return response.json();
+    },
+    enabled: showFollowersDialog,
+  });
+
+  // Fetch following list
+  const { data: followingList = { following: [] } } = useQuery({
+    queryKey: [`/api/users/${username}/following-list`],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${username}/following-list`);
+      if (!response.ok) return { following: [] };
+      return response.json();
+    },
+    enabled: showFollowingDialog,
+  });
+
+  // Check follow status
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!currentUserUsername || currentUserUsername === username) return;
+      try {
+        const idToken = await getCognitoToken();
+        if (!idToken) return;
+        const response = await fetch(`/api/users/${username}/follow-status`, {
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.following || data.isFollowing || false);
+        }
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    };
+    checkFollowStatus();
+  }, [username, currentUserUsername]);
+
+  // Filter posts for this user
+  const userPosts = allPosts.filter(post => 
+    post.authorUsername?.toLowerCase() === username?.toLowerCase() ||
+    post.authorDisplayName?.toLowerCase() === profileData?.displayName?.toLowerCase()
+  );
+
+  // Handle follow/unfollow
+  const handleFollowToggle = async () => {
+    if (!currentUserUsername || currentUserUsername === username) return;
+    
+    setIsFollowLoading(true);
+    try {
+      const idToken = await getCognitoToken();
+      if (!idToken) {
+        setIsFollowLoading(false);
+        return;
+      }
+      
+      const endpoint = isFollowing
+        ? `/api/users/${username}/unfollow`
+        : `/api/users/${username}/follow`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ 
+          targetUserData: { displayName: profileData?.displayName || username }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsFollowing(data.following);
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/followers-count`] });
+        toast({ description: data.following ? 'Following!' : 'Unfollowed' });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
+  const isOwnProfile = currentUserUsername?.toLowerCase() === username?.toLowerCase();
+  const displayName = profileData?.displayName || username;
+  const bio = profileData?.bio || '';
+  const profilePicUrl = profileData?.profilePicUrl;
+  const coverPicUrl = profileData?.coverPicUrl;
+  const initials = (displayName || 'U').charAt(0).toUpperCase();
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 animate-pulse">
+          <div className="h-48 bg-gray-300 dark:bg-gray-700 relative">
+            <div className="absolute top-4 left-4 w-10 h-10 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
+          </div>
+          <div className="pt-20 px-4 pb-4">
+            <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-48 mb-2"></div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-32"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">User not found</h2>
+        <Button onClick={onBack} data-testid="button-back-not-found">Go back</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-4">
+        {/* Cover Photo */}
+        <div className={`h-48 relative overflow-hidden ${coverPicUrl ? 'bg-black' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
+          {coverPicUrl && (
+            <img src={coverPicUrl} alt="Cover" className="w-full h-full object-cover" />
+          )}
+          {/* Back Button - Twitter style */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            className="absolute top-4 left-4 bg-black/40 hover:bg-black/60 text-white rounded-full z-10"
+            data-testid="button-back-profile"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          {/* Profile Picture - overlapping cover */}
+          <div className="absolute -bottom-16 left-4">
+            <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800">
+              {profilePicUrl ? (
+                <AvatarImage src={profilePicUrl} className="object-cover" />
+              ) : (
+                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-4xl font-bold">
+                  {initials}
+                </AvatarFallback>
+              )}
+            </Avatar>
+          </div>
+        </div>
+
+        {/* Profile Info */}
+        <div className="pt-20 px-4 pb-4">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-gray-900 dark:text-white font-bold text-2xl flex items-center gap-2">
+                {displayName}
+                {profileData?.verified && (
+                  <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400 fill-current" />
+                )}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">@{username}</p>
+            </div>
+            {!isOwnProfile && currentUserUsername && (
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                className={`rounded-full px-6 min-w-[100px] ${
+                  isFollowing
+                    ? 'border-gray-300 dark:border-gray-600 hover:border-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+                onClick={handleFollowToggle}
+                disabled={isFollowLoading}
+                data-testid="button-follow-profile"
+              >
+                {isFollowLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isFollowing ? (
+                  'Following'
+                ) : (
+                  'Follow'
+                )}
+              </Button>
+            )}
+          </div>
+
+          {bio && (
+            <p className="text-gray-900 dark:text-white mb-4 text-base">{bio}</p>
+          )}
+
+          <div className="flex flex-wrap gap-4 text-gray-600 dark:text-gray-400 text-sm mb-4">
+            <div className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              <span>India</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              <span>Joined {new Date().getFullYear()}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4 text-sm mb-4">
+            <button
+              className="hover:underline"
+              onClick={() => setShowFollowingDialog(true)}
+              data-testid="button-view-following"
+            >
+              <span className="font-bold text-gray-900 dark:text-white">{countsData?.following || 0}</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">Following</span>
+            </button>
+            <button
+              className="hover:underline"
+              onClick={() => setShowFollowersDialog(true)}
+              data-testid="button-view-followers"
+            >
+              <span className="font-bold text-gray-900 dark:text-white">{countsData?.followers || 0}</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">Followers</span>
+            </button>
+          </div>
+
+          <div className="flex gap-8 border-b border-gray-200 dark:border-gray-700">
+            {[`Posts ${userPosts.length > 0 ? `(${userPosts.length})` : ''}`, 'Media', 'Likes'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab.split(' ')[0])}
+                className={`pb-3 px-2 font-medium transition-colors relative ${
+                  activeTab === tab.split(' ')[0]
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+                data-testid={`button-profile-tab-${tab.split(' ')[0].toLowerCase()}`}
+              >
+                {tab}
+                {activeTab === tab.split(' ')[0] && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* User Posts */}
+      <div className="max-w-4xl mx-auto px-4">
+        {activeTab === 'Posts' && (
+          <div className="space-y-4 mb-6">
+            {postsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="p-4 animate-pulse">
+                    <div className="flex gap-3">
+                      <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-full mb-1"></div>
+                        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-3/4"></div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : userPosts.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-gray-500 dark:text-gray-400">No posts yet.</p>
+              </Card>
+            ) : (
+              userPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={{
+                    id: post.id.toString(),
+                    content: post.content,
+                    authorUsername: post.authorUsername,
+                    authorDisplayName: post.authorDisplayName,
+                    authorAvatar: post.authorAvatar,
+                    authorVerified: post.authorVerified,
+                    createdAt: post.createdAt,
+                    likes: post.likes || 0,
+                    comments: post.comments || 0,
+                    reposts: post.reposts || 0,
+                    imageUrl: post.imageUrl,
+                    hasMedia: post.hasImage,
+                    ticker: post.stockMentions?.[0] ? `$${post.stockMentions[0]}` : '',
+                    sentiment: post.sentiment as 'bullish' | 'bearish' | 'neutral' | null,
+                    tags: post.tags || [],
+                    stockMentions: post.stockMentions || [],
+                    user: {
+                      initial: (post.authorDisplayName || 'U')[0].toUpperCase(),
+                      username: post.authorDisplayName || '',
+                      handle: post.authorUsername || '',
+                      verified: post.authorVerified || false,
+                      online: true,
+                      avatar: post.authorAvatar || undefined,
+                    },
+                    metrics: {
+                      comments: post.comments || 0,
+                      reposts: post.reposts || 0,
+                      likes: post.likes || 0,
+                    },
+                  } as FeedPost}
+                  currentUserUsername={currentUserUsername}
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'Media' && (
+          <Card className="p-8 text-center">
+            <p className="text-gray-500 dark:text-gray-400">No media posts yet.</p>
+          </Card>
+        )}
+
+        {activeTab === 'Likes' && (
+          <Card className="p-8 text-center">
+            <p className="text-gray-500 dark:text-gray-400">Liked posts will appear here.</p>
+          </Card>
+        )}
+      </div>
+
+      {/* Followers Dialog */}
+      <Dialog open={showFollowersDialog} onOpenChange={setShowFollowersDialog}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Followers
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {followersList.followers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No followers yet</p>
+              </div>
+            ) : (
+              followersList.followers.map((follower: any) => (
+                <div
+                  key={follower.id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  <Avatar className="w-10 h-10">
+                    {follower.avatar ? (
+                      <AvatarImage src={follower.avatar} />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold">
+                        {(follower.displayName || follower.username || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">{follower.displayName || follower.username}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">@{follower.username}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Following Dialog */}
+      <Dialog open={showFollowingDialog} onOpenChange={setShowFollowingDialog}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Following
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {followingList.following.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <UserPlus className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Not following anyone yet</p>
+              </div>
+            ) : (
+              followingList.following.map((user: any) => (
+                <div
+                  key={user.id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  <Avatar className="w-10 h-10">
+                    {user.avatar ? (
+                      <AvatarImage src={user.avatar} />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold">
+                        {(user.displayName || user.username || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">{user.displayName || user.username}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void }) {
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [isAtTop, setIsAtTop] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [currentUserUsername, setCurrentUserUsername] = useState<string>('');
+  const [viewingUserProfile, setViewingUserProfile] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showTopFilters, setShowTopFilters] = useState(true);
   const lastScrollYRef = useRef(0);
@@ -3830,6 +4297,17 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
   // Use feedData directly - don't add mock data
   const defaultFeedData: FeedPost[] = feedData;
 
+  // Show ViewUserProfile when viewing another user's profile
+  if (viewingUserProfile) {
+    return (
+      <ViewUserProfile
+        username={viewingUserProfile}
+        onBack={() => setViewingUserProfile(null)}
+        currentUserUsername={currentUserUsername}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" ref={containerRef}>
       {/* Back Button - Absolute positioned in top-right corner (Mobile Only) */}
@@ -3873,7 +4351,7 @@ function NeoFeedSocialFeedComponent({ onBackClick }: { onBackClick?: () => void 
           
           <div className="space-y-3 xl:space-y-6">
             {feedData.map((post) => (
-              <PostCard key={post.id} post={post} currentUserUsername={currentUserUsername} />
+              <PostCard key={post.id} post={post} currentUserUsername={currentUserUsername} onViewUserProfile={setViewingUserProfile} />
             ))}
             
             {/* Infinite scroll loader trigger */}
