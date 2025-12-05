@@ -40,9 +40,27 @@ FIX DETAILS:
 - When fetching posts, must join with user profile data to get profilePicUrl
 - Frontend displays authorAvatar in post headers for user avatars
 
-NEXT STEP:
-- Modify GET /api/social-posts endpoints to fetch and return authorAvatar
-- This will enable profile pictures to display on all posts in the feed
+=========================================================
+
+S3 BUCKET FIX - December 5, 2025
+
+[x] 1. Root cause identified: S3 bucket "neofeed-profile-images" did not exist
+      - AWS credentials were valid but bucket was never created
+      - Upload attempts failed with "NoSuchBucket" error
+      
+[x] 2. Created S3 bucket with proper configuration:
+      - Bucket: neofeed-profile-images
+      - Region: eu-north-1
+      - Public access: Configured for public read
+      - Bucket policy: Allows GetObject for all users
+      - CORS: Configured for web uploads
+      
+[x] 3. Verified bucket is operational:
+      - Test upload successful
+      - Public URLs accessible
+
+RESULT: Profile and cover image uploads now work correctly!
+Users can upload images which will be stored in S3 and displayed on profiles/posts.
 
 =========================================================
 
