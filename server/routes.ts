@@ -6114,12 +6114,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!awsAccessKeyId || !awsSecretAccessKey) {
         console.log('❌ AWS credentials not configured for S3 upload');
-        // Fall back to generating a placeholder URL
-        const timestamp = Date.now();
-        const displayName = cognitoUser.name || userId.substring(0, 8);
-        const placeholderUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=200&background=random&time=${timestamp}`;
-        console.log('⚠️ Using placeholder URL instead:', placeholderUrl);
-        return res.json({ url: placeholderUrl });
+        return res.status(500).json({ 
+          error: 'AWS credentials not configured',
+          message: 'Image upload service is unavailable. Please contact support.',
+          details: 'AWS S3 credentials are required for image storage.'
+        });
       }
 
       try {

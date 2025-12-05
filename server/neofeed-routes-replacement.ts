@@ -69,18 +69,33 @@ async function getAuthenticatedUser(req: any): Promise<{ userId: string; usernam
   };
 }
 
-// Helper function to enrich posts with real engagement counts from DynamoDB
+// Helper function to enrich posts with real engagement counts and author avatar from DynamoDB
 async function enrichPostWithRealCounts(post: any): Promise<any> {
   const [likes, reposts, comments] = await Promise.all([
     getPostLikesCount(post.id),
     getPostRetweetsCount(post.id),
     getPostCommentsCount(post.id)
   ]);
+  
+  // Fetch author's profile picture if not already present
+  let authorAvatar = post.authorAvatar || null;
+  if (!authorAvatar && post.authorUsername) {
+    try {
+      const authorProfile = await getUserProfileByUsername(post.authorUsername);
+      if (authorProfile?.profilePicUrl) {
+        authorAvatar = authorProfile.profilePicUrl;
+      }
+    } catch (err) {
+      // Silently fail - avatar is optional
+    }
+  }
+  
   return {
     ...post,
     likes,
     reposts,
-    comments
+    comments,
+    authorAvatar
   };
 }
 
@@ -473,16 +488,30 @@ export function registerNeoFeedAwsRoutes(app: any) {
     console.log(`🚀 [${requestId}] Creating post on AWS DynamoDB`);
     
     try {
-      const { userId, content, stockMentions, sentiment, tags, hasImage, imageUrl, isAudioPost, selectedPostIds, selectedPosts, authorUsername, authorDisplayName } = req.body;
+      const { userId, content, stockMentions, sentiment, tags, hasImage, imageUrl, isAudioPost, selectedPostIds, selectedPosts, authorUsername, authorDisplayName, authorAvatar } = req.body;
 
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ error: 'Post content is required' });
+      }
+
+      // Fetch author's profile picture if not provided
+      let finalAuthorAvatar = authorAvatar || null;
+      if (!finalAuthorAvatar && authorUsername) {
+        try {
+          const authorProfile = await getUserProfileByUsername(authorUsername.toLowerCase());
+          if (authorProfile?.profilePicUrl) {
+            finalAuthorAvatar = authorProfile.profilePicUrl;
+          }
+        } catch (err) {
+          // Avatar is optional, continue without it
+        }
       }
 
       const postData = {
         content: content.trim(),
         authorUsername: (authorUsername || 'anonymous').toLowerCase(),
         authorDisplayName: authorDisplayName || 'User',
+        authorAvatar: finalAuthorAvatar,
         userId: userId || nanoid(),
         stockMentions: stockMentions || [],
         sentiment: sentiment || 'neutral',
