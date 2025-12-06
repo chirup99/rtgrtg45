@@ -11670,6 +11670,41 @@ ${
                                                     </LineChart>
                                                   </ResponsiveContainer>
                                                 </div>
+                                                
+                                                {/* OHLC Display Section */}
+                                                {priceChartData.length > 0 && (() => {
+                                                  const firstCandle = priceChartData[0];
+                                                  const lastCandle = priceChartData[priceChartData.length - 1];
+                                                  const prices = priceChartData.map((candle: any) => candle.price);
+                                                  const open = firstCandle?.price || 0;
+                                                  const high = Math.max(...prices);
+                                                  const low = Math.min(...prices);
+                                                  const close = lastCandle?.price || 0;
+                                                  
+                                                  return (
+                                                    <div className="mt-4 grid grid-cols-4 gap-2">
+                                                      <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                        <div className="text-xs font-medium text-gray-400 mb-1">Open</div>
+                                                        <div className="text-sm font-semibold text-gray-100">₹{open.toFixed(2)}</div>
+                                                      </div>
+                                                      <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                        <div className="text-xs font-medium text-gray-400 mb-1">High</div>
+                                                        <div className="text-sm font-semibold text-green-400">₹{high.toFixed(2)}</div>
+                                                      </div>
+                                                      <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                        <div className="text-xs font-medium text-gray-400 mb-1">Low</div>
+                                                        <div className="text-sm font-semibold text-red-400">₹{low.toFixed(2)}</div>
+                                                      </div>
+                                                      <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                        <div className="text-xs font-medium text-gray-400 mb-1">Close</div>
+                                                        <div className={`text-sm font-semibold ${close >= open ? 'text-green-400' : 'text-red-400'}`}>₹{close.toFixed(2)}</div>
+                                                        <div className={`text-xs font-medium ${close >= open ? 'text-green-400' : 'text-red-400'}`}>
+                                                          {close >= open ? '+' : ''}{((close - open) / open * 100).toFixed(2)}%
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })()}
                                               </div>
                                             )}
                                           </>
