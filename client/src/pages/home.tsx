@@ -12174,10 +12174,28 @@ ${
                                 </p>
                               </div>
                             ) : isSearchLoading ? (
-                              <div className="text-center text-gray-400 py-8">
-                                <div className="flex items-center justify-center gap-3">
-                                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                  <p>Getting AI assistance...</p>
+                              <div className="text-center py-8">
+                                <style>{`
+                                  @keyframes thinkingDot {
+                                    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+                                    30% { opacity: 1; transform: translateY(-8px); }
+                                  }
+                                  .thinking-dot {
+                                    display: inline-block;
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 50%;
+                                    background-color: #3b82f6;
+                                    animation: thinkingDot 1.4s infinite;
+                                    margin: 0 3px;
+                                  }
+                                  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+                                  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+                                `}</style>
+                                <div className="flex items-center justify-center">
+                                  <div className="thinking-dot"></div>
+                                  <div className="thinking-dot"></div>
+                                  <div className="thinking-dot"></div>
                                 </div>
                               </div>
                             ) : null}
