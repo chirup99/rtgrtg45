@@ -11494,19 +11494,69 @@ ${
                                       if (searchResults.includes("[CHART:PRICE_CHART]")) {
                                         const priceChartData =
                                           (window as any).aiAssistantPriceChartData || [];
+                                        const stockData = (window as any).aiAssistantStockData || {};
                                         const parts = searchResults.split("[CHART:PRICE_CHART]");
                                         processedResults = parts[1] || "";
+                                        
+                                        const timeframes = ['1D', '5D', '1M', '6M', '1Y'];
+                                        const selectedTimeframe = (window as any).aiAssistantSelectedTimeframe || '1Y';
+                                        
+                                        const currentPrice = stockData.price || 0;
+                                        const priceChange = stockData.change || 0;
+                                        const changePercent = stockData.changePercent || 0;
+                                        const stockName = stockData.name || 'Stock Price';
 
                                         renderedContent = (
                                           <>
                                             {priceChartData.length > 0 && (
                                               <div className="mb-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
-                                                <div className="flex items-center justify-between mb-3">
-                                                  <span className="text-sm font-medium text-gray-300">Price Chart</span>
-                                                  <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">
-                                                    1Y
-                                                  </span>
+                                                {/* Header with timeframes and price info */}
+                                                <div className="mb-4">
+                                                  <div className="flex items-center justify-between mb-3">
+                                                    {/* Timeframe buttons */}
+                                                    <div className="flex gap-2">
+                                                      {timeframes.map((tf) => (
+                                                        <button
+                                                          key={tf}
+                                                          onClick={() => {
+                                                            (window as any).aiAssistantSelectedTimeframe = tf;
+                                                            window.dispatchEvent(new Event('timeframeChange'));
+                                                          }}
+                                                          data-testid={`button-timeframe-${tf}`}
+                                                          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                                            selectedTimeframe === tf
+                                                              ? 'bg-blue-500 text-white'
+                                                              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                                                          }`}
+                                                        >
+                                                          {tf}
+                                                        </button>
+                                                      ))}
+                                                    </div>
+                                                    
+                                                    {/* Price info on right */}
+                                                    <div className="text-right">
+                                                      <div className="flex items-center gap-2 justify-end">
+                                                        <div>
+                                                          <div className="text-sm font-semibold text-gray-100">
+                                                            ₹{currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                          </div>
+                                                          <div className={`text-xs font-medium ${
+                                                            priceChange >= 0 ? 'text-green-400' : 'text-red-400'
+                                                          }`}>
+                                                            {priceChange >= 0 ? '↑' : '↓'} ₹{Math.abs(priceChange).toFixed(2)} ({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  
+                                                  {/* Stock name below timeframes */}
+                                                  <div className="text-sm font-medium text-gray-300 mb-3">
+                                                    {stockName}
+                                                  </div>
                                                 </div>
+                                                
                                                 <div className="h-56 w-full">
                                                   <ResponsiveContainer width="100%" height="100%">
                                                     <LineChart data={priceChartData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
