@@ -11459,7 +11459,8 @@ ${
                         </div>
                       </div>
 
-                      {/* Search Input - Hidden on mobile */}
+                      {/* Search Input - Hidden on mobile, hidden when search results show on desktop */}
+                      {!searchResults && (
                       <div
                         className={`relative mx-auto transition-all duration-300 md:block hidden ${
                           isSearchActive ? "max-w-4xl" : "max-w-2xl"
@@ -11498,6 +11499,7 @@ ${
                           )}
                         </Button>
                       </div>
+                      )}
 
                       {/* AI Search Results - Desktop only */}
                       {isSearchActive && (
@@ -12256,6 +12258,7 @@ ${
                       </div>
 
                       {/* Trading Tools Section - White container with centered cards */}
+                      {!searchResults && (
                       <div className="bg-white md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full">
                         {/* Mobile Search Bar - Fully visible at top */}
                         <div className="md:hidden absolute -top-3 left-4 right-4 z-50">
@@ -12578,7 +12581,46 @@ ${
                         </div>
                         )}
                       </div>
+                      )}
                     </div>
+
+                    {/* Bottom-fixed Search Bar - ChatGPT style when results are shown */}
+                    {searchResults && (
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+                      <div className="max-w-4xl mx-auto">
+                        <div className="relative">
+                          <Input
+                            placeholder="Ask a follow-up question..."
+                            value={searchQuery}
+                            onFocus={() => setIsSearchActive(true)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setSearchQuery(value);
+                              setIsSearchActive(value.length > 0);
+                            }}
+                            onKeyPress={async (e) => {
+                              if (e.key === "Enter" && searchQuery.trim()) {
+                                await handleSearch();
+                              }
+                            }}
+                            className="w-full h-12 bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <Button
+                            size="sm"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white h-8 w-8 p-0"
+                            onClick={() => handleSearch()}
+                            disabled={!searchQuery.trim() || isSearchLoading}
+                          >
+                            {isSearchLoading ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    )}
 
                     {/* Animated Floating Tutor Button */}
                     {!searchResults && (
