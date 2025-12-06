@@ -11795,13 +11795,16 @@ ${
                                                     
                                                     const newsItems = (window as any).aiAssistantNewsItems || [];
                                                     
-                                                    // If no news fetched yet, fetch it
-                                                    if (newsItems.length === 0 && stockData.name) {
+                                                    // Get symbol from AI Assistant chart (left side chart symbol)
+                                                    const chartSymbol = (window as any).aiAssistantStockData?.symbol;
+                                                    
+                                                    // If no news fetched yet, fetch it using the chart symbol
+                                                    if (newsItems.length === 0 && chartSymbol) {
                                                       (async () => {
                                                         try {
-                                                          const symbol = stockData.symbol || stockData.name;
+                                                          // Use the exact same pattern as fundamental analysis search
                                                           const response = await fetch(
-                                                            getFullApiUrl(`/api/stock-news?query=${encodeURIComponent(symbol)}`),
+                                                            getFullApiUrl(`/api/stock-news?query=${encodeURIComponent(chartSymbol.toUpperCase())}`),
                                                           );
                                                           const data = await response.json();
                                                           
