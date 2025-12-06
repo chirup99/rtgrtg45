@@ -11508,85 +11508,63 @@ ${
                                                   </span>
                                                 </div>
                                                 <div className="h-56 w-full">
-                                                  <ResponsiveContainer
-                                                    width="100%"
-                                                    height="100%"
-                                                  >
-                                                    <LineChart
-                                                      data={priceChartData}
-                                                      margin={{
-                                                        top: 10,
-                                                        right: 20,
-                                                        left: 10,
-                                                        bottom: 20,
-                                                      }}
-                                                    >
-                                                      <defs>
-                                                        <linearGradient
-                                                          id="priceChartGradient"
-                                                          x1="0"
-                                                          y1="0"
-                                                          x2="0"
-                                                          y2="1"
-                                                        >
-                                                          <stop
-                                                            offset="0%"
-                                                            stopColor="#3b82f6"
-                                                            stopOpacity={0.4}
-                                                          />
-                                                          <stop
-                                                            offset="100%"
-                                                            stopColor="#3b82f6"
-                                                            stopOpacity={0.05}
-                                                          />
-                                                        </linearGradient>
-                                                      </defs>
-                                                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                                      <XAxis
-                                                        dataKey="time"
+                                                  <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={priceChartData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
+                                                      <XAxis 
+                                                        dataKey="time" 
                                                         axisLine={false}
                                                         tickLine={false}
-                                                        tick={{
-                                                          fontSize: 10,
-                                                          fill: "#9ca3af",
-                                                        }}
+                                                        tick={{ fontSize: 10, fill: '#64748b' }}
+                                                        tickCount={8}
                                                       />
-                                                      <YAxis
+                                                      <YAxis 
+                                                        domain={['dataMin - 10', 'dataMax + 10']}
                                                         axisLine={false}
                                                         tickLine={false}
-                                                        tick={{
-                                                          fontSize: 10,
-                                                          fill: "#9ca3af",
-                                                        }}
-                                                        tickFormatter={(value) => `₹${(value).toLocaleString()}`}
+                                                        tick={{ fontSize: 10, fill: '#64748b' }}
+                                                        width={35}
+                                                        tickFormatter={(value) => `₹${(value/1000).toFixed(0)}K`}
                                                       />
-                                                      <Tooltip
-                                                        contentStyle={{
-                                                          background: "#1f2937",
-                                                          border: "1px solid #374151",
-                                                          borderRadius: "8px",
-                                                          color: "#f3f4f6",
-                                                          fontSize: "12px",
-                                                          padding: "8px 12px",
+                                                      <Tooltip 
+                                                        content={({ active, payload, label }) => {
+                                                          if (!active || !payload || !payload.length) return null;
+                                                          const value = payload[0].value;
+                                                          return (
+                                                            <div style={{
+                                                              backgroundColor: '#1e293b',
+                                                              border: '1px solid #334155',
+                                                              borderRadius: '6px',
+                                                              color: '#e2e8f0',
+                                                              padding: '8px 16px',
+                                                              fontSize: '13px',
+                                                              minWidth: '140px',
+                                                              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                                                              display: 'flex',
+                                                              alignItems: 'center',
+                                                              gap: '12px'
+                                                            }}>
+                                                              <span style={{ fontSize: '13px', fontWeight: '500' }}>
+                                                                ₹{Number(value).toFixed(2)}
+                                                              </span>
+                                                              <div style={{
+                                                                width: '1px',
+                                                                height: '20px',
+                                                                backgroundColor: '#475569'
+                                                              }}></div>
+                                                              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                                                {label}
+                                                              </span>
+                                                            </div>
+                                                          );
                                                         }}
-                                                        formatter={(value: any) => [
-                                                          `₹${Number(value).toLocaleString()}`,
-                                                          "Price"
-                                                        ]}
-                                                        labelFormatter={(label) => `${label}`}
                                                       />
-                                                      <Line
-                                                        type="monotone"
-                                                        dataKey="close"
-                                                        stroke="#3b82f6"
+                                                      <Line 
+                                                        type="linear" 
+                                                        dataKey="close" 
+                                                        stroke="#ef4444"
                                                         strokeWidth={2}
                                                         dot={false}
-                                                        activeDot={{
-                                                          r: 5,
-                                                          fill: "#ffffff",
-                                                          stroke: "#3b82f6",
-                                                          strokeWidth: 2,
-                                                        }}
+                                                        activeDot={{ r: 4, fill: '#ef4444' }}
                                                       />
                                                     </LineChart>
                                                   </ResponsiveContainer>
