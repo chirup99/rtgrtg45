@@ -227,6 +227,25 @@ export interface ActionSuggestion {
   priority: 'high' | 'medium' | 'low';
 }
 
+// Balance Sheet row item
+export interface BalanceSheetRow {
+  label: string;
+  values: Array<{ year: string; value: number }>;
+}
+
+// Profit & Loss row item
+export interface ProfitLossRow {
+  label: string;
+  values: Array<{ year: string; value: number }>;
+}
+
+// Annual financial data structure
+export interface AnnualFinancialData {
+  years: string[];
+  balanceSheet: BalanceSheetRow[];
+  profitLoss: ProfitLossRow[];
+}
+
 export interface CompanyInsightsData {
   symbol: string;
   name: string;
@@ -236,6 +255,7 @@ export interface CompanyInsightsData {
   pe: number;
   eps: number;
   recommendation: string;
+  annualFinancials?: AnnualFinancialData;
 }
 
 // =============================================================================
@@ -800,6 +820,7 @@ const tradingTools: AgentTool[] = [
               trend,
               recommendation: insights?.recommendation || 'Hold',
               recentNews: newsData.slice(0, 2).map((n: any) => safeString(n?.title, '')),
+              annualFinancials: insights?.annualFinancials,
               status: 'success', 
               dataStatus: insightsResult.ok ? 'live' : (priceResult.ok ? 'partial' : 'degraded')
             };
@@ -1145,6 +1166,7 @@ const tradingTools: AgentTool[] = [
         })),
         pe,
         eps,
+        annualFinancials: companyInsights?.annualFinancials,
         source: companyInsightsResult.ok ? 'Real Data (Moneycontrol/NSE/Yahoo)' : 'Yahoo Finance + Internal APIs',
         dataStatus: {
           companyInsights: companyInsightsResult.ok ? 'live' : 'degraded',
@@ -1529,7 +1551,8 @@ Provide a helpful response. Mention which tools would provide better data if ava
           trend: fundData.trend || 'neutral',
           pe: fundData.pe || 0,
           eps: fundData.eps || 0,
-          recommendation: fundData.trend === 'positive' ? 'Consider for growth' : 'Monitor closely'
+          recommendation: fundData.trend === 'positive' ? 'Consider for growth' : 'Monitor closely',
+          annualFinancials: fundData.annualFinancials
         };
       }
 

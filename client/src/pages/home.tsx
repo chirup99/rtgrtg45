@@ -11754,6 +11754,86 @@ ${
                                                 </div>
                                               </div>
                                             )}
+                                            
+                                            {/* Profit & Loss Statement Table */}
+                                            {companyInsights?.annualFinancials?.profitLoss && companyInsights.annualFinancials.profitLoss.length > 0 && (
+                                              <div className="my-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <span className="text-sm font-medium text-gray-300">Profit & Loss Statement (in Cr)</span>
+                                                  <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">
+                                                    Annual Data
+                                                  </span>
+                                                </div>
+                                                <div className="overflow-x-auto">
+                                                  <table className="w-full text-sm">
+                                                    <thead>
+                                                      <tr className="border-b border-gray-700">
+                                                        <th className="text-left py-2 px-2 text-gray-400 font-medium">Particulars</th>
+                                                        {companyInsights.annualFinancials.years.slice(0, 5).map((year: string) => (
+                                                          <th key={year} className="text-right py-2 px-2 text-gray-400 font-medium">{year}</th>
+                                                        ))}
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                      {companyInsights.annualFinancials.profitLoss.map((row: any, idx: number) => (
+                                                        <tr key={idx} className={`border-b border-gray-800 ${row.label.toLowerCase().includes('net profit') || row.label.toLowerCase().includes('eps') ? 'bg-gray-800/30 font-medium' : ''}`}>
+                                                          <td className="py-2 px-2 text-gray-300">{row.label}</td>
+                                                          {row.values.slice(0, 5).map((v: any, vIdx: number) => {
+                                                            const numVal = typeof v.value === 'string' ? parseFloat(v.value.replace(/,/g, '')) : Number(v.value);
+                                                            const displayVal = isNaN(numVal) ? v.value : numVal.toLocaleString();
+                                                            return (
+                                                              <td key={vIdx} className={`text-right py-2 px-2 ${numVal >= 0 ? 'text-gray-200' : 'text-red-400'}`}>
+                                                                {displayVal}
+                                                              </td>
+                                                            );
+                                                          })}
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Balance Sheet Table */}
+                                            {companyInsights?.annualFinancials?.balanceSheet && companyInsights.annualFinancials.balanceSheet.length > 0 && (
+                                              <div className="my-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <span className="text-sm font-medium text-gray-300">Balance Sheet (in Cr)</span>
+                                                  <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400">
+                                                    Annual Data
+                                                  </span>
+                                                </div>
+                                                <div className="overflow-x-auto">
+                                                  <table className="w-full text-sm">
+                                                    <thead>
+                                                      <tr className="border-b border-gray-700">
+                                                        <th className="text-left py-2 px-2 text-gray-400 font-medium">Particulars</th>
+                                                        {companyInsights.annualFinancials.years.slice(0, 5).map((year: string) => (
+                                                          <th key={year} className="text-right py-2 px-2 text-gray-400 font-medium">{year}</th>
+                                                        ))}
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                      {companyInsights.annualFinancials.balanceSheet.map((row: any, idx: number) => (
+                                                        <tr key={idx} className={`border-b border-gray-800 ${row.label.toLowerCase().includes('total assets') || row.label.toLowerCase().includes('total liabilities') ? 'bg-gray-800/30 font-medium' : ''}`}>
+                                                          <td className="py-2 px-2 text-gray-300">{row.label}</td>
+                                                          {row.values.slice(0, 5).map((v: any, vIdx: number) => {
+                                                            const numVal = typeof v.value === 'string' ? parseFloat(v.value.replace(/,/g, '')) : Number(v.value);
+                                                            const displayVal = isNaN(numVal) ? v.value : numVal.toLocaleString();
+                                                            return (
+                                                              <td key={vIdx} className={`text-right py-2 px-2 ${numVal >= 0 ? 'text-gray-200' : 'text-red-400'}`}>
+                                                                {displayVal}
+                                                              </td>
+                                                            );
+                                                          })}
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              </div>
+                                            )}
                                             {parts[1] || ""}
                                           </>
                                         );
