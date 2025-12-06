@@ -11459,7 +11459,8 @@ ${
                         </div>
                       </div>
 
-                      {/* Search Input - Hidden on mobile */}
+                      {/* Search Input - Hidden on mobile, moves to bottom when results appear */}
+                      {!searchResults && (
                       <div
                         className={`relative mx-auto transition-all duration-300 md:block hidden ${
                           isSearchActive ? "max-w-4xl" : "max-w-2xl"
@@ -11498,10 +11499,59 @@ ${
                           )}
                         </Button>
                       </div>
+                      )}
 
-                      {/* AI Search Results - Desktop only */}
+                      {/* Search bar at bottom when results are shown */}
+                      {searchResults && (
+                      <div className="fixed bottom-0 left-0 right-0 z-50 md:block hidden">
+                        <div className="w-full bg-gray-900 border-t border-gray-700 px-4 py-3">
+                          <div className="max-w-4xl mx-auto flex gap-2">
+                            <Input
+                              placeholder="New search..."
+                              value={searchQuery}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchQuery(value);
+                              }}
+                              onKeyPress={async (e) => {
+                                if (e.key === "Enter" && searchQuery.trim()) {
+                                  await handleSearch();
+                                }
+                              }}
+                              className="flex-1 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 h-10 text-sm"
+                            />
+                            <Button
+                              size="sm"
+                              className="bg-gray-700 hover:bg-gray-600 text-gray-300 h-10 px-4"
+                              onClick={() => handleSearch()}
+                              disabled={!searchQuery.trim() || isSearchLoading}
+                            >
+                              {isSearchLoading ? (
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Bot className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-gray-400 hover:text-gray-200 h-10 px-3"
+                              onClick={() => {
+                                setSearchQuery("");
+                                setIsSearchActive(false);
+                                setSearchResults("");
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      )}
+
+                      {/* AI Search Results - Desktop only, add padding-bottom for fixed search bar */}
                       {isSearchActive && (
-                        <div className="max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden">
+                        <div className={`max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden ${searchResults ? 'pb-24' : ''}`}>
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
                               <div className="space-y-3">
