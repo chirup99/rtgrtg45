@@ -12306,6 +12306,7 @@ ${
                       </div>
 
                       {/* Trading Tools Section - White container with centered cards */}
+                      {!searchResults && (
                       <div className="bg-white md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full">
                         {/* Mobile Search Bar - Fully visible at top */}
                         <div className="md:hidden absolute -top-3 left-4 right-4 z-50">
@@ -12628,6 +12629,7 @@ ${
                         </div>
                         )}
                       </div>
+                    )}
                     </div>
 
                     {/* Animated Floating Tutor Button */}
@@ -12812,6 +12814,7 @@ ${
                 </div>
               </div>
             )}
+
 
             {activeTab === "backtest" && (
               <div className="h-full p-6 space-y-6">
