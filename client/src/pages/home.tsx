@@ -11487,20 +11487,17 @@ ${
                                 <div className="prose prose-invert max-w-none">
                                   <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
                                     {(() => {
-                                      // Render price chart at the top
-                                      if (
-                                        searchResults.includes(
-                                          "[CHART:PRICE_CHART]",
-                                        )
-                                      ) {
-                                        const parts = searchResults.split(
-                                          "[CHART:PRICE_CHART]",
-                                        );
-                                        const priceChartData =
-                                          (window as any)
-                                            .aiAssistantPriceChartData || [];
+                                      let renderedContent: any = null;
+                                      let processedResults = searchResults;
 
-                                        return (
+                                      // Handle price chart at the top
+                                      if (searchResults.includes("[CHART:PRICE_CHART]")) {
+                                        const priceChartData =
+                                          (window as any).aiAssistantPriceChartData || [];
+                                        const parts = searchResults.split("[CHART:PRICE_CHART]");
+                                        processedResults = parts[1] || "";
+
+                                        renderedContent = (
                                           <>
                                             {priceChartData.length > 0 && (
                                               <div className="mb-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
@@ -11596,25 +11593,26 @@ ${
                                                 </div>
                                               </div>
                                             )}
-                                            {parts[1] || ""}
                                           </>
                                         );
                                       }
-                                      
+
                                       // Render text with inline charts
                                       if (
-                                        searchResults.includes(
+                                        processedResults.includes(
                                           "[CHART:PERFORMANCE_TREND]",
                                         )
                                       ) {
-                                        const parts = searchResults.split(
+                                        const parts = processedResults.split(
                                           "[CHART:PERFORMANCE_TREND]",
                                         );
                                         const chartData =
                                           (window as any)
                                             .performanceTrendChartData || [];
-
-                                        return (
+                                        
+                                        processedResults = parts[1] || "";
+                                        
+                                        const performanceContent = (
                                           <>
                                             {parts[0]}
                                             {chartData.length > 0 && (
@@ -11732,18 +11730,21 @@ ${
                                                 </div>
                                               </div>
                                             )}
-                                            {parts[1] || ""}
                                           </>
                                         );
+                                        
+                                        renderedContent = renderedContent ? 
+                                          <>{renderedContent}{performanceContent}</> : 
+                                          performanceContent;
                                       }
                                       
                                       // Company Insights Chart with quarterly performance trend
                                       if (
-                                        searchResults.includes(
+                                        processedResults.includes(
                                           "[CHART:COMPANY_INSIGHTS]",
                                         )
                                       ) {
-                                        const parts = searchResults.split(
+                                        const parts = processedResults.split(
                                           "[CHART:COMPANY_INSIGHTS]",
                                         );
                                         const companyInsights =
@@ -11776,7 +11777,7 @@ ${
                                         
                                         const trendColor = overallTrend === 'positive' ? '#22c55e' : overallTrend === 'negative' ? '#ef4444' : '#6b7280';
 
-                                        return (
+                                        const companyInsightsContent = (
                                           <>
                                             {parts[0]}
                                             {chartData.length > 0 && (
@@ -11970,8 +11971,13 @@ ${
                                             {parts[1] || ""}
                                           </>
                                         );
+                                        
+                                        renderedContent = renderedContent ? 
+                                          <>{renderedContent}{companyInsightsContent}</> : 
+                                          companyInsightsContent;
                                       }
-                                      return searchResults;
+                                      
+                                      return renderedContent || processedResults || searchResults;
                                     })()}
                                   </div>
                                 </div>
