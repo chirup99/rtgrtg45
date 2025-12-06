@@ -270,8 +270,6 @@ export async function processAdvancedFinancialQuery(
       }
     }
     
-    const fyersDataFormatted = queryData.fyersData ? formatFyersData(queryData.fyersData) : '';
-    
     const journalAnalysis = queryData.journalData 
       ? analyzeJournalPerformance(queryData.journalData)
       : '';
@@ -290,10 +288,6 @@ ${i + 1}. **${f.companyName}** (${f.symbol})
    - Volume: ${f.volume}
    - Market Cap: ${f.marketCap}
 `).join('\n')}
-` : ''}
-
-${fyersDataFormatted ? `
-${fyersDataFormatted}
 ` : ''}
 
 ${journalAnalysis ? `
@@ -326,9 +320,6 @@ Format your response with clear sections, bullet points, and **bold headers**. B
     const insights: string[] = [];
     if (fundamentals.length > 0) {
       insights.push(`Fundamentals analyzed for ${fundamentals.length} stock(s): ${fundamentals.map(f => f.symbol).join(', ')}`);
-    }
-    if (fyersDataFormatted) {
-      insights.push(`Live market data from Fyers API for ${queryData.fyersData?.length} stock(s)`);
     }
     if (journalAnalysis) {
       insights.push(`Trading journal analyzed: ${queryData.journalData?.length} days of performance data`);
