@@ -11549,9 +11549,9 @@ ${
                       </div>
                       )}
 
-                      {/* AI Search Results - Desktop only, add padding-bottom for fixed search bar */}
+                      {/* AI Search Results - Desktop only */}
                       {isSearchActive && (
-                        <div className={`max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden ${searchResults ? 'pb-24' : ''}`}>
+                        <div className="max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden">
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
                               <div className="space-y-3">
@@ -12149,7 +12149,7 @@ ${
                                     })()}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3 pt-2 border-t border-gray-700">
+                                <div className="flex items-center gap-0 pt-0 border-t border-gray-700">
                                   <Button
                                     variant="ghost"
                                     size="sm"
