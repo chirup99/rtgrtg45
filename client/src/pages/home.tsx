@@ -11532,6 +11532,18 @@ ${
                                 <Bot className="h-4 w-4" />
                               )}
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-gray-400 hover:text-gray-200 h-10 px-3"
+                              onClick={() => {
+                                setSearchQuery("");
+                                setIsSearchActive(false);
+                                setSearchResults("");
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -12174,7 +12186,7 @@ ${
                       )}
 
                       {/* Enhanced AI Suggestion Buttons - Desktop only */}
-                      <div className={`md:flex hidden flex-wrap items-center justify-center gap-3 max-w-6xl mx-auto md:mt-6 ${searchResults ? 'pb-18.8' : ''}`}>
+                      <div className={`md:flex hidden flex-wrap items-center justify-center gap-3 max-w-6xl mx-auto md:mt-6 ${searchResults ? 'pb-80' : ''}`}>
                         {/* <Button
                         variant="secondary"
                         className="bg-blue-600 hover:bg-blue-700 text-white border-0 h-11 px-4 rounded-full font-medium transition-all duration-200"
