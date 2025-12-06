@@ -11524,6 +11524,9 @@ ${
                                         // Remove "### I. Real-Time Stock Data" section header and its content
                                         processedResults = processedResults.replace(/###\s*I\.\s*Real-Time Stock Data[\s\S]*?(?=###\s*II|$)/gm, "").trim();
                                         
+                                        // Remove "### Real-Time Price and Volume" section with TOOL references
+                                        processedResults = processedResults.replace(/###\s*Real-Time Price and Volume[\s\S]*?(?=###|$)/gm, "").trim();
+                                        
                                         const timeframes = ['1D', '5D', '1M', '6M', '1Y'];
                                         const selectedTimeframe = aiChartSelectedTimeframe;
                                         
