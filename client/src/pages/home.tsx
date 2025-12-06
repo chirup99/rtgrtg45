@@ -2311,6 +2311,25 @@ export default function Home() {
             if (data.companyInsights) {
               (window as any).companyInsightsData = data.companyInsights;
               console.log("✅ [TRADING-AGENT] Received company insights:", data.companyInsights.symbol, data.companyInsights.trend);
+              
+              // Fetch price chart data for the symbol
+              try {
+                const symbol = data.companyInsights.symbol || "";
+                if (symbol) {
+                  const chartResponse = await fetch(getFullApiUrl(`/api/stock-chart-data/${symbol}?timeframe=1Y`));
+                  if (chartResponse.ok) {
+                    const chartData = await chartResponse.json();
+                    if (chartData && chartData.length > 0) {
+                      (window as any).aiAssistantPriceChartData = chartData;
+                      // Insert price chart marker at the beginning of results
+                      result = "[CHART:PRICE_CHART]\n" + result;
+                      console.log("📈 [TRADING-AGENT] Fetched price chart data:", chartData.length, "candles");
+                    }
+                  }
+                }
+              } catch (chartError) {
+                console.warn("⚠️ Could not fetch price chart data:", chartError);
+              }
             } else {
               (window as any).companyInsightsData = null;
             }
@@ -11468,6 +11487,120 @@ ${
                                 <div className="prose prose-invert max-w-none">
                                   <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
                                     {(() => {
+                                      // Render price chart at the top
+                                      if (
+                                        searchResults.includes(
+                                          "[CHART:PRICE_CHART]",
+                                        )
+                                      ) {
+                                        const parts = searchResults.split(
+                                          "[CHART:PRICE_CHART]",
+                                        );
+                                        const priceChartData =
+                                          (window as any)
+                                            .aiAssistantPriceChartData || [];
+
+                                        return (
+                                          <>
+                                            {priceChartData.length > 0 && (
+                                              <div className="mb-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <span className="text-sm font-medium text-gray-300">Price Chart</span>
+                                                  <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">
+                                                    1Y
+                                                  </span>
+                                                </div>
+                                                <div className="h-56 w-full">
+                                                  <ResponsiveContainer
+                                                    width="100%"
+                                                    height="100%"
+                                                  >
+                                                    <LineChart
+                                                      data={priceChartData}
+                                                      margin={{
+                                                        top: 10,
+                                                        right: 20,
+                                                        left: 10,
+                                                        bottom: 20,
+                                                      }}
+                                                    >
+                                                      <defs>
+                                                        <linearGradient
+                                                          id="priceChartGradient"
+                                                          x1="0"
+                                                          y1="0"
+                                                          x2="0"
+                                                          y2="1"
+                                                        >
+                                                          <stop
+                                                            offset="0%"
+                                                            stopColor="#3b82f6"
+                                                            stopOpacity={0.4}
+                                                          />
+                                                          <stop
+                                                            offset="100%"
+                                                            stopColor="#3b82f6"
+                                                            stopOpacity={0.05}
+                                                          />
+                                                        </linearGradient>
+                                                      </defs>
+                                                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                                      <XAxis
+                                                        dataKey="time"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{
+                                                          fontSize: 10,
+                                                          fill: "#9ca3af",
+                                                        }}
+                                                      />
+                                                      <YAxis
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{
+                                                          fontSize: 10,
+                                                          fill: "#9ca3af",
+                                                        }}
+                                                        tickFormatter={(value) => `₹${(value).toLocaleString()}`}
+                                                      />
+                                                      <Tooltip
+                                                        contentStyle={{
+                                                          background: "#1f2937",
+                                                          border: "1px solid #374151",
+                                                          borderRadius: "8px",
+                                                          color: "#f3f4f6",
+                                                          fontSize: "12px",
+                                                          padding: "8px 12px",
+                                                        }}
+                                                        formatter={(value: any) => [
+                                                          `₹${Number(value).toLocaleString()}`,
+                                                          "Price"
+                                                        ]}
+                                                        labelFormatter={(label) => `${label}`}
+                                                      />
+                                                      <Line
+                                                        type="monotone"
+                                                        dataKey="close"
+                                                        stroke="#3b82f6"
+                                                        strokeWidth={2}
+                                                        dot={false}
+                                                        activeDot={{
+                                                          r: 5,
+                                                          fill: "#ffffff",
+                                                          stroke: "#3b82f6",
+                                                          strokeWidth: 2,
+                                                        }}
+                                                      />
+                                                    </LineChart>
+                                                  </ResponsiveContainer>
+                                                </div>
+                                              </div>
+                                            )}
+                                            {parts[1] || ""}
+                                          </>
+                                        );
+                                      }
+                                      
                                       // Render text with inline charts
                                       if (
                                         searchResults.includes(
