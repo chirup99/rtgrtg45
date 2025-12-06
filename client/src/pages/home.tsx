@@ -1893,6 +1893,18 @@ export default function Home() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchResults, setSearchResults] = useState("");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [aiChartSelectedTimeframe, setAiChartSelectedTimeframe] = useState('1Y');
+
+  // Listen for timeframe change events to trigger re-render
+  useEffect(() => {
+    const handleTimeframeChange = () => {
+      const newTimeframe = (window as any).aiAssistantSelectedTimeframe || '1Y';
+      setAiChartSelectedTimeframe(newTimeframe);
+    };
+    
+    window.addEventListener('timeframeChange', handleTimeframeChange);
+    return () => window.removeEventListener('timeframeChange', handleTimeframeChange);
+  }, []);
 
   // ❌ REMOVED: journalSelectedDate - manual search chart is now completely standalone
 
@@ -11510,11 +11522,14 @@ ${
                                         processedResults = parts[1] || "";
                                         
                                         const timeframes = ['1D', '5D', '1M', '6M', '1Y'];
-                                        const selectedTimeframe = (window as any).aiAssistantSelectedTimeframe || '1Y';
+                                        const selectedTimeframe = aiChartSelectedTimeframe;
                                         
-                                        const currentPrice = stockData.price || 0;
-                                        const priceChange = stockData.change || 0;
-                                        const changePercent = stockData.changePercent || 0;
+                                        // Extract price data from chart data
+                                        const lastCandle = priceChartData[priceChartData.length - 1];
+                                        const firstCandle = priceChartData[0];
+                                        const currentPrice = lastCandle?.price || 0;
+                                        const priceChange = lastCandle && firstCandle ? lastCandle.price - firstCandle.price : 0;
+                                        const changePercent = firstCandle?.price ? (priceChange / firstCandle.price) * 100 : 0;
                                         const stockName = stockData.name || 'Stock Price';
 
                                         renderedContent = (
@@ -11530,6 +11545,7 @@ ${
                                                         <button
                                                           key={tf}
                                                           onClick={async () => {
+                                                            setAiChartSelectedTimeframe(tf);
                                                             (window as any).aiAssistantSelectedTimeframe = tf;
                                                             // Fetch new chart data for the selected timeframe
                                                             const symbol = (window as any).companyInsightsData?.symbol || '';
