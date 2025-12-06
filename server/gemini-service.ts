@@ -298,7 +298,12 @@ export function formatStockDataForChat(symbol: string, priceData: any, fundament
     
     // 💰 CURRENT PRICE - Most Important Info First
     response += `💰 **Current Price**: ₹${currentPrice}\n`;
-    response += `${changeColor} **Net Change**: ₹${priceData.change || 0} (${(priceData.change_percentage || 0).toFixed(2)}%) ${changeDirection}\n\n`;
+    // Only show change if there's actual data (not placeholder 0.00%)
+    if (priceData.change !== 0 && priceData.change_percentage !== 0) {
+      response += `${changeColor} **Net Change**: ₹${priceData.change || 0} (${(priceData.change_percentage || 0).toFixed(2)}%) ${changeDirection}\n\n`;
+    } else {
+      response += `\n`;
+    }
     
     // 📊 OHLC Data 
     response += `📊 **OHLC Data (Today's Session):**\n`;
