@@ -12149,7 +12149,7 @@ ${
                                     })()}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3 pt-4 border-t border-gray-700">
+                                <div className="flex items-center gap-3 pt-2 border-t border-gray-700">
                                   <Button
                                     variant="ghost"
                                     size="sm"
