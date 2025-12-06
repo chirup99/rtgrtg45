@@ -46,6 +46,25 @@ export interface QuarterlyData {
   changePercent: number;
 }
 
+// Balance Sheet row item
+export interface BalanceSheetRow {
+  label: string;
+  values: Array<{ year: string; value: number }>;
+}
+
+// Profit & Loss row item
+export interface ProfitLossRow {
+  label: string;
+  values: Array<{ year: string; value: number }>;
+}
+
+// Annual financial data structure
+export interface AnnualFinancialData {
+  years: string[];
+  balanceSheet: BalanceSheetRow[];
+  profitLoss: ProfitLossRow[];
+}
+
 export interface CompanyInsights {
   symbol: string;
   name: string;
@@ -59,6 +78,8 @@ export interface CompanyInsights {
   eps: number;
   recommendation: string;
   chartData: Array<{ quarter: string; value: number; trend: string }>;
+  // New: Annual financial statements
+  annualFinancials?: AnnualFinancialData;
 }
 
 export interface FinancialSearchResult {
@@ -436,7 +457,12 @@ export class EnhancedFinancialScraper {
         return this.generateMockInsights(symbol);
       }
 
-      const quarterlyData = await this.fetchQuarterlyPerformance(symbol);
+      // Fetch quarterly performance and annual financials in parallel
+      const [quarterlyData, annualFinancials] = await Promise.all([
+        this.fetchQuarterlyPerformance(symbol),
+        this.fetchAnnualFinancials(symbol)
+      ]);
+      
       const trend = this.calculateTrend(quarterlyData);
       
       const insights: CompanyInsights = {
@@ -455,7 +481,9 @@ export class EnhancedFinancialScraper {
           quarter: q.quarter,
           value: q.value,
           trend: q.changePercent >= 0 ? 'positive' : 'negative'
-        }))
+        })),
+        // Include annual financial statements if available
+        annualFinancials: annualFinancials || undefined
       };
 
       return insights;
@@ -766,6 +794,120 @@ export class EnhancedFinancialScraper {
     }
 
     return quarters;
+  }
+
+  // Fetch Balance Sheet and Profit & Loss data from Screener.in
+  async fetchAnnualFinancials(symbol: string): Promise<AnnualFinancialData | null> {
+    const cleanSymbol = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    try {
+      console.log(`[ENHANCED-SCRAPER] 📊 Fetching Balance Sheet & P&L for ${cleanSymbol} from Screener.in...`);
+      
+      const screenerUrl = `https://www.screener.in/company/${cleanSymbol}/consolidated/`;
+      const response = await axios.get(screenerUrl, {
+        headers: { 
+          'User-Agent': this.userAgent,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5'
+        },
+        timeout: 15000
+      });
+
+      const $ = cheerio.load(response.data);
+      const result: AnnualFinancialData = {
+        years: [],
+        balanceSheet: [],
+        profitLoss: []
+      };
+
+      // Extract Profit & Loss data (section#profit-loss)
+      const plYears: string[] = [];
+      $('section#profit-loss table thead tr th').each((idx, elem) => {
+        const headerText = $(elem).text().trim();
+        // Match year patterns like "Mar 2024", "Mar 2023"
+        if (headerText.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/i)) {
+          plYears.push(headerText);
+        }
+      });
+      
+      // Important P&L rows to extract
+      const plLabelsToExtract = ['Sales', 'Expenses', 'Operating Profit', 'OPM %', 'Net Profit', 'EPS in Rs'];
+      
+      $('section#profit-loss table tbody tr').each((idx, elem) => {
+        const rowLabel = $(elem).find('td.text, td:first-child').text().trim();
+        const matchedLabel = plLabelsToExtract.find(l => rowLabel.toLowerCase().includes(l.toLowerCase()));
+        
+        if (matchedLabel) {
+          const values: Array<{ year: string; value: number }> = [];
+          $(elem).find('td:not(.text)').each((cellIdx, cell) => {
+            const valueText = $(cell).text().trim().replace(/[,\s%]/g, '');
+            const value = parseFloat(valueText);
+            if (!isNaN(value) && cellIdx < plYears.length) {
+              values.push({ year: plYears[cellIdx], value });
+            }
+          });
+          
+          if (values.length > 0) {
+            result.profitLoss.push({
+              label: matchedLabel,
+              values: values.slice(-5) // Last 5 years
+            });
+          }
+        }
+      });
+
+      // Extract Balance Sheet data (section#balance-sheet)
+      const bsYears: string[] = [];
+      $('section#balance-sheet table thead tr th').each((idx, elem) => {
+        const headerText = $(elem).text().trim();
+        if (headerText.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/i)) {
+          bsYears.push(headerText);
+        }
+      });
+      
+      // Important Balance Sheet rows to extract
+      const bsLabelsToExtract = ['Total Assets', 'Equity Capital', 'Reserves', 'Borrowings', 'Total Liabilities', 'Fixed Assets', 'Investments', 'Other Assets'];
+      
+      $('section#balance-sheet table tbody tr').each((idx, elem) => {
+        const rowLabel = $(elem).find('td.text, td:first-child').text().trim();
+        const matchedLabel = bsLabelsToExtract.find(l => rowLabel.toLowerCase().includes(l.toLowerCase()));
+        
+        if (matchedLabel) {
+          const values: Array<{ year: string; value: number }> = [];
+          $(elem).find('td:not(.text)').each((cellIdx, cell) => {
+            const valueText = $(cell).text().trim().replace(/[,\s]/g, '');
+            const value = parseFloat(valueText);
+            if (!isNaN(value) && cellIdx < bsYears.length) {
+              values.push({ year: bsYears[cellIdx], value });
+            }
+          });
+          
+          if (values.length > 0) {
+            result.balanceSheet.push({
+              label: matchedLabel,
+              values: values.slice(-5) // Last 5 years
+            });
+          }
+        }
+      });
+
+      // Set years from P&L or Balance Sheet
+      result.years = plYears.slice(-5).length > 0 ? plYears.slice(-5) : bsYears.slice(-5);
+      
+      if (result.profitLoss.length > 0 || result.balanceSheet.length > 0) {
+        console.log(`[ENHANCED-SCRAPER] ✅ SUCCESS! Found P&L rows: ${result.profitLoss.length}, Balance Sheet rows: ${result.balanceSheet.length}`);
+        result.profitLoss.forEach(row => console.log(`   P&L: ${row.label} - ${row.values.length} years`));
+        result.balanceSheet.forEach(row => console.log(`   BS: ${row.label} - ${row.values.length} years`));
+        return result;
+      }
+      
+      console.log(`[ENHANCED-SCRAPER] ⚠️ No financial data found for ${cleanSymbol}`);
+      return null;
+      
+    } catch (error: any) {
+      console.log(`[ENHANCED-SCRAPER] ⚠️ Failed to fetch annual financials for ${cleanSymbol}: ${error.message}`);
+      return null;
+    }
   }
   
   private parseFinancialValue(value: string): number {
