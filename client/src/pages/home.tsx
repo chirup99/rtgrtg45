@@ -11587,9 +11587,9 @@ ${
                                         const stockName = stockData.name || 'Stock Price';
 
                                         renderedContent = (
-                                          <>
+                                          <div className="flex gap-4">
                                             {priceChartData.length > 0 && (
-                                              <div className="mb-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                              <div className="flex-1 mb-4 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
                                                 {/* Header with timeframes and price info */}
                                                 <div className="mb-4">
                                                   <div className="flex items-center justify-between mb-3">
@@ -11761,7 +11761,38 @@ ${
                                                 })()}
                                               </div>
                                             )}
-                                          </>
+                                            {priceChartData.length > 0 && (
+                                              <div className="w-80 bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                                                <h3 className="text-sm font-semibold text-gray-100 mb-3 flex items-center gap-2">
+                                                  <Newspaper className="h-4 w-4 text-blue-400" />
+                                                  Related News
+                                                </h3>
+                                                <div className="space-y-3 max-h-96 overflow-y-auto">
+                                                  {(() => {
+                                                    const newsItems = (window as any).aiAssistantNewsItems || [
+                                                      { title: "Market Updates", source: "Financial News", time: "2 hours ago" },
+                                                      { title: "Sector Performance", source: "Trading Desk", time: "4 hours ago" },
+                                                      { title: "Earnings Report", source: "Stock Analysis", time: "1 day ago" },
+                                                    ];
+                                                    return newsItems.map((item: any, idx: number) => (
+                                                      <div
+                                                        key={idx}
+                                                        className="pb-3 border-b border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-800/50 p-2 rounded transition-colors"
+                                                      >
+                                                        <div className="text-xs font-semibold text-gray-100 line-clamp-2 mb-1">
+                                                          {item.title}
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-xs">
+                                                          <span className="text-gray-400">{item.source}</span>
+                                                          <span className="text-gray-500">{item.time}</span>
+                                                        </div>
+                                                      </div>
+                                                    ));
+                                                  })()}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
                                         );
                                       }
 
