@@ -11486,45 +11486,25 @@ ${
                                             {parts[0]}
                                             {chartData.length > 0 && (
                                               <div className="my-4 bg-gray-900/50 rounded-lg p-3 border border-gray-600">
-                                                <div className="h-32 w-full">
+                                                <div className="h-40 w-full">
                                                   <ResponsiveContainer
                                                     width="100%"
                                                     height="100%"
                                                   >
-                                                    <AreaChart
+                                                    <LineChart
                                                       data={chartData}
                                                       margin={{
-                                                        top: 20,
+                                                        top: 10,
                                                         right: 20,
                                                         left: 10,
                                                         bottom: 5,
                                                       }}
                                                     >
-                                                      <defs>
-                                                        <linearGradient
-                                                          id="aiAreaGradient"
-                                                          x1="0"
-                                                          y1="0"
-                                                          x2="0"
-                                                          y2="1"
-                                                        >
-                                                          <stop
-                                                            offset="0%"
-                                                            stopColor="rgb(107, 114, 128)"
-                                                            stopOpacity={0.6}
-                                                          />
-                                                          <stop
-                                                            offset="100%"
-                                                            stopColor="rgb(107, 114, 128)"
-                                                            stopOpacity={0.1}
-                                                          />
-                                                        </linearGradient>
-                                                      </defs>
                                                       <XAxis
                                                         dataKey="day"
                                                         axisLine={false}
                                                         tickLine={false}
-                                                        tick={false}
+                                                        tick={{ fontSize: 10, fill: "#64748b" }}
                                                         className="text-slate-500 dark:text-slate-400"
                                                       />
                                                       <YAxis
@@ -11580,21 +11560,25 @@ ${
                                                           label,
                                                         ) => `${label}`}
                                                       />
-                                                      <Area
+                                                      <Line
                                                         type="monotone"
                                                         dataKey="value"
-                                                        stroke="#000000"
-                                                        strokeWidth={2}
-                                                        fill="url(#aiAreaGradient)"
-                                                        dot={false}
-                                                        activeDot={{
+                                                        stroke="#10b981"
+                                                        strokeWidth={2.5}
+                                                        dot={{
                                                           r: 4,
-                                                          stroke: "#000000",
-                                                          strokeWidth: 1,
+                                                          stroke: "#10b981",
+                                                          strokeWidth: 2,
+                                                          fill: "#ffffff",
+                                                        }}
+                                                        activeDot={{
+                                                          r: 6,
+                                                          stroke: "#10b981",
+                                                          strokeWidth: 2,
                                                           fill: "#ffffff",
                                                         }}
                                                       />
-                                                    </AreaChart>
+                                                    </LineChart>
                                                   </ResponsiveContainer>
                                                 </div>
                                               </div>
