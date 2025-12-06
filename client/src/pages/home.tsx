@@ -11381,91 +11381,85 @@ ${
                   }}
                 >
                   {/* World Map Section - At top of main content */}
-                  {!(isSearchActive && searchResults) && (
-                    <div className="w-full flex items-center justify-center py-3" style={{ background: theme === 'dark' ? '#1a1a1a' : '#e3f2fd' }}>
-                      {/* Container for WorldMap - full width on mobile, constrained on desktop */}
-                      <div className="w-full md:max-w-lg flex items-center justify-center">
-                        <WorldMap />
-                      </div>
+                  <div className="w-full flex items-center justify-center py-3" style={{ background: theme === 'dark' ? '#1a1a1a' : '#e3f2fd' }}>
+                    {/* Container for WorldMap - full width on mobile, constrained on desktop */}
+                    <div className="w-full md:max-w-lg flex items-center justify-center">
+                      <WorldMap />
                     </div>
-                  )}
+                  </div>
 
                   {/* Mobile Greeting - Visible only on mobile */}
-                  {!(isSearchActive && searchResults) && (
-                    <div className="w-full md:hidden bg-blue-900 px-4 py-3 flex justify-center">
-                      <div className="text-center">
-                        {isViewOnlyMode ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Sparkles className="h-4 w-4 text-blue-400" />
-                            <h1 className="text-lg font-normal text-gray-100">
-                              Welcome to Trading Platform
-                            </h1>
-                          </div>
-                        ) : showingInitialGreeting ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Sparkles className="h-4 w-4 text-blue-400" />
-                            <h1 className="text-lg font-normal text-gray-100">
-                              Hey {currentUser?.displayName || currentUser?.username || "Trader"}
-                            </h1>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2">
-                            {animatedStocks[currentStockIndex].isProfit ? (
-                              <TrendingUp className="h-4 w-4 text-green-400" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4 text-red-400" />
-                            )}
-                            <span className={`text-sm font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-400' : 'text-red-400'}`}>
-                              {animatedStocks[currentStockIndex].symbol}: {animatedStocks[currentStockIndex].price}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                  <div className="w-full md:hidden bg-blue-900 px-4 py-3 flex justify-center">
+                    <div className="text-center">
+                      {isViewOnlyMode ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-400" />
+                          <h1 className="text-lg font-normal text-gray-100">
+                            Welcome to Trading Platform
+                          </h1>
+                        </div>
+                      ) : showingInitialGreeting ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-400" />
+                          <h1 className="text-lg font-normal text-gray-100">
+                            Hey {currentUser?.displayName || currentUser?.username || "Trader"}
+                          </h1>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          {animatedStocks[currentStockIndex].isProfit ? (
+                            <TrendingUp className="h-4 w-4 text-green-400" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4 text-red-400" />
+                          )}
+                          <span className={`text-sm font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-400' : 'text-red-400'}`}>
+                            {animatedStocks[currentStockIndex].symbol}: {animatedStocks[currentStockIndex].price}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   {/* Blue Section: Desktop 69vh, Mobile 75vh */}
                   <div className="h-[75vh] md:h-[69vh] w-full bg-blue-900 flex flex-col items-center justify-start md:py-6 py-0 md:px-4 px-0 relative md:overflow-y-auto">
                     <div className="max-w-4xl w-full md:space-y-4">
-                      {/* Dynamic Greeting - Hidden on mobile and when showing search results */}
-                      {!(isSearchActive && searchResults) && (
-                        <div className="text-center spacey-4 md:block hidden">
-                          <div className="flex items-center justify-center gap-3">
-                            {isViewOnlyMode ? (
-                              <>
-                                <Sparkles className="h-5 w-5 text-blue-400" />
-                                <h1 className="text-2xl font-normal text-gray-100">
-                                  Welcome to Trading Platform
-                                </h1>
-                              </>
-                            ) : showingInitialGreeting ? (
-                              <>
-                                <Sparkles className="h-5 w-5 text-blue-400" />
-                                <h1 className="text-2xl font-normal text-gray-100">
-                                  Hey {currentUser?.displayName || currentUser?.username || "Trader"}
-                                </h1>
-                              </>
-                            ) : (
-                              <div className="flex items-center gap-2 animate-fade-in">
-                                {animatedStocks[currentStockIndex].isProfit ? (
-                                  <TrendingUp className="h-5 w-5 text-green-400" />
-                                ) : (
-                                  <TrendingDown className="h-5 w-5 text-red-400" />
-                                )}
-                                <span className={`text-lg font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-400' : 'text-red-400'}`}>
-                                  {animatedStocks[currentStockIndex].symbol}: {animatedStocks[currentStockIndex].price}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                      {/* Dynamic Greeting - Hidden on mobile */}
+                      <div className="text-center spacey-4 md:block hidden">
+                        <div className="flex items-center justify-center gap-3">
+                          {isViewOnlyMode ? (
+                            <>
+                              <Sparkles className="h-5 w-5 text-blue-400" />
+                              <h1 className="text-2xl font-normal text-gray-100">
+                                Welcome to Trading Platform
+                              </h1>
+                            </>
+                          ) : showingInitialGreeting ? (
+                            <>
+                              <Sparkles className="h-5 w-5 text-blue-400" />
+                              <h1 className="text-2xl font-normal text-gray-100">
+                                Hey {currentUser?.displayName || currentUser?.username || "Trader"}
+                              </h1>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 animate-fade-in">
+                              {animatedStocks[currentStockIndex].isProfit ? (
+                                <TrendingUp className="h-5 w-5 text-green-400" />
+                              ) : (
+                                <TrendingDown className="h-5 w-5 text-red-400" />
+                              )}
+                              <span className={`text-lg font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-400' : 'text-red-400'}`}>
+                                {animatedStocks[currentStockIndex].symbol}: {animatedStocks[currentStockIndex].price}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
 
-                      {/* Search Input - Hidden on mobile - Moves down when results appear */}
+                      {/* Search Input - Hidden on mobile */}
                       <div
-                        className={`relative mx-auto transition-all duration-500 md:block hidden ${
+                        className={`relative mx-auto transition-all duration-300 md:block hidden ${
                           isSearchActive ? "max-w-4xl" : "max-w-2xl"
-                        } ${isSearchActive && searchResults ? "pt-6" : "pt-0"}`}
+                        }`}
                       >
                         <Input
                           placeholder="Search stocks, technical analysis, social feed, news, journal, alerts, or ask AI anything..."
@@ -11492,7 +11486,6 @@ ${
                           className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-700 hover:bg-gray-600 text-gray-300 h-6 w-6 p-0"
                           onClick={() => handleSearch()}
                           disabled={!searchQuery.trim() || isSearchLoading}
-                          data-testid="button-search-submit"
                         >
                           {isSearchLoading ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -11502,60 +11495,9 @@ ${
                         </Button>
                       </div>
 
-                      {/* Quick Action Buttons - Show when search is active but results not yet loaded */}
-                      {isSearchActive && !searchResults && !isSearchLoading && (
-                        <div className="flex flex-wrap gap-2 justify-center mt-4 md:block hidden">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSearchQuery("Stock analysis");
-                              setTimeout(() => handleSearch(), 100);
-                            }}
-                            className="text-xs"
-                            data-testid="button-quick-action-stock"
-                          >
-                            Stock Analysis
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSearchQuery("Market trends");
-                              setTimeout(() => handleSearch(), 100);
-                            }}
-                            className="text-xs"
-                            data-testid="button-quick-action-trends"
-                          >
-                            Market Trends
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSearchQuery("Technical indicators");
-                              setTimeout(() => handleSearch(), 100);
-                            }}
-                            className="text-xs"
-                            data-testid="button-quick-action-indicators"
-                          >
-                            Technical Indicators
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Loading Indicator - Bouncing balls */}
-                      {isSearchLoading && (
-                        <div className="flex justify-center gap-2 mt-6 md:block hidden">
-                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce-ball bounce-ball-1"></div>
-                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce-ball bounce-ball-2"></div>
-                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce-ball bounce-ball-3"></div>
-                        </div>
-                      )}
-
-                      {/* AI Search Results - Desktop only - Now relative so it pushes content down */}
-                      {isSearchActive && searchResults && (
-                        <div className="w-full max-w-5xl mx-auto mt-6 animate-in slide-in-from-top-4 duration-300 md:block hidden">
+                      {/* AI Search Results - Desktop only */}
+                      {isSearchActive && (
+                        <div className="fixed top-32 left-1/2 -translate-x-1/2 max-w-5xl w-5/6 z-50 animate-in slide-in-from-top-4 duration-300 md:block hidden">
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
                               <div className="space-y-3">
