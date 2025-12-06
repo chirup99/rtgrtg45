@@ -11643,11 +11643,11 @@ ${
                                                     width="100%"
                                                     height="100%"
                                                   >
-                                                    <AreaChart
+                                                    <ComposedChart
                                                       data={chartData}
                                                       margin={{
                                                         top: 10,
-                                                        right: 10,
+                                                        right: 50,
                                                         left: 10,
                                                         bottom: 20,
                                                       }}
@@ -11682,6 +11682,7 @@ ${
                                                         }}
                                                       />
                                                       <YAxis
+                                                        yAxisId="left"
                                                         axisLine={false}
                                                         tickLine={false}
                                                         tick={{
@@ -11690,6 +11691,17 @@ ${
                                                         }}
                                                         tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K Cr`}
                                                         domain={['dataMin - 1000', 'dataMax + 1000']}
+                                                      />
+                                                      <YAxis
+                                                        yAxisId="right"
+                                                        orientation="right"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{
+                                                          fontSize: 10,
+                                                          fill: "#9ca3af",
+                                                        }}
+                                                        tickFormatter={(value) => `${value.toFixed(1)}%`}
                                                       />
                                                       <Tooltip
                                                         contentStyle={{
@@ -11700,13 +11712,16 @@ ${
                                                           fontSize: "12px",
                                                           padding: "8px 12px",
                                                         }}
-                                                        formatter={(value: any, name: any, props: any) => [
-                                                          `₹${Number(value).toLocaleString()} Cr (${props.payload.changePercent >= 0 ? '+' : ''}${props.payload.changePercent.toFixed(2)}%)`,
-                                                          "Revenue"
-                                                        ]}
+                                                        formatter={(value: any, name: any, props: any) => {
+                                                          if (name === "changePercent") {
+                                                            return [`${(value as number).toFixed(2)}%`, "Growth %"];
+                                                          }
+                                                          return [`₹${Number(value).toLocaleString()} Cr`, "Revenue"];
+                                                        }}
                                                         labelFormatter={(label) => `${label}`}
                                                       />
                                                       <Area
+                                                        yAxisId="left"
                                                         type="monotone"
                                                         dataKey="value"
                                                         stroke={trendColor}
@@ -11725,15 +11740,34 @@ ${
                                                           fill: "#ffffff",
                                                         }}
                                                       />
-                                                    </AreaChart>
+                                                      <Line
+                                                        yAxisId="right"
+                                                        type="monotone"
+                                                        dataKey="changePercent"
+                                                        stroke="#06b6d4"
+                                                        strokeWidth={2.5}
+                                                        dot={{
+                                                          r: 3,
+                                                          stroke: "#06b6d4",
+                                                          strokeWidth: 2,
+                                                          fill: "#1f2937",
+                                                        }}
+                                                        activeDot={{
+                                                          r: 5,
+                                                          stroke: "#06b6d4",
+                                                          strokeWidth: 2,
+                                                          fill: "#ffffff",
+                                                        }}
+                                                      />
+                                                    </ComposedChart>
                                                   </ResponsiveContainer>
                                                 </div>
                                                 <div className="flex justify-center gap-4 mt-2 text-xs text-gray-400">
                                                   <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span> Positive Quarter
+                                                    <span className="w-2 h-2 rounded-full" style={{backgroundColor: trendColor}}></span> Revenue
                                                   </span>
                                                   <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span> Negative Quarter
+                                                    <span className="w-2 h-2 rounded-full bg-cyan-500"></span> Growth %
                                                   </span>
                                                 </div>
                                               </div>
@@ -11748,6 +11782,32 @@ ${
                                                     Annual Data
                                                   </span>
                                                 </div>
+                                                {(() => {
+                                                  const revenueRow = companyInsights.annualFinancials.profitLoss.find((row: any) => row.label.toLowerCase().includes('revenue') || row.label.toLowerCase().includes('sales'));
+                                                  const profitRow = companyInsights.annualFinancials.profitLoss.find((row: any) => row.label.toLowerCase().includes('net profit'));
+                                                  if (revenueRow && revenueRow.values.length > 0) {
+                                                    const chartData = companyInsights.annualFinancials.years.slice(0, 5).map((year: string, idx: number) => ({
+                                                      year,
+                                                      revenue: revenueRow.values[idx]?.value ? parseFloat(typeof revenueRow.values[idx].value === 'string' ? revenueRow.values[idx].value.replace(/,/g, '') : revenueRow.values[idx].value) : 0,
+                                                      profit: profitRow && profitRow.values[idx]?.value ? parseFloat(typeof profitRow.values[idx].value === 'string' ? profitRow.values[idx].value.replace(/,/g, '') : profitRow.values[idx].value) : 0
+                                                    }));
+                                                    return (
+                                                      <div className="h-32 w-full mb-4">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                          <ComposedChart data={chartData} margin={{ top: 5, right: 40, left: 5, bottom: 15 }}>
+                                                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                                                            <YAxis yAxisId="left" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
+                                                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
+                                                            <Tooltip contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: "8px", color: "#f3f4f6", fontSize: "11px", padding: "6px 10px" }} formatter={(value: any) => `₹${Number(value).toLocaleString()}`} />
+                                                            <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fill="#3b82f6" fillOpacity={0.1} dot={{ r: 3, fill: "#3b82f6" }} activeDot={{ r: 5 }} />
+                                                            <Line yAxisId="right" type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2} dot={{ r: 3, stroke: "#10b981", fill: "#1f2937" }} activeDot={{ r: 5, fill: "#ffffff" }} />
+                                                          </ComposedChart>
+                                                        </ResponsiveContainer>
+                                                      </div>
+                                                    );
+                                                  }
+                                                  return null;
+                                                })()}
                                                 <div className="overflow-x-auto">
                                                   <table className="w-full text-sm">
                                                     <thead>
