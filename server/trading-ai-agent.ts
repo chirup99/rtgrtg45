@@ -231,7 +231,7 @@ export interface CompanyInsightsData {
   symbol: string;
   name: string;
   currentPrice: number;
-  quarterlyPerformance: Array<{ quarter: string; changePercent: number }>;
+  quarterlyPerformance: Array<{ quarter: string; value?: number; changePercent: number }>;
   trend: 'positive' | 'negative' | 'neutral';
   pe: number;
   eps: number;
@@ -757,12 +757,13 @@ const tradingTools: AgentTool[] = [
             const normalized = normalizeStockData(rawData, priceResult.ok ? 'API' : 'fallback', !priceResult.ok);
             
             // Get quarterly performance - prefer real data from insights
-            let quarterlyPerformance: Array<{ quarter: string; changePercent: number }> = [];
+            let quarterlyPerformance: Array<{ quarter: string; value?: number; changePercent: number }> = [];
             let trend: 'positive' | 'negative' | 'neutral' = 'neutral';
             
             if (insights?.quarterlyPerformance && insights.quarterlyPerformance.length > 0) {
               quarterlyPerformance = insights.quarterlyPerformance.map(q => ({
                 quarter: q.quarter,
+                value: q.value, // Actual revenue in Cr from scraper
                 changePercent: q.changePercent
               }));
               trend = insights.trend;
@@ -1081,7 +1082,7 @@ const tradingTools: AgentTool[] = [
       const changePercent = pick(primaryData.priceData.changePercent, yahooNorm.priceData.changePercent);
       
       // Use REAL quarterly performance from enhanced scraper if available
-      let quarterlyPerformance: Array<{ quarter: string; changePercent: number }>;
+      let quarterlyPerformance: Array<{ quarter: string; value?: number; changePercent: number }>;
       let trend: 'positive' | 'negative' | 'neutral';
       
       if (companyInsights?.quarterlyPerformance && companyInsights.quarterlyPerformance.length > 0) {
@@ -1089,6 +1090,7 @@ const tradingTools: AgentTool[] = [
         console.log(`[AI-AGENT] ✅ Using REAL quarterly data for ${symbolUpper}`);
         quarterlyPerformance = companyInsights.quarterlyPerformance.map(q => ({
           quarter: q.quarter,
+          value: q.value, // Actual revenue in Cr from scraper
           changePercent: q.changePercent
         }));
         trend = companyInsights.trend;
