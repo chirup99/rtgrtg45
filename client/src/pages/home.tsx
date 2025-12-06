@@ -11555,7 +11555,7 @@ ${
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
                               <div className="space-y-3">
-                                <div className="flex items-center gap-2 pb-3 border-b border-gray-700">
+                                <div className="flex items-center gap-2 pb-3 border-b border-transparent">
                                   <Bot className="h-4 w-4 text-blue-400" />
                                   <h3 className="text-lg font-medium text-gray-100">
                                     AI Assistant
