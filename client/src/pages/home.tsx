@@ -883,6 +883,7 @@ import {
   CartesianGrid,
   Pie,
   Cell,
+  ReferenceLine,
 } from "recharts";
 
 function NiftyIndex() {
@@ -2311,6 +2312,16 @@ export default function Home() {
             if (data.companyInsights) {
               (window as any).companyInsightsData = data.companyInsights;
               console.log("✅ [TRADING-AGENT] Received company insights:", data.companyInsights.symbol, data.companyInsights.trend);
+              
+              // Store stock data for chart display
+              (window as any).aiAssistantStockData = {
+                name: data.companyInsights.name || data.companyInsights.symbol,
+                price: data.companyInsights.price || 0,
+                change: (data.companyInsights.price || 0) - (data.companyInsights.open || 0),
+                changePercent: ((data.companyInsights.price - (data.companyInsights.open || data.companyInsights.price)) / ((data.companyInsights.open || data.companyInsights.price) || 1)) * 100,
+                symbol: data.companyInsights.symbol
+              };
+              (window as any).aiAssistantSelectedTimeframe = '1Y';
               
               // Fetch price chart data for the symbol
               try {
@@ -11518,9 +11529,24 @@ ${
                                                       {timeframes.map((tf) => (
                                                         <button
                                                           key={tf}
-                                                          onClick={() => {
+                                                          onClick={async () => {
                                                             (window as any).aiAssistantSelectedTimeframe = tf;
-                                                            window.dispatchEvent(new Event('timeframeChange'));
+                                                            // Fetch new chart data for the selected timeframe
+                                                            const symbol = (window as any).companyInsightsData?.symbol || '';
+                                                            if (symbol) {
+                                                              try {
+                                                                const response = await fetch(getFullApiUrl(`/api/stock-chart-data/${symbol}?timeframe=${tf}`));
+                                                                if (response.ok) {
+                                                                  const newChartData = await response.json();
+                                                                  if (newChartData && newChartData.length > 0) {
+                                                                    (window as any).aiAssistantPriceChartData = newChartData;
+                                                                    window.dispatchEvent(new Event('timeframeChange'));
+                                                                  }
+                                                                }
+                                                              } catch (error) {
+                                                                console.warn("Failed to fetch chart data for timeframe:", error);
+                                                              }
+                                                            }
                                                           }}
                                                           data-testid={`button-timeframe-${tf}`}
                                                           className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
@@ -11616,6 +11642,15 @@ ${
                                                         dot={false}
                                                         activeDot={{ r: 4, fill: '#ef4444' }}
                                                       />
+                                                      {currentPrice > 0 && (
+                                                        <ReferenceLine 
+                                                          y={currentPrice}
+                                                          stroke={priceChange >= 0 ? '#22c55e' : '#ef4444'}
+                                                          strokeDasharray="4 4"
+                                                          strokeWidth={1}
+                                                          opacity={0.6}
+                                                        />
+                                                      )}
                                                     </LineChart>
                                                   </ResponsiveContainer>
                                                 </div>
