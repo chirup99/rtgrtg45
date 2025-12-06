@@ -11497,7 +11497,7 @@ ${
 
                       {/* AI Search Results - Desktop only */}
                       {isSearchActive && (
-                        <div className="fixed top-32 left-1/2 -translate-x-1/2 max-w-5xl w-5/6 z-50 animate-in slide-in-from-top-4 duration-300 md:block hidden">
+                        <div className="max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden">
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
                               <div className="space-y-3">
