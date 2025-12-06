@@ -11769,6 +11769,30 @@ ${
                                                 </h3>
                                                 <div className="space-y-3 max-h-96 overflow-y-auto">
                                                   {(() => {
+                                                    // Helper function to calculate relative time
+                                                    const getRelativeTime = (dateString: string) => {
+                                                      try {
+                                                        const date = new Date(dateString);
+                                                        const now = new Date();
+                                                        const diffMs = now.getTime() - date.getTime();
+                                                        const diffSecs = Math.floor(diffMs / 1000);
+                                                        const diffMins = Math.floor(diffSecs / 60);
+                                                        const diffHours = Math.floor(diffMins / 60);
+                                                        const diffDays = Math.floor(diffHours / 24);
+                                                        const diffWeeks = Math.floor(diffDays / 7);
+                                                        
+                                                        if (diffSecs < 60) return 'Just now';
+                                                        if (diffMins < 60) return `${diffMins}m ago`;
+                                                        if (diffHours < 24) return `${diffHours}h ago`;
+                                                        if (diffDays < 7) return `${diffDays}d ago`;
+                                                        if (diffWeeks < 4) return `${diffWeeks}w ago`;
+                                                        
+                                                        return 'Recently';
+                                                      } catch (error) {
+                                                        return 'Recently';
+                                                      }
+                                                    };
+                                                    
                                                     const newsItems = (window as any).aiAssistantNewsItems || [];
                                                     
                                                     // If no news fetched yet, fetch it
@@ -11782,11 +11806,11 @@ ${
                                                           const data = await response.json();
                                                           
                                                           if (data.success && data.articles && data.articles.length > 0) {
-                                                            // Format articles with relative time
+                                                            // Format articles with real relative time from publishedAt
                                                             const formattedNews = data.articles.slice(0, 5).map((article: any) => ({
                                                               title: article.title,
                                                               source: article.source || "Market News",
-                                                              time: "Recently",
+                                                              time: getRelativeTime(article.publishedAt || new Date().toISOString()),
                                                               description: article.description
                                                             }));
                                                             (window as any).aiAssistantNewsItems = formattedNews;
