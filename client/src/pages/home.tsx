@@ -12186,7 +12186,7 @@ ${
                       )}
 
                       {/* Enhanced AI Suggestion Buttons - Desktop only */}
-                      <div className="md:flex hidden flex-wrap items-center justify-center gap-3 max-w-6xl mx-auto md:mt-6 sticky top-0 z-40 bg-blue-900 py-3 md:py-4">
+                      <div className="md:flex hidden flex-wrap items-center justify-center gap-3 max-w-6xl mx-auto md:mt-6">
                         {/* <Button
                         variant="secondary"
                         className="bg-blue-600 hover:bg-blue-700 text-white border-0 h-11 px-4 rounded-full font-medium transition-all duration-200"
@@ -12305,8 +12305,8 @@ ${
                         </Button>
                       </div>
 
-                      {/* Trading Tools Section - Transparent container with centered cards */}
-                      <div className="md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full">
+                      {/* Trading Tools Section - White container with centered cards */}
+                      <div className="bg-white md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full">
                         {/* Mobile Search Bar - Fully visible at top */}
                         <div className="md:hidden absolute -top-3 left-4 right-4 z-50">
                           <div className="relative">
