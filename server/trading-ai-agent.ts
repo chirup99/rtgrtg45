@@ -494,17 +494,15 @@ const tradingTools: AgentTool[] = [
       
       // Normalize to consistent schema
       const normalized = normalizeStockData(rawData, source, isDegraded);
-      const { source: _, degraded: __, ...publicData } = normalized;
       return {
         symbol: symbolUpper,
-        ...publicData,
-        priceData: normalized.priceData,
-        indicators: normalized.indicators,
-        fundamentals: normalized.fundamentals,
+        ...normalized,
         recentNews: newsData.map((n: any) => ({
           title: safeString(n?.title, 'News unavailable'),
           source: safeString(n?.source, 'Unknown')
-        }))
+        })),
+        angelOneConnected: isAngelOneConnected,
+        dataStatus: isDegraded ? 'degraded' : (isAngelOneConnected ? 'live (Angel One)' : 'live')
       };
     }
   },
@@ -560,7 +558,8 @@ const tradingTools: AgentTool[] = [
           searchResults: results,
           stockData,
           query: params.query,
-          resultCount: results.length
+          resultCount: results.length,
+          source: 'Google News + Web Scraping'
         };
       } catch (error) {
         return { error: 'Web search failed', searchResults: [], query: params.query };
@@ -604,7 +603,8 @@ const tradingTools: AgentTool[] = [
           url: n.url,
           sentiment: n.title.toLowerCase().includes('fall') || n.title.toLowerCase().includes('drop') ? 'negative' : 
                      n.title.toLowerCase().includes('rise') || n.title.toLowerCase().includes('gain') ? 'positive' : 'neutral'
-        }))
+        })),
+        source: 'Web Scraping'
       };
     }
   },
@@ -768,7 +768,8 @@ const tradingTools: AgentTool[] = [
               return { 
                 symbol: symbolUpper, 
                 status: 'error', 
-                error: "Data unavailable"
+                error: "Data unavailable", 
+                dataStatus: 'failed' 
               };
             }
             
@@ -820,7 +821,8 @@ const tradingTools: AgentTool[] = [
               recommendation: insights?.recommendation || 'Hold',
               recentNews: newsData.slice(0, 2).map((n: any) => safeString(n?.title, '')),
               annualFinancials: insights?.annualFinancials,
-              status: 'success'
+              status: 'success', 
+              dataStatus: insightsResult.ok ? 'live' : (priceResult.ok ? 'partial' : 'degraded')
             };
           })
         );
@@ -889,12 +891,14 @@ const tradingTools: AgentTool[] = [
           ipos,
           recentNews: ipoNews.map(n => n.title),
           lastUpdated: new Date().toISOString(),
+          source: 'MoneyControl + Google News',
           status: params.status || 'all'
         };
       } catch (error) {
         return {
           ipos: [{ company: 'Check MoneyControl for latest IPOs', dates: '-', priceRange: '-', status: '-', subscription: '-' }],
-          error: 'IPO data fetch failed'
+          error: 'IPO data fetch failed',
+          source: 'Fallback'
         };
       }
     }
@@ -983,7 +987,12 @@ const tradingTools: AgentTool[] = [
           bullish: socialBullish
         },
         technicalRating: rsi > 70 ? 'overbought' : rsi < 30 ? 'oversold' : 'neutral',
-        rsi: Math.round(rsi)
+        rsi: Math.round(rsi),
+        dataStatus: {
+          stockData: stockResult.ok ? 'live' : 'degraded',
+          newsData: newsResult.ok ? 'live' : 'degraded',
+          socialData: socialResult.ok ? 'live' : 'degraded'
+        }
       };
     }
   },
@@ -1006,7 +1015,8 @@ const tradingTools: AgentTool[] = [
         return {
           trending,
           category: params.category || 'all',
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          source: 'Yahoo Finance + NSE'
         };
       } catch (error) {
         return { 
@@ -1036,7 +1046,8 @@ const tradingTools: AgentTool[] = [
         return {
           news: globalNews,
           region: params.region || 'all',
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          source: 'Google News - Global Markets'
         };
       } catch (error) {
         return { news: [], error: 'Failed to fetch global news' };
@@ -1155,7 +1166,14 @@ const tradingTools: AgentTool[] = [
         })),
         pe,
         eps,
-        annualFinancials: companyInsights?.annualFinancials
+        annualFinancials: companyInsights?.annualFinancials,
+        source: companyInsightsResult.ok ? 'Real Data (Moneycontrol/NSE/Yahoo)' : 'Yahoo Finance + Internal APIs',
+        dataStatus: {
+          companyInsights: companyInsightsResult.ok ? 'live' : 'degraded',
+          yahoo: yahooResult.ok ? 'live' : 'degraded',
+          internal: internalResult.ok ? 'live' : 'degraded',
+          news: newsResult.ok ? 'live' : 'degraded'
+        }
       };
     }
   },
@@ -1217,6 +1235,11 @@ const tradingTools: AgentTool[] = [
             indicators: normalized.indicators,
             fundamentals: normalized.fundamentals
           }
+        },
+        dataStatus: {
+          stockData: stockResult.ok ? 'live' : 'degraded',
+          newsData: newsResult.ok ? 'live' : 'degraded',
+          journalData: journalResult.ok ? 'live' : 'degraded'
         }
       };
       
