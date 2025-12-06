@@ -11560,7 +11560,7 @@ ${
                                                       />
                                                       <Line 
                                                         type="linear" 
-                                                        dataKey="close" 
+                                                        dataKey="price" 
                                                         stroke="#ef4444"
                                                         strokeWidth={2}
                                                         dot={false}
