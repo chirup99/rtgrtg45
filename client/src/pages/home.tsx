@@ -11811,7 +11811,8 @@ ${
                                                               title: article.title,
                                                               source: article.source || "Market News",
                                                               time: getRelativeTime(article.publishedAt || new Date().toISOString()),
-                                                              description: article.description
+                                                              description: article.description,
+                                                              url: article.url
                                                             }));
                                                             (window as any).aiAssistantNewsItems = formattedNews;
                                                             window.dispatchEvent(new Event('newsUpdated'));
@@ -11829,9 +11830,14 @@ ${
                                                       <div
                                                         key={idx}
                                                         className="pb-3 border-b border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-800/50 p-2 rounded transition-colors"
+                                                        onClick={() => {
+                                                          if (item.url) {
+                                                            window.open(item.url, '_blank');
+                                                          }
+                                                        }}
                                                         data-testid={`news-item-${idx}`}
                                                       >
-                                                        <div className="text-xs font-semibold text-gray-100 line-clamp-2 mb-1">
+                                                        <div className="text-xs font-semibold text-blue-400 hover:underline line-clamp-2 mb-1">
                                                           {item.title}
                                                         </div>
                                                         <div className="flex items-center justify-between text-xs">
