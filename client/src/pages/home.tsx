@@ -11381,12 +11381,14 @@ ${
                   }}
                 >
                   {/* World Map Section - At top of main content */}
-                  <div className="w-full flex items-center justify-center py-3" style={{ background: theme === 'dark' ? '#1a1a1a' : '#e3f2fd' }}>
-                    {/* Container for WorldMap - full width on mobile, constrained on desktop */}
-                    <div className="w-full md:max-w-lg flex items-center justify-center">
-                      <WorldMap />
+                  {!searchResults && (
+                    <div className="w-full flex items-center justify-center py-3" style={{ background: theme === 'dark' ? '#1a1a1a' : '#e3f2fd' }}>
+                      {/* Container for WorldMap - full width on mobile, constrained on desktop */}
+                      <div className="w-full md:max-w-lg flex items-center justify-center">
+                        <WorldMap />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Mobile Greeting - Visible only on mobile */}
                   <div className="w-full md:hidden bg-blue-900 px-4 py-3 flex justify-center">
@@ -12418,6 +12420,7 @@ ${
                           )}
                         </div>
                         {/* Trading Tools Grid - Desktop: 4 columns centered, Mobile: 3 horizontal cards + swipeable below */}
+                        {!searchResults && (
                         <div className="mx-auto max-w-6xl hidden md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-4 md:px-6 md:items-center">
                           {/* Social Feed Card */}
                           <div
@@ -12480,7 +12483,9 @@ ${
                             />
                           </div>
                         </div>
+                        )}
                         {/* Mobile Layout: 3 horizontal cards + swipeable below */}
+                        {!searchResults && (
                         <div className="md:hidden mt-6">
                           {/* Three cards in a row */}
                           <div className="grid grid-cols-3 gap-3 px-4 mb-3">
@@ -12546,8 +12551,10 @@ ${
                             />
                           </div>
                         </div>
+                        )}
 
                         {/* Navigation Dots - Outside white container, in blue area */}
+                        {!searchResults && (
                         <div className="md:hidden absolute -bottom-10 left-1/2 transform -translate-x-1/2 flex gap-2 justify-center z-40">
                           {[0, 1, 2, 3, 4, 5].map((index) => (
                             <button
@@ -12567,10 +12574,12 @@ ${
                             ></button>
                           ))}
                         </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Animated Floating Tutor Button */}
+                    {!searchResults && (
                     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 pointer-events-auto">
                       <div className="relative">
                         {/* Background animation rings */}
@@ -12586,6 +12595,7 @@ ${
                         </Button>
                       </div>
                     </div>
+                    )}
 
                     {/* Tutor Vertical Sidebar - Slides from right */}
                     {showTutorOverlay && (
