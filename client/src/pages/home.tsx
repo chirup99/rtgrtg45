@@ -11521,6 +11521,9 @@ ${
                                         const parts = searchResults.split("[CHART:PRICE_CHART]");
                                         processedResults = parts[1] || "";
                                         
+                                        // Remove "### I. Real-Time Stock Price" section header and its content
+                                        processedResults = processedResults.replace(/### I\.\s*Real-Time Stock Price\s*\*\s*\*\*Symbol:\*\*[^\n]*\n\*\s*\*\*Price:\*\*[^\n]*\n\*\s*\*\*Change:\*\*[^\n]*\n\*\s*\*\*Change Percent:\*\*[^\n]*\n\*\s*\*\*Data Source:\*\*[^\n]*\n/gs, "");
+                                        
                                         const timeframes = ['1D', '5D', '1M', '6M', '1Y'];
                                         const selectedTimeframe = aiChartSelectedTimeframe;
                                         
