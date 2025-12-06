@@ -11769,15 +11769,43 @@ ${
                                                 </h3>
                                                 <div className="space-y-3 max-h-96 overflow-y-auto">
                                                   {(() => {
-                                                    const newsItems = (window as any).aiAssistantNewsItems || [
-                                                      { title: "Market Updates", source: "Financial News", time: "2 hours ago" },
-                                                      { title: "Sector Performance", source: "Trading Desk", time: "4 hours ago" },
-                                                      { title: "Earnings Report", source: "Stock Analysis", time: "1 day ago" },
-                                                    ];
-                                                    return newsItems.map((item: any, idx: number) => (
+                                                    const newsItems = (window as any).aiAssistantNewsItems || [];
+                                                    
+                                                    // If no news fetched yet, fetch it
+                                                    if (newsItems.length === 0 && stockData.name) {
+                                                      (async () => {
+                                                        try {
+                                                          const symbol = stockData.symbol || stockData.name;
+                                                          const response = await fetch(
+                                                            getFullApiUrl(`/api/stock-news?query=${encodeURIComponent(symbol)}`),
+                                                          );
+                                                          const data = await response.json();
+                                                          
+                                                          if (data.success && data.articles && data.articles.length > 0) {
+                                                            // Format articles with relative time
+                                                            const formattedNews = data.articles.slice(0, 5).map((article: any) => ({
+                                                              title: article.title,
+                                                              source: article.source || "Market News",
+                                                              time: "Recently",
+                                                              description: article.description
+                                                            }));
+                                                            (window as any).aiAssistantNewsItems = formattedNews;
+                                                            window.dispatchEvent(new Event('newsUpdated'));
+                                                          }
+                                                        } catch (error) {
+                                                          console.warn("Failed to fetch news:", error);
+                                                        }
+                                                      })();
+                                                    }
+                                                    
+                                                    return (newsItems.length > 0 ? newsItems : [
+                                                      { title: "Loading market news...", source: "Financial News", time: "Just now" },
+                                                      { title: "Fetching latest updates...", source: "Market Desk", time: "Just now" },
+                                                    ]).map((item: any, idx: number) => (
                                                       <div
                                                         key={idx}
                                                         className="pb-3 border-b border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-800/50 p-2 rounded transition-colors"
+                                                        data-testid={`news-item-${idx}`}
                                                       >
                                                         <div className="text-xs font-semibold text-gray-100 line-clamp-2 mb-1">
                                                           {item.title}
