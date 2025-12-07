@@ -1446,9 +1446,16 @@ Try any command to get started!`;
         }
       }
       
+      // Append [CHART:COMPANY_INSIGHTS] marker when company insights are available
+      // This triggers the frontend to render quarterly charts, P&L, and Balance Sheet tables
+      let finalMessage = response.response;
+      if (companyInsights && (companyInsights.quarterlyPerformance?.length > 0 || companyInsights.annualFinancials)) {
+        finalMessage = `${response.response}\n\n[CHART:COMPANY_INSIGHTS]`;
+      }
+      
       res.json({
         success: true,
-        message: response.response,
+        message: finalMessage,
         thinking: response.thinking,
         sources: response.sources.map(s => s.name),
         stocks: response.stocks,
@@ -1509,9 +1516,16 @@ Try any command to get started!`;
         }
       }
       
+      // Append [CHART:COMPANY_INSIGHTS] marker when company insights are available
+      // This triggers the frontend to render quarterly charts, P&L, and Balance Sheet tables
+      let finalMessage = response.response;
+      if (companyInsights && (companyInsights.quarterlyPerformance?.length > 0 || companyInsights.annualFinancials)) {
+        finalMessage = `${response.response}\n\n[CHART:COMPANY_INSIGHTS]`;
+      }
+      
       res.json({
         success: true,
-        message: response.response,
+        message: finalMessage,
         thinking: response.thinking,
         sources: response.sources.map(s => s.name),
         stocks: response.stocks,
