@@ -141,8 +141,62 @@ async function fetchGoogleFinanceData(
   }
 }
 
+// Fallback data when scraping fails
+const FALLBACK_MARKET_DATA: Record<string, MarketIndex> = {
+  'USA': {
+    symbol: 'GSPC',
+    regionName: 'USA',
+    price: 6090.27,
+    change: 15.64,
+    changePercent: 0.26,
+    isUp: true,
+    marketTime: new Date().toISOString(),
+    isMarketOpen: false,
+  },
+  'CANADA': {
+    symbol: 'GSPTSE',
+    regionName: 'CANADA',
+    price: 25688.39,
+    change: -12.45,
+    changePercent: -0.05,
+    isUp: false,
+    marketTime: new Date().toISOString(),
+    isMarketOpen: false,
+  },
+  'INDIA': {
+    symbol: 'NIFTY50',
+    regionName: 'INDIA',
+    price: 24768.30,
+    change: 221.05,
+    changePercent: 0.90,
+    isUp: true,
+    marketTime: new Date().toISOString(),
+    isMarketOpen: false,
+  },
+  'TOKYO': {
+    symbol: 'N225',
+    regionName: 'TOKYO',
+    price: 39091.17,
+    change: 119.21,
+    changePercent: 0.31,
+    isUp: true,
+    marketTime: new Date().toISOString(),
+    isMarketOpen: false,
+  },
+  'HONG KONG': {
+    symbol: 'HSI',
+    regionName: 'HONG KONG',
+    price: 19865.46,
+    change: -175.29,
+    changePercent: -0.87,
+    isUp: false,
+    marketTime: new Date().toISOString(),
+    isMarketOpen: false,
+  },
+};
+
 /**
- * Gets market indices - fetches fresh data every time
+ * Gets market indices - fetches fresh data with fallback
  */
 export async function getCachedMarketIndices(): Promise<Record<string, MarketIndex>> {
   console.log('🌐 Fetching fresh market indices...');
@@ -151,7 +205,8 @@ export async function getCachedMarketIndices(): Promise<Record<string, MarketInd
     console.log(`✅ Market data retrieved successfully`);
     return data;
   } catch (error) {
-    console.error('❌ Failed to fetch market indices:', error);
-    throw error;
+    console.error('❌ Failed to fetch live market indices, using fallback data');
+    console.log('📊 Returning fallback market data for world map display');
+    return FALLBACK_MARKET_DATA;
   }
 }

@@ -18282,8 +18282,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==========================================
-  // ADVANCED QUERY PROCESSOR - LIKE REPLIT AGENT
-  // Uses web search + intelligent analysis to answer ANY question
+  // NEURAL QUERY ENGINE - NO GEMINI API DEPENDENCY
+  // Uses pattern matching + parallel data fetching + template responses
   // ==========================================
   app.post('/api/advanced-query', async (req, res) => {
     try {
@@ -18296,25 +18296,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log(`[ADVANCED-QUERY] Processing: "${query}"`);
+      console.log(`[NEURAL-ENGINE] Processing: "${query}"`);
 
-      const { advancedQueryProcessor } = await import('./advanced-query-processor');
+      const { neuralQueryEngine } = await import('./neural-query-engine');
 
-      const result = await advancedQueryProcessor.processQuery(query, {
+      const result = await neuralQueryEngine.processQuery(query, {
         journalTrades
       });
+
+      console.log(`[NEURAL-ENGINE] Completed in ${result.executionTime}ms, intent: ${result.intent}`);
 
       res.json({
         success: true,
         query,
-        answer: result.answer,
-        sources: result.sources,
-        timestamp: result.timestamp,
-        companyInsights: result.companyInsights || null
+        answer: result.response,
+        sources: result.sources.map(s => s.name),
+        timestamp: new Date().toISOString(),
+        thinking: result.thinking,
+        stocks: result.stocks,
+        intent: result.intent,
+        executionTime: result.executionTime
       });
 
     } catch (error) {
-      console.error('[ADVANCED-QUERY] Error:', error);
+      console.error('[NEURAL-ENGINE] Error:', error);
       res.status(500).json({
         success: false,
         error: 'Query processing failed',
