@@ -17,6 +17,7 @@ import {
 } from "./gemini-service";
 import { tradingAIAgent } from "./trading-ai-agent";
 import { neuralQueryEngine } from "./neural-query-engine";
+import { enhancedFinancialScraper } from "./enhanced-financial-scraper";
 
 export default function setupGeminiRoutes(app: Express) {
   console.log("🤖 Setting up Gemini AI routes...");
@@ -1418,6 +1419,33 @@ Try any command to get started!`;
         journalTrades: context?.journalTrades || []
       });
       
+      // Fetch company insights with annual financials for detected stocks
+      let companyInsights = null;
+      if (response.stocks && response.stocks.length > 0) {
+        const primarySymbol = response.stocks[0];
+        console.log(`📊 [TRADING-AGENT] Fetching company insights for ${primarySymbol}...`);
+        try {
+          const insights = await enhancedFinancialScraper.getCompanyInsights(primarySymbol);
+          if (insights) {
+            companyInsights = {
+              symbol: insights.symbol,
+              name: insights.name,
+              price: insights.currentPrice,
+              open: insights.currentPrice,
+              quarterlyPerformance: insights.quarterlyPerformance || [],
+              trend: insights.trend || 'neutral',
+              pe: insights.pe || 0,
+              eps: insights.eps || 0,
+              recommendation: insights.recommendation || 'Hold',
+              annualFinancials: insights.annualFinancials
+            };
+            console.log(`✅ [TRADING-AGENT] Got company insights for ${primarySymbol}, has annual financials: ${!!insights.annualFinancials}`);
+          }
+        } catch (insightError) {
+          console.error(`⚠️ [TRADING-AGENT] Failed to fetch company insights:`, insightError);
+        }
+      }
+      
       res.json({
         success: true,
         message: response.response,
@@ -1425,7 +1453,8 @@ Try any command to get started!`;
         sources: response.sources.map(s => s.name),
         stocks: response.stocks,
         intent: response.intent,
-        executionTime: response.executionTime
+        executionTime: response.executionTime,
+        companyInsights
       });
       
     } catch (error) {
@@ -1455,6 +1484,31 @@ Try any command to get started!`;
       // Use Neural Query Engine instead of Gemini-dependent tradingAIAgent
       const response = await neuralQueryEngine.processQuery(query);
       
+      // Fetch company insights with annual financials for detected stocks
+      let companyInsights = null;
+      if (response.stocks && response.stocks.length > 0) {
+        const primarySymbol = response.stocks[0];
+        try {
+          const insights = await enhancedFinancialScraper.getCompanyInsights(primarySymbol);
+          if (insights) {
+            companyInsights = {
+              symbol: insights.symbol,
+              name: insights.name,
+              price: insights.currentPrice,
+              open: insights.currentPrice,
+              quarterlyPerformance: insights.quarterlyPerformance || [],
+              trend: insights.trend || 'neutral',
+              pe: insights.pe || 0,
+              eps: insights.eps || 0,
+              recommendation: insights.recommendation || 'Hold',
+              annualFinancials: insights.annualFinancials
+            };
+          }
+        } catch (insightError) {
+          console.error(`⚠️ [TRADING-AGENT] Failed to fetch company insights:`, insightError);
+        }
+      }
+      
       res.json({
         success: true,
         message: response.response,
@@ -1462,7 +1516,8 @@ Try any command to get started!`;
         sources: response.sources.map(s => s.name),
         stocks: response.stocks,
         intent: response.intent,
-        executionTime: response.executionTime
+        executionTime: response.executionTime,
+        companyInsights
       });
       
     } catch (error) {
