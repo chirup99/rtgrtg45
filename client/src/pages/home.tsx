@@ -12240,6 +12240,14 @@ ${
                                       return renderedContent || processedResults || searchResults;
                                     })()}
                                   </div>
+                                  {/* Disclaimer */}
+                                  <div className="mt-4 pt-3 border-t border-gray-700">
+                                    <p className="text-xs text-gray-500 italic">
+                                      Disclaimer: Financial data is sourced from screener.in and other public sources. 
+                                      This information is for educational purposes only and should not be considered 
+                                      financial advice. Please verify data independently before making investment decisions.
+                                    </p>
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-0 pt-0 border-t border-gray-700">
                                   <Button
