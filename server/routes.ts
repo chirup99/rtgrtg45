@@ -63,6 +63,7 @@ import { brokerFormatsLibrary, type UniversalFormatData } from './broker-formats
 import { registerNeoFeedAwsRoutes } from './neofeed-routes-replacement';
 import { initializeNeoFeedTables } from './neofeed-dynamodb-migration';
 import { initializeCognitoVerifier, authenticateRequest } from './cognito-auth';
+import { screenerScraper } from './screener-scraper';
 
 // 🔶 Angel One Stock Token Mappings for historical data
 const ANGEL_ONE_STOCK_TOKENS: { [key: string]: { token: string; exchange: string; tradingSymbol: string } } = {
@@ -5034,6 +5035,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: 'Failed to fetch chart data',
         details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // ============================================================================
+  // SCREENER.IN WEB SCRAPER ENDPOINTS - Comprehensive Stock Data
+  // ============================================================================
+
+  // Get comprehensive stock data from screener.in
+  app.get('/api/screener/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      console.log(`🔍 [SCREENER API] Fetching data for ${symbol} from screener.in...`);
+
+      const stockData = await screenerScraper.getStockData(symbol);
+
+      if (!stockData) {
+        return res.status(404).json({
+          success: false,
+          error: `Stock data not found for ${symbol} on screener.in`
+        });
+      }
+
+      res.json({
+        success: true,
+        data: stockData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ [SCREENER API] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch stock data from screener.in',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Search for companies on screener.in
+  app.get('/api/screener/search/:query', async (req, res) => {
+    try {
+      const { query } = req.params;
+      console.log(`🔍 [SCREENER SEARCH] Searching for "${query}"...`);
+
+      const results = await screenerScraper.searchCompany(query);
+
+      res.json({
+        success: true,
+        results,
+        count: results.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ [SCREENER SEARCH] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Search failed',
+        results: []
       });
     }
   });

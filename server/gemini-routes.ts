@@ -16,6 +16,7 @@ import {
   type StockData 
 } from "./gemini-service";
 import { tradingAIAgent } from "./trading-ai-agent";
+import { neuralQueryEngine } from "./neural-query-engine";
 
 export default function setupGeminiRoutes(app: Express) {
   console.log("🤖 Setting up Gemini AI routes...");
@@ -1412,11 +1413,19 @@ Try any command to get started!`;
 
       console.log(`🤖 [TRADING-AGENT] Received query: ${query}`);
       
-      const response = await tradingAIAgent.processQuery(query, context);
+      // Use Neural Query Engine instead of Gemini-dependent tradingAIAgent
+      const response = await neuralQueryEngine.processQuery(query, {
+        journalTrades: context?.journalTrades || []
+      });
       
       res.json({
         success: true,
-        ...response
+        message: response.response,
+        thinking: response.thinking,
+        sources: response.sources.map(s => s.name),
+        stocks: response.stocks,
+        intent: response.intent,
+        executionTime: response.executionTime
       });
       
     } catch (error) {
@@ -1443,11 +1452,17 @@ Try any command to get started!`;
 
       console.log(`🤖 [TRADING-AGENT] GET query: ${query}`);
       
-      const response = await tradingAIAgent.processQuery(query);
+      // Use Neural Query Engine instead of Gemini-dependent tradingAIAgent
+      const response = await neuralQueryEngine.processQuery(query);
       
       res.json({
         success: true,
-        ...response
+        message: response.response,
+        thinking: response.thinking,
+        sources: response.sources.map(s => s.name),
+        stocks: response.stocks,
+        intent: response.intent,
+        executionTime: response.executionTime
       });
       
     } catch (error) {
