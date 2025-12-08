@@ -12081,35 +12081,50 @@ ${
                                                         { time: '11:35', price: 6055.7 },
                                                         { time: '11:50', price: 6050.7 },
                                                         { time: '12:05', price: 6035.7 }
-                                                      ]} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                      ]} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          tickCount={5}
+                                                          tick={{ fontSize: 10, fill: '#64748b' }}
+                                                          tickCount={8}
                                                         />
                                                         <YAxis 
-                                                          domain={['dataMin - 20', 'dataMax + 20']}
+                                                          domain={['dataMin - 10', 'dataMax + 10']}
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          tick={{ fontSize: 10, fill: '#64748b' }}
                                                           width={35}
                                                         />
                                                         <Tooltip 
-                                                          content={({ active, payload }) => {
+                                                          content={({ active, payload, label }) => {
                                                             if (!active || !payload || !payload.length) return null;
                                                             const value = payload[0].value;
                                                             return (
                                                               <div style={{
                                                                 backgroundColor: '#1e293b',
                                                                 border: '1px solid #334155',
-                                                                borderRadius: '4px',
+                                                                borderRadius: '6px',
                                                                 color: '#e2e8f0',
-                                                                padding: '4px 8px',
-                                                                fontSize: '11px'
+                                                                padding: '8px 16px',
+                                                                fontSize: '13px',
+                                                                minWidth: '140px',
+                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '12px'
                                                               }}>
-                                                                ₹{Number(value).toFixed(2)}
+                                                                <span style={{ fontSize: '13px', fontWeight: '500' }}>
+                                                                  ₹{Number(value).toFixed(2)}
+                                                                </span>
+                                                                <div style={{
+                                                                  width: '1px',
+                                                                  height: '20px',
+                                                                  backgroundColor: '#475569'
+                                                                }}></div>
+                                                                <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                                                  {label}
+                                                                </span>
                                                               </div>
                                                             );
                                                           }}
@@ -12120,7 +12135,13 @@ ${
                                                           stroke="#ef4444"
                                                           strokeWidth={2}
                                                           dot={false}
-                                                          isAnimationActive={false}
+                                                          activeDot={{ r: 4, fill: '#ef4444' }}
+                                                        />
+                                                        <ReferenceLine 
+                                                          y={6186.65} 
+                                                          stroke="#64748b" 
+                                                          strokeDasharray="2 2" 
+                                                          strokeWidth={1}
                                                         />
                                                       </LineChart>
                                                     </ResponsiveContainer>
@@ -12201,35 +12222,50 @@ ${
                                                         { time: '11:35', price: 41310 },
                                                         { time: '11:50', price: 41320 },
                                                         { time: '12:05', price: 41256.85 }
-                                                      ]} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                      ]} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          tickCount={5}
+                                                          tick={{ fontSize: 10, fill: '#64748b' }}
+                                                          tickCount={8}
                                                         />
                                                         <YAxis 
-                                                          domain={['dataMin - 100', 'dataMax + 100']}
+                                                          domain={['dataMin - 10', 'dataMax + 10']}
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          tick={{ fontSize: 10, fill: '#64748b' }}
                                                           width={35}
                                                         />
                                                         <Tooltip 
-                                                          content={({ active, payload }) => {
+                                                          content={({ active, payload, label }) => {
                                                             if (!active || !payload || !payload.length) return null;
                                                             const value = payload[0].value;
                                                             return (
                                                               <div style={{
                                                                 backgroundColor: '#1e293b',
                                                                 border: '1px solid #334155',
-                                                                borderRadius: '4px',
+                                                                borderRadius: '6px',
                                                                 color: '#e2e8f0',
-                                                                padding: '4px 8px',
-                                                                fontSize: '11px'
+                                                                padding: '8px 16px',
+                                                                fontSize: '13px',
+                                                                minWidth: '140px',
+                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '12px'
                                                               }}>
-                                                                ₹{Number(value).toFixed(2)}
+                                                                <span style={{ fontSize: '13px', fontWeight: '500' }}>
+                                                                  ₹{Number(value).toFixed(2)}
+                                                                </span>
+                                                                <div style={{
+                                                                  width: '1px',
+                                                                  height: '20px',
+                                                                  backgroundColor: '#475569'
+                                                                }}></div>
+                                                                <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                                                  {label}
+                                                                </span>
                                                               </div>
                                                             );
                                                           }}
@@ -12240,7 +12276,13 @@ ${
                                                           stroke="#10b981"
                                                           strokeWidth={2}
                                                           dot={false}
-                                                          isAnimationActive={false}
+                                                          activeDot={{ r: 4, fill: '#10b981' }}
+                                                        />
+                                                        <ReferenceLine 
+                                                          y={41200} 
+                                                          stroke="#64748b" 
+                                                          strokeDasharray="2 2" 
+                                                          strokeWidth={1}
                                                         />
                                                       </LineChart>
                                                     </ResponsiveContainer>
