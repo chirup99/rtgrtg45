@@ -1908,63 +1908,69 @@ export default function Home() {
     return () => window.removeEventListener('timeframeChange', handleTimeframeChange);
   }, []);
 
-  // Fetch news for search results when symbol changes
+  // Fetch news for search results when symbol changes (watch searchResults to detect when chart data loads)
   useEffect(() => {
+    if (!searchResults || !isSearchActive) return;
+    
     const stockDataStr = localStorage.getItem('stockData');
     if (!stockDataStr) return;
     
-    const stockData = JSON.parse(stockDataStr);
-    const currentSymbol = stockData.name?.split('\n')?.[0] || '';
-    
-    if (!currentSymbol || currentSymbol === searchResultsNewsSymbol) return;
-    
-    setSearchResultsNewsSymbol(currentSymbol);
-    setSearchResultsNews([]);
-    
-    (async () => {
-      try {
-        const response = await fetch(`/api/stock-news/${encodeURIComponent(currentSymbol.toUpperCase())}?refresh=${Date.now()}`);
-        const data = await response.json();
-        
-        const articles = Array.isArray(data) ? data : (data.articles || data.data || []);
-        
-        if (articles && articles.length > 0) {
-          const getRelativeTime = (dateString: string) => {
-            try {
-              const date = new Date(dateString);
-              const now = new Date();
-              const diffMs = now.getTime() - date.getTime();
-              const diffSecs = Math.floor(diffMs / 1000);
-              const diffMins = Math.floor(diffSecs / 60);
-              const diffHours = Math.floor(diffMins / 60);
-              const diffDays = Math.floor(diffHours / 24);
-              const diffWeeks = Math.floor(diffDays / 7);
-              
-              if (diffSecs < 60) return 'Just now';
-              if (diffMins < 60) return `${diffMins}m ago`;
-              if (diffHours < 24) return `${diffHours}h ago`;
-              if (diffDays < 7) return `${diffDays}d ago`;
-              if (diffWeeks < 4) return `${diffWeeks}w ago`;
-              return 'Recently';
-            } catch (error) {
-              return 'Recently';
-            }
-          };
+    try {
+      const stockData = JSON.parse(stockDataStr);
+      const currentSymbol = stockData.name?.split('\n')?.[0]?.trim() || '';
+      
+      if (!currentSymbol || currentSymbol === searchResultsNewsSymbol) return;
+      
+      setSearchResultsNewsSymbol(currentSymbol);
+      setSearchResultsNews([]);
+      
+      (async () => {
+        try {
+          const response = await fetch(`/api/stock-news/${encodeURIComponent(currentSymbol.toUpperCase())}?refresh=${Date.now()}`);
+          const data = await response.json();
           
-          const formattedNews = articles.map((article: any) => ({
-            title: article.title,
-            source: article.source || "Market News",
-            time: getRelativeTime(article.publishedAt || article.date || new Date().toISOString()),
-            url: article.url || article.link || '#'
-          }));
+          const articles = Array.isArray(data) ? data : (data.articles || data.data || []);
           
-          setSearchResultsNews(formattedNews);
+          if (articles && articles.length > 0) {
+            const getRelativeTime = (dateString: string) => {
+              try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now.getTime() - date.getTime();
+                const diffSecs = Math.floor(diffMs / 1000);
+                const diffMins = Math.floor(diffSecs / 60);
+                const diffHours = Math.floor(diffMins / 60);
+                const diffDays = Math.floor(diffHours / 24);
+                const diffWeeks = Math.floor(diffDays / 7);
+                
+                if (diffSecs < 60) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                if (diffWeeks < 4) return `${diffWeeks}w ago`;
+                return 'Recently';
+              } catch (error) {
+                return 'Recently';
+              }
+            };
+            
+            const formattedNews = articles.map((article: any) => ({
+              title: article.title,
+              source: article.source || "Market News",
+              time: getRelativeTime(article.publishedAt || article.date || new Date().toISOString()),
+              url: article.url || article.link || '#'
+            }));
+            
+            setSearchResultsNews(formattedNews);
+          }
+        } catch (error) {
+          console.warn("Failed to fetch news for symbol:", currentSymbol, error);
         }
-      } catch (error) {
-        console.warn("Failed to fetch news for symbol:", currentSymbol, error);
-      }
-    })();
-  }, [isSearchActive]);
+      })();
+    } catch (error) {
+      console.warn("Failed to parse stockData:", error);
+    }
+  }, [searchResults, isSearchActive]);
 
   // ❌ REMOVED: journalSelectedDate - manual search chart is now completely standalone
 
