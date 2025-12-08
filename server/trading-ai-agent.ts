@@ -788,18 +788,41 @@ const tradingTools: AgentTool[] = [
               }));
               trend = insights.trend;
             } else {
-              // Generate based on current change
+              // Generate based on current change with proper Indian FY quarter format
               const changePercent = normalized.priceData.changePercent;
               const currentDate = new Date();
+              
+              // Helper function to convert calendar date to Indian fiscal year quarter format
+              const getIndianFYQuarterLabel = (date: Date): string => {
+                const month = date.getMonth();
+                const year = date.getFullYear();
+                let quarterNum: number;
+                let fiscalYear: number;
+                
+                if (month >= 3 && month <= 5) {
+                  quarterNum = 1;
+                  fiscalYear = year + 1;
+                } else if (month >= 6 && month <= 8) {
+                  quarterNum = 2;
+                  fiscalYear = year + 1;
+                } else if (month >= 9 && month <= 11) {
+                  quarterNum = 3;
+                  fiscalYear = year + 1;
+                } else {
+                  quarterNum = 4;
+                  fiscalYear = year;
+                }
+                return `Q${quarterNum} FY${fiscalYear.toString().slice(-2)}`;
+              };
+              
               for (let i = 3; i >= 0; i--) {
                 const quarterDate = new Date(currentDate);
                 quarterDate.setMonth(currentDate.getMonth() - (i * 3));
-                const quarterNum = Math.ceil((quarterDate.getMonth() + 1) / 3);
-                const year = quarterDate.getFullYear();
+                const quarterLabel = getIndianFYQuarterLabel(quarterDate);
                 const baseTrend = changePercent / 4;
                 const seasonalFactor = [0.8, 1.2, 0.9, 1.1][i] || 1;
                 quarterlyPerformance.push({
-                  quarter: `Q${quarterNum} ${year}`,
+                  quarter: quarterLabel,
                   changePercent: Math.round(baseTrend * seasonalFactor * 100) / 100
                 });
               }
@@ -1116,16 +1139,38 @@ const tradingTools: AgentTool[] = [
         }));
         trend = companyInsights.trend;
       } else {
-        // Fallback: Generate based on current price change (still better than random)
+        // Fallback: Generate based on current price change with proper Indian FY quarter format
         console.log(`[AI-AGENT] ⚠️ Using estimated quarterly data for ${symbolUpper}`);
         const currentDate = new Date();
         quarterlyPerformance = [];
         
+        // Helper function to convert calendar date to Indian fiscal year quarter format
+        const getIndianFYQuarterLabel = (date: Date): string => {
+          const month = date.getMonth();
+          const year = date.getFullYear();
+          let quarterNum: number;
+          let fiscalYear: number;
+          
+          if (month >= 3 && month <= 5) {
+            quarterNum = 1;
+            fiscalYear = year + 1;
+          } else if (month >= 6 && month <= 8) {
+            quarterNum = 2;
+            fiscalYear = year + 1;
+          } else if (month >= 9 && month <= 11) {
+            quarterNum = 3;
+            fiscalYear = year + 1;
+          } else {
+            quarterNum = 4;
+            fiscalYear = year;
+          }
+          return `Q${quarterNum} FY${fiscalYear.toString().slice(-2)}`;
+        };
+        
         for (let i = 3; i >= 0; i--) {
           const quarterDate = new Date(currentDate);
           quarterDate.setMonth(currentDate.getMonth() - (i * 3));
-          const quarterNum = Math.ceil((quarterDate.getMonth() + 1) / 3);
-          const year = quarterDate.getFullYear();
+          const quarterLabel = getIndianFYQuarterLabel(quarterDate);
           
           // Generate realistic trends based on current change
           const baseTrend = changePercent / 4;
@@ -1133,7 +1178,7 @@ const tradingTools: AgentTool[] = [
           const quarterChange = Math.round(baseTrend * seasonalFactor * 100) / 100;
           
           quarterlyPerformance.push({
-            quarter: `Q${quarterNum} ${year}`,
+            quarter: quarterLabel,
             changePercent: quarterChange
           });
         }

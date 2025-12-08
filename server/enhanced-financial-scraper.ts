@@ -603,21 +603,45 @@ export class EnhancedFinancialScraper {
       if (quarterlyDataArray.length >= 4) {
         console.log(`[ENHANCED-SCRAPER] ✅ Found ${quarterlyDataArray.length} data points from Yahoo Finance`);
         
+        // Helper function to convert calendar date to Indian fiscal year quarter format
+        const getIndianFYQuarterLabel = (date: Date): string => {
+          const month = date.getMonth();
+          const year = date.getFullYear();
+          let quarterNum: number;
+          let fiscalYear: number;
+          
+          if (month >= 3 && month <= 5) {
+            quarterNum = 1;
+            fiscalYear = year + 1;
+          } else if (month >= 6 && month <= 8) {
+            quarterNum = 2;
+            fiscalYear = year + 1;
+          } else if (month >= 9 && month <= 11) {
+            quarterNum = 3;
+            fiscalYear = year + 1;
+          } else {
+            quarterNum = 4;
+            fiscalYear = year;
+          }
+          return `Q${quarterNum} FY${fiscalYear.toString().slice(-2)}`;
+        };
+        
         // Take last 4 quarters worth of data
         const recentData = quarterlyDataArray.slice(0, 4);
         
         for (let i = 0; i < recentData.length; i++) {
           const quarterDate = new Date(currentDate);
           quarterDate.setMonth(currentDate.getMonth() - (i * 3));
-          const quarterNum = Math.ceil((quarterDate.getMonth() + 1) / 3);
-          const year = quarterDate.getFullYear();
+          
+          // Use proper Indian fiscal year quarter format
+          const quarterLabel = getIndianFYQuarterLabel(quarterDate);
           
           const prevValue = i < recentData.length - 1 ? recentData[i + 1].value : recentData[i].value;
           const changePercent = prevValue > 0 ? 
             Math.round(((recentData[i].value - prevValue) / prevValue) * 100 * 100) / 100 : 0;
           
           quarters.unshift({
-            quarter: `Q${quarterNum} ${year}`,
+            quarter: quarterLabel,
             value: Math.round(recentData[i].value),
             change: changePercent,
             changePercent: changePercent
@@ -707,6 +731,37 @@ export class EnhancedFinancialScraper {
     // FINAL FALLBACK: Generate data based on current stock price with realistic quarter-over-quarter changes
     console.log(`[ENHANCED-SCRAPER] ⚠️ All web scraping failed for ${cleanSymbol}, using price-based estimation...`);
     
+    // Helper function to convert calendar date to Indian fiscal year quarter format
+    const getIndianFYQuarterLabel = (date: Date): string => {
+      const month = date.getMonth(); // 0-11
+      const year = date.getFullYear();
+      
+      // Indian fiscal year: Apr-Mar
+      // Q1: Apr-Jun (months 3-5), Q2: Jul-Sep (months 6-8), Q3: Oct-Dec (months 9-11), Q4: Jan-Mar (months 0-2)
+      let quarterNum: number;
+      let fiscalYear: number;
+      
+      if (month >= 3 && month <= 5) {
+        // Apr-Jun = Q1, FY starts this year
+        quarterNum = 1;
+        fiscalYear = year + 1;
+      } else if (month >= 6 && month <= 8) {
+        // Jul-Sep = Q2
+        quarterNum = 2;
+        fiscalYear = year + 1;
+      } else if (month >= 9 && month <= 11) {
+        // Oct-Dec = Q3
+        quarterNum = 3;
+        fiscalYear = year + 1;
+      } else {
+        // Jan-Mar = Q4
+        quarterNum = 4;
+        fiscalYear = year;
+      }
+      
+      return `Q${quarterNum} FY${fiscalYear.toString().slice(-2)}`;
+    };
+    
     try {
       const stockData = await this.scrapeStockInfo(cleanSymbol);
       if (stockData && stockData.price > 0) {
@@ -723,8 +778,9 @@ export class EnhancedFinancialScraper {
         for (let i = 3; i >= 0; i--) {
           const quarterDate = new Date(currentDate);
           quarterDate.setMonth(currentDate.getMonth() - (i * 3));
-          const quarterNum = Math.ceil((quarterDate.getMonth() + 1) / 3);
-          const year = quarterDate.getFullYear();
+          
+          // Use proper Indian fiscal year quarter format
+          const quarterLabel = getIndianFYQuarterLabel(quarterDate);
           
           // Simulate quarterly progression toward current price
           const quarterPosition = currentPosition * (4 - i) / 4;
@@ -735,7 +791,7 @@ export class EnhancedFinancialScraper {
             Math.round(((quarterValue - prevQuarterValue) / prevQuarterValue) * 100 * 100) / 100 : 0;
           
           quarters.push({
-            quarter: `Q${quarterNum} ${year}`,
+            quarter: quarterLabel,
             value: Math.round(quarterValue * 100) / 100,
             change: changePercent,
             changePercent: changePercent
@@ -755,11 +811,12 @@ export class EnhancedFinancialScraper {
     for (let i = 3; i >= 0; i--) {
       const quarterDate = new Date(currentDate);
       quarterDate.setMonth(currentDate.getMonth() - (i * 3));
-      const quarterNum = Math.ceil((quarterDate.getMonth() + 1) / 3);
-      const year = quarterDate.getFullYear();
+      
+      // Use proper Indian fiscal year quarter format
+      const quarterLabel = getIndianFYQuarterLabel(quarterDate);
       
       quarters.push({
-        quarter: `Q${quarterNum} ${year}`,
+        quarter: quarterLabel,
         value: 0, // Return 0 to indicate no real data
         change: 0,
         changePercent: 0
@@ -956,17 +1013,44 @@ export class EnhancedFinancialScraper {
     const currentDate = new Date();
     const quarterlyData: QuarterlyData[] = [];
     
+    // Helper function to convert calendar date to Indian fiscal year quarter format
+    const getIndianFYQuarterLabel = (date: Date): string => {
+      const month = date.getMonth(); // 0-11
+      const year = date.getFullYear();
+      
+      // Indian fiscal year: Apr-Mar
+      // Q1: Apr-Jun (months 3-5), Q2: Jul-Sep (months 6-8), Q3: Oct-Dec (months 9-11), Q4: Jan-Mar (months 0-2)
+      let quarterNum: number;
+      let fiscalYear: number;
+      
+      if (month >= 3 && month <= 5) {
+        quarterNum = 1;
+        fiscalYear = year + 1;
+      } else if (month >= 6 && month <= 8) {
+        quarterNum = 2;
+        fiscalYear = year + 1;
+      } else if (month >= 9 && month <= 11) {
+        quarterNum = 3;
+        fiscalYear = year + 1;
+      } else {
+        quarterNum = 4;
+        fiscalYear = year;
+      }
+      
+      return `Q${quarterNum} FY${fiscalYear.toString().slice(-2)}`;
+    };
+    
     for (let i = 2; i >= 0; i--) {
       const quarterDate = new Date(currentDate);
       quarterDate.setMonth(currentDate.getMonth() - (i * 3));
       
-      const quarterNum = Math.ceil((quarterDate.getMonth() + 1) / 3);
-      const year = quarterDate.getFullYear();
+      // Use proper Indian fiscal year quarter format
+      const quarterLabel = getIndianFYQuarterLabel(quarterDate);
       
       const variance = (Math.random() - 0.4) * 15;
       
       quarterlyData.push({
-        quarter: `Q${quarterNum} ${year}`,
+        quarter: quarterLabel,
         value: 100 + (i * 5) + variance,
         change: variance,
         changePercent: variance

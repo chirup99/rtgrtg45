@@ -513,3 +513,48 @@ All core features are operational and the project is ready for continued develop
 🎉 **PROJECT IMPORT 100% COMPLETE - ALL ITEMS MARKED [x] - READY FOR BUILDING!**
 
 =========================================================
+
+QUARTERLY PERFORMANCE X-AXIS LABELS - INDIAN FISCAL YEAR FORMAT - DECEMBER 8, 2025 (6:17 PM)
+
+[x] 1. Issue identified: Fallback/mock quarter generators were using calendar year format (Q4 2025) 
+      instead of Indian fiscal year format (Q3 FY26)
+      
+[x] 2. Fixed 6 locations in the codebase:
+
+    **enhanced-financial-scraper.ts:**
+    - ✅ Line 609-630: Yahoo Finance fallback - Added getIndianFYQuarterLabel helper
+    - ✅ Line 714-742: Final fallback - Added getIndianFYQuarterLabel helper  
+    - ✅ Line 996-1020: generateMockInsights - Added getIndianFYQuarterLabel helper
+    
+    **trading-ai-agent.ts:**
+    - ✅ Line 798-819: Compare stocks fallback - Added getIndianFYQuarterLabel helper
+    - ✅ Line 1150-1171: Get stock info fallback - Added getIndianFYQuarterLabel helper
+
+[x] 3. Indian fiscal year quarter mapping logic (all locations use same logic):
+      - April-June → Q1 FY[year+1]
+      - July-September → Q2 FY[year+1]  
+      - October-December → Q3 FY[year+1]
+      - January-March → Q4 FY[year]
+
+[x] 4. Verified with server logs - Reliance Industries data from screener.in:
+      - Dec 2024 → Q3 FY25 ✅ (₹239,986 Cr)
+      - Mar 2025 → Q4 FY25 ✅ (₹261,388 Cr)
+      - Jun 2025 → Q1 FY26 ✅ (₹243,632 Cr)
+      - Sep 2025 → Q2 FY26 ✅ (₹254,623 Cr)
+
+[x] 5. Workflow restarted and running on port 5000 ✅
+
+## ✅ QUARTERLY LABELS FIX COMPLETE
+
+All quarterly performance chart X-axis labels now correctly use Indian fiscal year format:
+- ✅ Real data from Screener.in: Correctly converted (was already working)
+- ✅ Yahoo Finance fallback: Now uses Indian FY format
+- ✅ Price-based estimation fallback: Now uses Indian FY format  
+- ✅ Minimal fallback: Now uses Indian FY format
+- ✅ Mock insights generator: Now uses Indian FY format
+- ✅ Compare stocks fallback: Now uses Indian FY format
+- ✅ Get stock info fallback: Now uses Indian FY format
+
+The quarterly performance charts now match screener.in conventions across all data sources!
+
+=========================================================
