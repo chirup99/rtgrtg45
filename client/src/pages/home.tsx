@@ -5451,24 +5451,25 @@ ${
     source: string;
   }>>([]);
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
-  const [watchlistChartTimeframe, setWatchlistChartTimeframe] = useState('1D');
+  const [nifty50Timeframe, setNifty50Timeframe] = useState('1D');
+  const [niftyBankTimeframe, setNiftyBankTimeframe] = useState('1D');
   
   // Queries for NIFTY50 and NIFTYBANK chart data - optimized with caching
   const { data: nifty50ChartData = [], isLoading: isNifty50Loading } = useQuery({
-    queryKey: ['stock-chart', 'NIFTY50', watchlistChartTimeframe],
-    queryFn: () => fetch(`/api/stock-chart-data/NIFTY50?timeframe=${watchlistChartTimeframe}`).then(res => res.json()),
-    refetchInterval: watchlistChartTimeframe === '1D' ? 60000 : 300000,
-    staleTime: watchlistChartTimeframe === '1D' ? 30000 : 180000,
+    queryKey: ['stock-chart', 'NIFTY50', nifty50Timeframe],
+    queryFn: () => fetch(`/api/stock-chart-data/NIFTY50?timeframe=${nifty50Timeframe}`).then(res => res.json()),
+    refetchInterval: nifty50Timeframe === '1D' ? 60000 : 300000,
+    staleTime: nifty50Timeframe === '1D' ? 30000 : 180000,
     gcTime: 600000,
     refetchOnMount: false,
     refetchOnWindowFocus: false
   });
 
   const { data: niftyBankChartData = [], isLoading: isNiftyBankLoading } = useQuery({
-    queryKey: ['stock-chart', 'NIFTYBANK', watchlistChartTimeframe],
-    queryFn: () => fetch(`/api/stock-chart-data/NIFTYBANK?timeframe=${watchlistChartTimeframe}`).then(res => res.json()),
-    refetchInterval: watchlistChartTimeframe === '1D' ? 60000 : 300000,
-    staleTime: watchlistChartTimeframe === '1D' ? 30000 : 180000,
+    queryKey: ['stock-chart', 'NIFTYBANK', niftyBankTimeframe],
+    queryFn: () => fetch(`/api/stock-chart-data/NIFTYBANK?timeframe=${niftyBankTimeframe}`).then(res => res.json()),
+    refetchInterval: niftyBankTimeframe === '1D' ? 60000 : 300000,
+    staleTime: niftyBankTimeframe === '1D' ? 30000 : 180000,
     gcTime: 600000,
     refetchOnMount: false,
     refetchOnWindowFocus: false
@@ -12085,25 +12086,25 @@ ${
                                             {/* Left Column - Index Charts + Watchlist */}
                                             <div className="w-80 flex-shrink-0 space-y-4">
                                               {/* NIFTY 50 Chart */}
-                                              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
-                                                <div className="space-y-3">
-                                                  <div className="flex items-center justify-between">
-                                                    <div className="space-y-1">
-                                                      <div className="flex items-center gap-2">
-                                                        <h4 className="text-lg font-semibold text-gray-200">NIFTY 50 Index</h4>
+                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
+                                                <div className="space-y-2">
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <div className="space-y-1 flex-1">
+                                                      <div className="flex items-center gap-1">
+                                                        <h4 className="text-sm font-semibold text-gray-200">NIFTY 50</h4>
                                                         <span className="text-xs text-green-400 flex items-center gap-1">
-                                                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                                           Live
                                                         </span>
                                                       </div>
-                                                      <div className="flex items-center gap-2">
+                                                      <div className="flex items-center gap-1">
                                                         {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
                                                           <Button
                                                             key={tf}
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => setWatchlistChartTimeframe(tf)}
-                                                            className={`px-2 py-1 text-xs h-7 ${watchlistChartTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+                                                            onClick={() => setNifty50Timeframe(tf)}
+                                                            className={`px-1.5 py-0.5 text-xs h-6 ${nifty50Timeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
                                                           >
                                                             {tf}
                                                           </Button>
@@ -12111,29 +12112,30 @@ ${
                                                       </div>
                                                     </div>
                                                     <div className="text-right">
-                                                      <div className="text-lg font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                                      <div className={`text-sm flex items-center justify-end gap-1 ${getNifty50Change() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                      <div className="text-sm font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                                      <div className={`text-xs flex items-center justify-end gap-0.5 ${getNifty50Change() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                                         {getNifty50Change() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNifty50Change()).toFixed(2)} ({((getNifty50Change() / (getNifty50CurrentPrice() - getNifty50Change())) * 100).toFixed(2)}%)
                                                       </div>
                                                     </div>
                                                   </div>
                                                   
-                                                  <div className="h-56 w-full bg-gray-800/30 rounded-lg p-2">
+                                                  <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
+                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 35, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 10, fill: '#64748b' }}
-                                                          tickCount={8}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          tickCount={5}
                                                         />
                                                         <YAxis 
-                                                          domain={['dataMin - 10', 'dataMax + 10']}
+                                                          domain={['dataMin - 50', 'dataMax + 50']}
+                                                          type="number"
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 10, fill: '#64748b' }}
-                                                          width={35}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          width={40}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
@@ -12189,25 +12191,25 @@ ${
                                               </div>
                                               
                                               {/* BANK NIFTY Chart */}
-                                              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
-                                                <div className="space-y-3">
-                                                  <div className="flex items-center justify-between">
-                                                    <div className="space-y-1">
-                                                      <div className="flex items-center gap-2">
-                                                        <h4 className="text-lg font-semibold text-gray-200">BANK NIFTY Index</h4>
+                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
+                                                <div className="space-y-2">
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <div className="space-y-1 flex-1">
+                                                      <div className="flex items-center gap-1">
+                                                        <h4 className="text-sm font-semibold text-gray-200">BANK NIFTY</h4>
                                                         <span className="text-xs text-green-400 flex items-center gap-1">
-                                                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                                           Live
                                                         </span>
                                                       </div>
-                                                      <div className="flex items-center gap-2">
+                                                      <div className="flex items-center gap-1">
                                                         {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
                                                           <Button
                                                             key={tf}
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => setWatchlistChartTimeframe(tf)}
-                                                            className={`px-2 py-1 text-xs h-7 ${watchlistChartTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+                                                            onClick={() => setNiftyBankTimeframe(tf)}
+                                                            className={`px-1.5 py-0.5 text-xs h-6 ${niftyBankTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
                                                           >
                                                             {tf}
                                                           </Button>
@@ -12215,29 +12217,30 @@ ${
                                                       </div>
                                                     </div>
                                                     <div className="text-right">
-                                                      <div className="text-lg font-mono text-gray-100">₹{getNiftyBankCurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                                      <div className={`text-sm flex items-center justify-end gap-1 ${getNiftyBankChange() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                      <div className="text-sm font-mono text-gray-100">₹{getNiftyBankCurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                                      <div className={`text-xs flex items-center justify-end gap-0.5 ${getNiftyBankChange() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                                         {getNiftyBankChange() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNiftyBankChange()).toFixed(2)} ({((getNiftyBankChange() / (getNiftyBankCurrentPrice() - getNiftyBankChange())) * 100).toFixed(2)}%)
                                                       </div>
                                                     </div>
                                                   </div>
                                                   
-                                                  <div className="h-56 w-full bg-gray-800/30 rounded-lg p-2">
+                                                  <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
+                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 35, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 10, fill: '#64748b' }}
-                                                          tickCount={8}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          tickCount={5}
                                                         />
                                                         <YAxis 
-                                                          domain={['dataMin - 10', 'dataMax + 10']}
+                                                          domain={['dataMin - 50', 'dataMax + 50']}
+                                                          type="number"
                                                           axisLine={false}
                                                           tickLine={false}
-                                                          tick={{ fontSize: 10, fill: '#64748b' }}
-                                                          width={35}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          width={40}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
