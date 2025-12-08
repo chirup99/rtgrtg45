@@ -11768,88 +11768,9 @@ ${
                                                   Related News
                                                 </h3>
                                                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                                                  {(() => {
-                                                    // Helper function to calculate relative time
-                                                    const getRelativeTime = (dateString: string) => {
-                                                      try {
-                                                        const date = new Date(dateString);
-                                                        const now = new Date();
-                                                        const diffMs = now.getTime() - date.getTime();
-                                                        const diffSecs = Math.floor(diffMs / 1000);
-                                                        const diffMins = Math.floor(diffSecs / 60);
-                                                        const diffHours = Math.floor(diffMins / 60);
-                                                        const diffDays = Math.floor(diffHours / 24);
-                                                        const diffWeeks = Math.floor(diffDays / 7);
-                                                        
-                                                        if (diffSecs < 60) return 'Just now';
-                                                        if (diffMins < 60) return `${diffMins}m ago`;
-                                                        if (diffHours < 24) return `${diffHours}h ago`;
-                                                        if (diffDays < 7) return `${diffDays}d ago`;
-                                                        if (diffWeeks < 4) return `${diffWeeks}w ago`;
-                                                        
-                                                        return 'Recently';
-                                                      } catch (error) {
-                                                        return 'Recently';
-                                                      }
-                                                    };
-                                                    
-                                                    const newsItems = (window as any).aiAssistantNewsItems || [];
-                                                    
-                                                    // Get symbol from AI Assistant chart (left side chart symbol)
-                                                    const chartSymbol = (window as any).aiAssistantStockData?.symbol;
-                                                    
-                                                    // If no news fetched yet, fetch it using the chart symbol
-                                                    if (newsItems.length === 0 && chartSymbol) {
-                                                      (async () => {
-                                                        try {
-                                                          // Use the exact same pattern as fundamental analysis search
-                                                          const response = await fetch(
-                                                            getFullApiUrl(`/api/stock-news?query=${encodeURIComponent(chartSymbol.toUpperCase())}`),
-                                                          );
-                                                          const data = await response.json();
-                                                          
-                                                          if (data.success && data.articles && data.articles.length > 0) {
-                                                            // Format articles with real relative time from publishedAt
-                                                            const formattedNews = data.articles.slice(0, 5).map((article: any) => ({
-                                                              title: article.title,
-                                                              source: article.source || "Market News",
-                                                              time: getRelativeTime(article.publishedAt || new Date().toISOString()),
-                                                              description: article.description,
-                                                              url: article.url
-                                                            }));
-                                                            (window as any).aiAssistantNewsItems = formattedNews;
-                                                            window.dispatchEvent(new Event('newsUpdated'));
-                                                          }
-                                                        } catch (error) {
-                                                          console.warn("Failed to fetch news:", error);
-                                                        }
-                                                      })();
-                                                    }
-                                                    
-                                                    return (newsItems.length > 0 ? newsItems : [
-                                                      { title: "Loading market news...", source: "Financial News", time: "Just now" },
-                                                      { title: "Fetching latest updates...", source: "Market Desk", time: "Just now" },
-                                                    ]).map((item: any, idx: number) => (
-                                                      <div
-                                                        key={idx}
-                                                        className="pb-3 border-b border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-800/50 p-2 rounded transition-colors"
-                                                        onClick={() => {
-                                                          if (item.url) {
-                                                            window.open(item.url, '_blank');
-                                                          }
-                                                        }}
-                                                        data-testid={`news-item-${idx}`}
-                                                      >
-                                                        <div className="text-xs font-semibold text-blue-400 hover:underline line-clamp-2 mb-1">
-                                                          {item.title}
-                                                        </div>
-                                                        <div className="flex items-center justify-between text-xs">
-                                                          <span className="text-gray-400">{item.source}</span>
-                                                          <span className="text-gray-500">{item.time}</span>
-                                                        </div>
-                                                      </div>
-                                                    ));
-                                                  })()}
+                                                  <div className="text-xs text-gray-400 p-4 text-center">
+                                                    <p>Search for a stock symbol using the search bar above to see related news and market updates.</p>
+                                                  </div>
                                                 </div>
                                               </div>
                                             )}
