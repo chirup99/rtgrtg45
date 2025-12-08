@@ -5466,8 +5466,11 @@ ${
   });
 
   const { data: niftyBankChartData = [], isLoading: isNiftyBankLoading } = useQuery({
-    queryKey: ['stock-chart', 'NIFTYBANK', niftyBankTimeframe],
-    queryFn: () => fetch(`/api/stock-chart-data/NIFTYBANK?timeframe=${niftyBankTimeframe}`).then(res => res.json()),
+    queryKey: ['stock-chart', selectedWatchlistSymbol, niftyBankTimeframe],
+    queryFn: () => {
+      const symbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
+      return fetch(`/api/stock-chart-data/${symbol}?timeframe=${niftyBankTimeframe}`).then(res => res.json());
+    },
     refetchInterval: niftyBankTimeframe === '1D' ? 60000 : 300000,
     staleTime: 0,
     gcTime: 600000,
@@ -12199,12 +12202,14 @@ ${
                                                 </div>
                                               </div>
                                               
-                                              {/* BANK NIFTY Chart */}
+                                              {/* Dynamic Watchlist Chart */}
                                               <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
                                                 <div className="space-y-2">
                                                   <div className="flex items-center justify-between mb-1">
                                                     <div className="flex items-center gap-1">
-                                                      <h4 className="text-sm font-semibold text-gray-200">BANK NIFTY</h4>
+                                                      <h4 className="text-sm font-semibold text-gray-200">
+                                                        {watchlistSymbols.find(s => s.symbol === selectedWatchlistSymbol)?.displayName || selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '')}
+                                                      </h4>
                                                       <span className="text-xs text-green-400 flex items-center gap-1">
                                                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                                         Live
