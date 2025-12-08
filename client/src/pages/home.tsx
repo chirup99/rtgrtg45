@@ -12315,12 +12315,23 @@ ${
                                                       {watchlistSearchResults.map((result, idx) => (
                                                         <div
                                                           key={idx}
-                                                          className="px-3 py-2 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
-                                                          onClick={() => addToWatchlist(result)}
+                                                          className="px-3 py-2 border-b border-gray-700 last:border-b-0 flex items-center justify-between hover:bg-gray-700/50 transition-colors"
                                                           data-testid={`watchlist-search-result-${idx}`}
                                                         >
-                                                          <div className="text-xs font-medium text-gray-200">{result.displayName || result.symbol}</div>
-                                                          <div className="text-xs text-gray-400">{result.name}</div>
+                                                          <div className="flex-1 min-w-0">
+                                                            <div className="text-xs font-medium text-gray-200">{result.displayName || result.symbol}</div>
+                                                            <div className="text-xs text-gray-400 truncate">{result.name}</div>
+                                                          </div>
+                                                          <button
+                                                            onClick={() => {
+                                                              addToWatchlist(result);
+                                                              setWatchlistSearchQuery('');
+                                                            }}
+                                                            className="ml-2 flex-shrink-0 text-gray-400 hover:text-green-400 transition-colors p-1"
+                                                            data-testid={`button-add-watchlist-${idx}`}
+                                                          >
+                                                            <Plus className="h-4 w-4" />
+                                                          </button>
                                                         </div>
                                                       ))}
                                                     </div>
