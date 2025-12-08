@@ -9066,15 +9066,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Search by query if provided
+      // Search by query if provided - with word-level matching and fuzzy scoring
       if (query && typeof query === 'string' && query.trim().length > 0) {
-        const searchTerm = query.trim().toUpperCase();
-        results = results.filter(inst => 
-          inst.name?.toUpperCase().includes(searchTerm) ||
-          inst.symbol?.toUpperCase().includes(searchTerm) ||
-          inst.tradingsymbol?.toUpperCase().includes(searchTerm) ||
-          inst.expiry?.toString().includes(query)
-        );
+        const searchQuery = query.trim().toUpperCase();
+        const queryWords = searchQuery.split(/\s+/).filter(w => w.length > 0);
+        
+        // Helper function to calculate Levenshtein distance (typo tolerance)
+        const levenshteinDistance = (str1: string, str2: string): number => {
+          const matrix: number[][] = [];
+          for (let i = 0; i <= str2.length; i++) matrix[i] = [i];
+          for (let j = 0; j <= str1.length; j++) matrix[0][j] = j;
+          for (let i = 1; i <= str2.length; i++) {
+            for (let j = 1; j <= str1.length; j++) {
+              matrix[i][j] = str1[j - 1] === str2[i - 1]
+                ? matrix[i - 1][j - 1]
+                : Math.min(matrix[i - 1][j - 1], matrix[i][j - 1], matrix[i - 1][j]) + 1;
+            }
+          }
+          return matrix[str2.length][str1.length];
+        };
+        
+        // Helper function to check if a word matches (prefix, exact, or fuzzy)
+        const wordMatches = (text: string, queryWord: string): number => {
+          if (!text) return 0;
+          const upperText = text.toUpperCase();
+          
+          // Exact match = highest score (100)
+          if (upperText === queryWord) return 100;
+          
+          // Prefix match = high score (80)
+          if (upperText.startsWith(queryWord)) return 80;
+          
+          // Contains match = medium score (60)
+          if (upperText.includes(queryWord)) return 60;
+          
+          // Fuzzy match with Levenshtein distance (allow up to 2 character differences)
+          const distance = levenshteinDistance(queryWord, upperText);
+          const maxDistance = Math.min(2, Math.floor(queryWord.length / 3));
+          if (distance <= maxDistance) return Math.max(1, 40 - (distance * 10));
+          
+          return 0;
+        };
+        
+        // Score each result based on how well it matches all query words
+        const scoredResults: Array<{ inst: any; score: number }> = results.map(inst => {
+          let totalScore = 0;
+          const name = inst.name?.toString().toUpperCase() || '';
+          const symbol = inst.symbol?.toString().toUpperCase() || '';
+          const tradingSymbol = inst.tradingsymbol?.toString().toUpperCase() || '';
+          const expiry = inst.expiry?.toString() || '';
+          
+          // Check each query word and take the best match across all fields
+          let matchedWords = 0;
+          queryWords.forEach(queryWord => {
+            const nameScore = wordMatches(name, queryWord);
+            const symbolScore = wordMatches(symbol, queryWord);
+            const tradingSymbolScore = wordMatches(tradingSymbol, queryWord);
+            const expiryScore = expiry.includes(queryWord) ? 50 : 0;
+            
+            const maxScore = Math.max(nameScore, symbolScore, tradingSymbolScore, expiryScore);
+            if (maxScore > 0) {
+              matchedWords++;
+              totalScore += maxScore;
+            }
+          });
+          
+          // Only include results that match ALL query words
+          const score = matchedWords === queryWords.length ? totalScore : -1;
+          return { inst, score };
+        });
+        
+        // Filter by score and sort by relevance
+        results = scoredResults
+          .filter(r => r.score >= 0)
+          .sort((a, b) => b.score - a.score)
+          .map(r => r.inst);
       }
 
       // Limit results
