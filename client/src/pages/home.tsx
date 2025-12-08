@@ -12525,7 +12525,11 @@ ${
                                                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                                                     </div>
                                                   ) : watchlistSymbols.length > 0 ? (
-                                                    watchlistSymbols.map((stock) => {
+                                                    (() => {
+                                                      const stocksWithTrend = watchlistSymbols.filter(stock => 
+                                                        (allWatchlistQuarterlyData[stock.symbol] || []).length > 0
+                                                      );
+                                                      return stocksWithTrend.length > 0 ? stocksWithTrend.map((stock) => {
                                                       const quarterlyData = allWatchlistQuarterlyData[stock.symbol] || [];
                                                       const hasTrendingUp = quarterlyData.length > 1 && 
                                                         parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
