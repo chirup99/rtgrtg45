@@ -5188,80 +5188,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // DEBUG ENDPOINT: Get ALL data from ALL Google Cloud collections
-  app.get('/api/debug/google-cloud-data', async (req, res) => {
-    try {
-      console.log('🔍 DEBUG: Fetching ALL data from ALL Google Cloud collections...');
-
-      const allCloudData: any = {};
-      const collectionsToCheck = [
-        'journal-database',    // Primary journal collection
-        'cache',              // Cache collection  
-        'trading-data',       // Trading data collection
-        'journal-entries',    // Alternative journal collection
-        'user-data',          // User data collection
-        'images',             // Images collection
-        'trading-journal',    // Alternative trading journal collection
-        'perala-data',        // Perala data collection
-        'posts',              // Social posts collection
-        'feed-data',          // Feed data collection
-        'backup-data'         // Backup data collection
-      ];
-
-      for (const collectionName of collectionsToCheck) {
-        try {
-          console.log(`🔍 DEBUG: Checking collection '${collectionName}'...`);
-          const cloudData = await googleCloudService.getAllCollectionData(collectionName);
-          if (cloudData && Object.keys(cloudData).length > 0) {
-            allCloudData[collectionName] = {
-              count: Object.keys(cloudData).length,
-              keys: Object.keys(cloudData),
-              sampleData: Object.keys(cloudData).slice(0, 3).reduce((sample: any, key: string) => {
-                sample[key] = cloudData[key];
-                return sample;
-              }, {}),
-              fullData: cloudData
-            };
-            console.log(`☁️ DEBUG: Found ${Object.keys(cloudData).length} entries in '${collectionName}'`);
-
-            // Log first few entries for debugging
-            Object.keys(cloudData).slice(0, 2).forEach(key => {
-              console.log(`📝 DEBUG Sample [${collectionName}][${key}]:`, JSON.stringify(cloudData[key]).substring(0, 200));
-            });
-          } else {
-            allCloudData[collectionName] = { count: 0, message: 'No data found' };
-            console.log(`☁️ DEBUG: No data in collection '${collectionName}'`);
-          }
-        } catch (error) {
-          allCloudData[collectionName] = { 
-            error: true, 
-            message: error instanceof Error ? error.message : 'Unknown error',
-            details: error instanceof Error ? error.stack : undefined
-          };
-          console.log(`⚠️ DEBUG: Error in collection '${collectionName}':`, error instanceof Error ? error.message : error);
-        }
-      }
-
-      console.log(`📊 DEBUG: Checked ${collectionsToCheck.length} collections`);
-      res.json({
-        success: true,
-        totalCollections: collectionsToCheck.length,
-        collectionsWithData: Object.keys(allCloudData).filter(key => allCloudData[key].count > 0).length,
-        collections: allCloudData,
-        summary: Object.keys(allCloudData).map(name => ({
-          collection: name,
-          count: allCloudData[name].count || 0,
-          hasError: !!allCloudData[name].error
-        }))
-      });
-    } catch (error) {
-      console.error('❌ DEBUG: Error in debug endpoint:', error);
-      res.status(500).json({ 
-        error: 'Debug failed', 
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
 
   // Get journal data for a specific date - AWS DynamoDB
   app.get('/api/journal/:date', async (req, res) => {
@@ -5589,13 +5515,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`📥 Loading trading formats for authenticated userId: ${userId}`);
-      // Try to get from DynamoDB first, fall back to Google Cloud for legacy data
+      // Using AWS DynamoDB (Google Cloud removed)
       let formats = {};
-      try {
-        formats = await googleCloudService.getCachedData(`user-formats-${userId}`, 'trading-formats') || {};
-      } catch (e) {
-        console.log(`⚠️ Could not load formats from cache, returning empty object`);
-      }
       console.log(`✅ Loaded ${Object.keys(formats).length} formats for user ${userId}`);
       res.json(formats);
     } catch (error) {
@@ -5631,7 +5552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`💾 Saving trading formats for authenticated userId: ${userId}`, Object.keys(formats).length, 'formats');
-      await googleCloudService.cacheData(`user-formats-${userId}`, formats, 'trading-formats');
+      // Using AWS DynamoDB (Google Cloud removed)
       console.log(`✅ Saved formats for user ${userId}`);
       res.json({ success: true, message: 'Formats saved successfully' });
     } catch (error) {
@@ -7417,11 +7338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return decodedToken.email || '';
   }
 
-  // Helper to get Firestore instance
-  function getDb() {
-    const { getFirestore } = require('firebase-admin/firestore');
-    return getFirestore();
-  }
+  // Firestore removed - using AWS DynamoDB only
 
   // DELETE POST
   app.delete('/api/social-posts/:id', async (req, res) => {
@@ -9446,76 +9363,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get Firebase token count
-  app.get("/api/auth/token/firebase/count", async (req, res) => {
-    try {
-      console.log('🔍 [FIREBASE] Fetching Fyers token count from Firebase...');
-      const tokens = await googleCloudService.getAllFyersTokens();
-
-      res.json({
-        success: true,
-        count: tokens.length,
-        tokens: tokens.map(t => ({
-          dateKey: t.dateKey,
-          expiryDate: t.expiryDate,
-          createdAt: t.createdAt
-        }))
-      });
-    } catch (error) {
-      console.error('❌ [FIREBASE] Error fetching token count:', error);
-      res.status(500).json({
-        success: false,
-        count: 0,
-        message: "Failed to fetch token count"
-      });
-    }
-  });
-
-  // Delete all Firebase tokens
-  app.delete("/api/auth/token/firebase", async (req, res) => {
-    try {
-      console.log('🗑️ [FIREBASE] Deleting all Fyers tokens from Firebase...');
-
-      // Get all tokens first to count them
-      const tokens = await googleCloudService.getAllFyersTokens();
-      const count = tokens.length;
-
-      if (count === 0) {
-        return res.json({
-          success: true,
-          count: 0,
-          message: "No tokens found in Firebase"
-        });
-      }
-
-      // Delete all tokens
-      const snapshot = await googleCloudService.firestore.collection('fyers-tokens').get();
-      await Promise.all(snapshot.docs.map(doc => doc.ref.delete()));
-
-      console.log(`✅ [FIREBASE] Deleted ${count} Fyers token(s) from Firebase`);
-
-      // Also clear the PostgreSQL token
-      await safeUpdateApiStatus({
-        connected: false,
-        authenticated: false,
-        accessToken: '',
-        tokenExpiry: null,
-        websocketActive: false,
-      });
-
-      res.json({
-        success: true,
-        count: count,
-        message: `Deleted ${count} token(s) from Firebase`
-      });
-    } catch (error) {
-      console.error('❌ [FIREBASE] Error deleting tokens:', error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete tokens from Firebase"
-      });
-    }
-  });
 
   // ============================================================================
   // BROKER INTEGRATIONS
