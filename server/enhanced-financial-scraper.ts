@@ -472,9 +472,18 @@ export class EnhancedFinancialScraper {
 
       const $ = cheerio.load(response.data);
       
-      // Extract quarter headers from the table header row
+      // Extract quarter headers with more flexible selectors
       const quarterHeaders: string[] = [];
-      $('section#quarters table thead tr th').each((idx, elem) => {
+      // Try multiple selector patterns for robustness
+      let $headerCells = $('section#quarters table thead tr th');
+      if ($headerCells.length === 0) {
+        $headerCells = $('table thead tr th'); // Fallback to any table
+      }
+      if ($headerCells.length === 0) {
+        $headerCells = $('[class*="quarter"] thead th'); // Try class-based selector
+      }
+      
+      $headerCells.each((idx, elem) => {
         const headerText = $(elem).text().trim();
         // Match date patterns like "Sep 2024", "Dec 2023", "Mar 2024"
         if (headerText.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/i)) {
@@ -484,15 +493,23 @@ export class EnhancedFinancialScraper {
       
       console.log(`[ENHANCED-SCRAPER] Found ${quarterHeaders.length} quarter headers: ${quarterHeaders.slice(-4).join(', ')}`);
       
-      // Extract Sales (revenue) data - it's the first data row
+      // Extract Sales (revenue) data - it's typically the first data row
       let salesValues: number[] = [];
-      $('section#quarters table tbody tr').each((idx, elem) => {
-        const rowLabel = $(elem).find('td.text').text().trim().toLowerCase();
-        if (rowLabel.includes('sales') && salesValues.length === 0) {
-          $(elem).find('td:not(.text)').each((cellIdx, cell) => {
-            const valueText = $(cell).text().trim().replace(/[,\s]/g, '');
+      let $tableRows = $('section#quarters table tbody tr');
+      if ($tableRows.length === 0) {
+        $tableRows = $('table tbody tr'); // Fallback
+      }
+      
+      $tableRows.each((idx, elem) => {
+        const rowLabel = $(elem).find('td').first().text().trim().toLowerCase();
+        const $cells = $(elem).find('td');
+        
+        // Look for sales/revenue row (skip header cells)
+        if ((rowLabel.includes('sales') || rowLabel.includes('revenue')) && salesValues.length === 0) {
+          $cells.slice(1).each((cellIdx, cell) => {
+            const valueText = $(cell).text().trim().replace(/[₹,\s]/g, '').replace(/Cr/g, '');
             const value = parseFloat(valueText);
-            if (!isNaN(value)) {
+            if (!isNaN(value) && value > 0) {
               salesValues.push(value);
             }
           });
