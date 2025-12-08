@@ -5451,6 +5451,61 @@ ${
     source: string;
   }>>([]);
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
+  const [watchlistChartTimeframe, setWatchlistChartTimeframe] = useState('1D');
+  
+  // Queries for NIFTY50 and NIFTYBANK chart data
+  const { data: nifty50ChartData = [], isLoading: isNifty50Loading } = useQuery({
+    queryKey: ['stock-chart', 'NIFTY50', watchlistChartTimeframe],
+    queryFn: () => fetch(`/api/stock-chart-data/NIFTY50?timeframe=${watchlistChartTimeframe}`).then(res => res.json()),
+    refetchInterval: watchlistChartTimeframe === '1D' ? 60000 : 300000,
+    staleTime: watchlistChartTimeframe === '1D' ? 30000 : 180000,
+    gcTime: 600000,
+  });
+
+  const { data: niftyBankChartData = [], isLoading: isNiftyBankLoading } = useQuery({
+    queryKey: ['stock-chart', 'NIFTYBANK', watchlistChartTimeframe],
+    queryFn: () => fetch(`/api/stock-chart-data/NIFTYBANK?timeframe=${watchlistChartTimeframe}`).then(res => res.json()),
+    refetchInterval: watchlistChartTimeframe === '1D' ? 60000 : 300000,
+    staleTime: watchlistChartTimeframe === '1D' ? 30000 : 180000,
+    gcTime: 600000,
+  });
+
+  // Transform chart data to match LineChart format
+  const transformChartData = (data: any[]) => {
+    if (!Array.isArray(data)) return [];
+    return data.map((candle: any) => ({
+      time: new Date(candle.timestamp * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      price: candle.close || candle.price || 0
+    }));
+  };
+
+  const nifty50FormattedData = transformChartData(nifty50ChartData);
+  const niftyBankFormattedData = transformChartData(niftyBankChartData);
+
+  // Get current prices from latest data
+  const getNifty50CurrentPrice = () => {
+    if (nifty50FormattedData.length === 0) return 0;
+    return nifty50ChartData[nifty50ChartData.length - 1]?.close || 0;
+  };
+
+  const getNiftyBankCurrentPrice = () => {
+    if (niftyBankFormattedData.length === 0) return 0;
+    return niftyBankChartData[niftyBankChartData.length - 1]?.close || 0;
+  };
+
+  const getNifty50Change = () => {
+    if (nifty50ChartData.length === 0) return 0;
+    const first = nifty50ChartData[0]?.open || 0;
+    const last = nifty50ChartData[nifty50ChartData.length - 1]?.close || 0;
+    return last - first;
+  };
+
+  const getNiftyBankChange = () => {
+    if (niftyBankChartData.length === 0) return 0;
+    const first = niftyBankChartData[0]?.open || 0;
+    const last = niftyBankChartData[niftyBankChartData.length - 1]?.close || 0;
+    return last - first;
+  };
   
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
@@ -12021,67 +12076,30 @@ ${
                                                         </span>
                                                       </div>
                                                       <div className="flex items-center gap-2">
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"
-                                                        >
-                                                          1D
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          5D
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          1M
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          6M
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          1Y
-                                                        </Button>
+                                                        {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
+                                                          <Button
+                                                            key={tf}
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setWatchlistChartTimeframe(tf)}
+                                                            className={`px-2 py-1 text-xs h-7 ${watchlistChartTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+                                                          >
+                                                            {tf}
+                                                          </Button>
+                                                        ))}
                                                       </div>
                                                     </div>
                                                     <div className="text-right">
-                                                      <div className="text-lg font-mono text-gray-100">₹26,022.10</div>
-                                                      <div className="text-sm text-red-400 flex items-center justify-end gap-1">
-                                                        ▼ ₹154.55 (-0.59%)
+                                                      <div className="text-lg font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                                      <div className={`text-sm flex items-center justify-end gap-1 ${getNifty50Change() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                        {getNifty50Change() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNifty50Change()).toFixed(2)} ({((getNifty50Change() / (getNifty50CurrentPrice() - getNifty50Change())) * 100).toFixed(2)}%)
                                                       </div>
                                                     </div>
                                                   </div>
                                                   
                                                   <div className="h-56 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={[
-                                                        { time: '09:20', price: 6186.65 },
-                                                        { time: '09:35', price: 6165.7 },
-                                                        { time: '09:50', price: 6140.55 },
-                                                        { time: '10:05', price: 6125.7 },
-                                                        { time: '10:20', price: 6110.8 },
-                                                        { time: '10:35', price: 6100.8 },
-                                                        { time: '10:50', price: 6085.7 },
-                                                        { time: '11:05', price: 6075.7 },
-                                                        { time: '11:20', price: 6065.8 },
-                                                        { time: '11:35', price: 6055.7 },
-                                                        { time: '11:50', price: 6050.7 },
-                                                        { time: '12:05', price: 6035.7 }
-                                                      ]} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
+                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
@@ -12162,67 +12180,30 @@ ${
                                                         </span>
                                                       </div>
                                                       <div className="flex items-center gap-2">
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"
-                                                        >
-                                                          1D
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          5D
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          1M
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          6M
-                                                        </Button>
-                                                        <Button
-                                                          variant="ghost"
-                                                          size="sm"
-                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                                        >
-                                                          1Y
-                                                        </Button>
+                                                        {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
+                                                          <Button
+                                                            key={tf}
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setWatchlistChartTimeframe(tf)}
+                                                            className={`px-2 py-1 text-xs h-7 ${watchlistChartTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+                                                          >
+                                                            {tf}
+                                                          </Button>
+                                                        ))}
                                                       </div>
                                                     </div>
                                                     <div className="text-right">
-                                                      <div className="text-lg font-mono text-gray-100">₹41,256.85</div>
-                                                      <div className="text-sm text-green-400 flex items-center justify-end gap-1">
-                                                        ▲ ₹245.30 (+0.60%)
+                                                      <div className="text-lg font-mono text-gray-100">₹{getNiftyBankCurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                                      <div className={`text-sm flex items-center justify-end gap-1 ${getNiftyBankChange() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                        {getNiftyBankChange() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNiftyBankChange()).toFixed(2)} ({((getNiftyBankChange() / (getNiftyBankCurrentPrice() - getNiftyBankChange())) * 100).toFixed(2)}%)
                                                       </div>
                                                     </div>
                                                   </div>
                                                   
                                                   <div className="h-56 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={[
-                                                        { time: '09:20', price: 41200 },
-                                                        { time: '09:35', price: 41215 },
-                                                        { time: '09:50', price: 41235 },
-                                                        { time: '10:05', price: 41250 },
-                                                        { time: '10:20', price: 41260 },
-                                                        { time: '10:35', price: 41270 },
-                                                        { time: '10:50', price: 41280 },
-                                                        { time: '11:05', price: 41290 },
-                                                        { time: '11:20', price: 41300 },
-                                                        { time: '11:35', price: 41310 },
-                                                        { time: '11:50', price: 41320 },
-                                                        { time: '12:05', price: 41256.85 }
-                                                      ]} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
+                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 20, left: 1.5, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
