@@ -5591,6 +5591,19 @@ ${
     }
   };
   
+  // Trigger search when watchlist search query changes (with debouncing)
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (watchlistSearchQuery.trim().length > 0) {
+        searchWatchlistStocks(watchlistSearchQuery);
+      } else {
+        setWatchlistSearchResults([]);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [watchlistSearchQuery]);
+  
   // Add stock to watchlist
   const addToWatchlist = (stock: { symbol: string; name: string; token: string; exchange: string; displayName: string; tradingSymbol: string }) => {
     if (!watchlistSymbols.find(s => s.symbol === stock.symbol)) {
