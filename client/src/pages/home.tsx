@@ -12525,73 +12525,56 @@ ${
                                                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                                                     </div>
                                                   ) : watchlistSymbols.length > 0 ? (
-                                                    (() => {
-                                                      const stocksWithTrend = watchlistSymbols.filter(stock => 
-                                                        (allWatchlistQuarterlyData[stock.symbol] || []).length > 0
-                                                      );
-                                                      return stocksWithTrend.length > 0 ? stocksWithTrend.map((stock) => {
-                                                      const quarterlyData = allWatchlistQuarterlyData[stock.symbol] || [];
-                                                      const hasTrendingUp = quarterlyData.length > 1 && 
-                                                        parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
-                                                      
-                                                      // Prepare chart data
-                                                      const chartData = quarterlyData.map((q: any) => ({
-                                                        quarter: q.quarter,
-                                                        value: parseFloat(q.revenue.replace(/,/g, '')) || 0,
-                                                        changePercent: parseFloat(q.change_percent) || 0
-                                                      }));
-                                                      
-                                                      const trendColor = hasTrendingUp ? '#22c55e' : '#ef4444';
-                                                      
-                                                      return (
-                                                        <div key={stock.symbol} className="bg-gray-800/30 rounded-lg p-3 border border-gray-700">
-                                                          <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-sm font-medium text-gray-200">{stock.displayName}</span>
-                                                            <span className={`text-xs px-2 py-1 rounded ${hasTrendingUp ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                              {hasTrendingUp ? '↑ Uptrend' : '↓ Downtrend'}
-                                                            </span>
-                                                          </div>
-                                                          
-                                                          {quarterlyData.length > 0 ? (
-                                                            <>
-                                                              <div className="h-24 w-full mb-2">
-                                                                <ResponsiveContainer width="100%" height="100%">
-                                                                  <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                                                                    <defs>
-                                                                      <linearGradient id={`grad-${stock.symbol}`} x1="0" y1="0" x2="0" y2="1">
-                                                                        <stop offset="0%" stopColor={trendColor} stopOpacity={0.4} />
-                                                                        <stop offset="100%" stopColor={trendColor} stopOpacity={0.05} />
-                                                                      </linearGradient>
-                                                                    </defs>
-                                                                    <XAxis dataKey="quarter" tick={{ fontSize: 9, fill: '#9ca3af' }} />
-                                                                    <YAxis tick={{ fontSize: 8, fill: '#6b7280' }} />
-                                                                    <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', fontSize: '11px' }} />
-                                                                    <Area type="monotone" dataKey="value" stroke={trendColor} strokeWidth={1.5} fill={`url(#grad-${stock.symbol})`} />
-                                                                  </AreaChart>
-                                                                </ResponsiveContainer>
-                                                              </div>
-                                                              <div className="text-xs text-gray-400 grid grid-cols-2 gap-2">
-                                                                <div>Latest: ₹{quarterlyData[quarterlyData.length - 1]?.revenue} Cr</div>
-                                                                <div>Change: {quarterlyData[quarterlyData.length - 1]?.change_percent}</div>
-                                                              </div>
-                                                            </>
-                                                          ) : (
-                                                            <div className="text-center py-4 text-gray-500 text-xs">
-                                                              No quarterly data available
+                                                    watchlistSymbols.filter(stock => (allWatchlistQuarterlyData[stock.symbol] || []).length > 0).length > 0 ? (
+                                                      watchlistSymbols.filter(stock => (allWatchlistQuarterlyData[stock.symbol] || []).length > 0).map((stock) => {
+                                                        const quarterlyData = allWatchlistQuarterlyData[stock.symbol] || [];
+                                                        const hasTrendingUp = quarterlyData.length > 1 && 
+                                                          parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
+                                                        
+                                                        // Prepare chart data
+                                                        const chartData = quarterlyData.map((q: any) => ({
+                                                          quarter: q.quarter,
+                                                          value: parseFloat(q.revenue.replace(/,/g, '')) || 0,
+                                                          changePercent: parseFloat(q.change_percent) || 0
+                                                        }));
+                                                        
+                                                        const trendColor = hasTrendingUp ? '#22c55e' : '#ef4444';
+                                                        
+                                                        return (
+                                                          <div key={stock.symbol} className="bg-gray-800/30 rounded-lg p-3 border border-gray-700">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                              <span className="text-sm font-medium text-gray-200">{stock.displayName}</span>
+                                                              <span className={`text-xs px-2 py-1 rounded ${hasTrendingUp ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                                {hasTrendingUp ? '↑ Uptrend' : '↓ Downtrend'}
+                                                              </span>
                                                             </div>
-                                                          )}
-                                                        </div>
-                                                      );
-                                                    })
-                                                  ) : (
-                                                    <div className="text-center py-8 text-gray-500">
-                                                      <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                                                      <p className="text-xs">Add stocks to watchlist to see quarterly results</p>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
+                                                            
+                                                            <div className="h-24 w-full mb-2">
+                                                              <ResponsiveContainer width="100%" height="100%">
+                                                                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                                                  <defs>
+                                                                    <linearGradient id={`grad-${stock.symbol}`} x1="0" y1="0" x2="0" y2="1">
+                                                                      <stop offset="0%" stopColor={trendColor} stopOpacity={0.4} />
+                                                                      <stop offset="100%" stopColor={trendColor} stopOpacity={0.05} />
+                                                                    </linearGradient>
+                                                                  </defs>
+                                                                  <XAxis dataKey="quarter" tick={{ fontSize: 9, fill: '#9ca3af' }} />
+                                                                  <YAxis tick={{ fontSize: 8, fill: '#6b7280' }} />
+                                                                  <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', fontSize: '11px' }} />
+                                                                  <Area type="monotone" dataKey="value" stroke={trendColor} strokeWidth={1.5} fill={`url(#grad-${stock.symbol})`} />
+                                                                </AreaChart>
+                                                              </ResponsiveContainer>
+                                                            </div>
+                                                            <div className="text-xs text-gray-400 grid grid-cols-2 gap-2">
+                                                              <div>Latest: ₹{quarterlyData[quarterlyData.length - 1]?.revenue} Cr</div>
+                                                              <div>Change: {quarterlyData[quarterlyData.length - 1]?.change_percent}</div>
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })
+                                                    ) : (
+                                                      <div className="text-center py-8 text-gray-500">
+                                                        <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
                                           </div>
                                         );
                                         
