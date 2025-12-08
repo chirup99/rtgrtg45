@@ -12657,6 +12657,48 @@ ${
                                                             <span className="w-2 h-2 rounded-full bg-red-500"></span> Negative Quarter
                                                           </span>
                                                         </div>
+                                                        
+                                                        {/* Quarterly Results PDF Links Bar */}
+                                                        <div className="mt-3 pt-3 border-t border-gray-700">
+                                                          <div className="flex justify-between items-center px-2">
+                                                            {chartData.map((q: any, idx: number) => {
+                                                              const fyQuarterToDate = (quarter: string): string => {
+                                                                const match = quarter.match(/Q(\d)\s*FY(\d{2})/i);
+                                                                if (!match) return quarter;
+                                                                const qNum = parseInt(match[1]);
+                                                                const fyYear = parseInt(match[2]);
+                                                                const fullYear = fyYear >= 50 ? 1900 + fyYear : 2000 + fyYear;
+                                                                const monthMap: { [key: number]: { month: string; yearOffset: number } } = {
+                                                                  1: { month: 'Jun', yearOffset: -1 },
+                                                                  2: { month: 'Sep', yearOffset: -1 },
+                                                                  3: { month: 'Dec', yearOffset: -1 },
+                                                                  4: { month: 'Mar', yearOffset: 0 }
+                                                                };
+                                                                const { month, yearOffset } = monthMap[qNum] || { month: 'Mar', yearOffset: 0 };
+                                                                return `${month} ${fullYear + yearOffset}`;
+                                                              };
+                                                              const displayDate = fyQuarterToDate(q.quarter);
+                                                              const searchedSymbol = (window as any).searchedStockSymbol || 'RELIANCE';
+                                                              const pdfUrl = `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
+                                                              
+                                                              return (
+                                                                <div key={idx} className="flex flex-col items-center gap-1">
+                                                                  <span className="text-[10px] text-gray-400">{displayDate}</span>
+                                                                  <a
+                                                                    href={pdfUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-gray-400 hover:text-blue-400 transition-colors"
+                                                                    title={`View ${displayDate} quarterly results`}
+                                                                    data-testid={`pdf-link-${idx}`}
+                                                                  >
+                                                                    <FileText className="h-4 w-4" />
+                                                                  </a>
+                                                                </div>
+                                                              );
+                                                            })}
+                                                          </div>
+                                                        </div>
                                                       </>
                                                     );
                                                   })()}
@@ -12957,6 +12999,48 @@ ${
                                                   <span className="flex items-center gap-1">
                                                     <span className="w-2 h-2 rounded-full bg-red-500"></span> Negative Quarter
                                                   </span>
+                                                </div>
+                                                
+                                                {/* Quarterly Results PDF Links Bar */}
+                                                <div className="mt-3 pt-3 border-t border-gray-700">
+                                                  <div className="flex justify-between items-center px-2">
+                                                    {chartData.map((q: any, idx: number) => {
+                                                      const fyQuarterToDate = (quarter: string): string => {
+                                                        const match = quarter.match(/Q(\d)\s*FY(\d{2})/i);
+                                                        if (!match) return quarter;
+                                                        const qNum = parseInt(match[1]);
+                                                        const fyYear = parseInt(match[2]);
+                                                        const fullYear = fyYear >= 50 ? 1900 + fyYear : 2000 + fyYear;
+                                                        const monthMap: { [key: number]: { month: string; yearOffset: number } } = {
+                                                          1: { month: 'Jun', yearOffset: -1 },
+                                                          2: { month: 'Sep', yearOffset: -1 },
+                                                          3: { month: 'Dec', yearOffset: -1 },
+                                                          4: { month: 'Mar', yearOffset: 0 }
+                                                        };
+                                                        const { month, yearOffset } = monthMap[qNum] || { month: 'Mar', yearOffset: 0 };
+                                                        return `${month} ${fullYear + yearOffset}`;
+                                                      };
+                                                      const displayDate = fyQuarterToDate(q.quarter);
+                                                      const searchedSymbol = (window as any).searchedStockSymbol || companyInsights?.symbol || 'RELIANCE';
+                                                      const pdfUrl = `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
+                                                      
+                                                      return (
+                                                        <div key={idx} className="flex flex-col items-center gap-1">
+                                                          <span className="text-[10px] text-gray-400">{displayDate}</span>
+                                                          <a
+                                                            href={pdfUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-gray-400 hover:text-blue-400 transition-colors"
+                                                            title={`View ${displayDate} quarterly results`}
+                                                            data-testid={`pdf-link-insights-${idx}`}
+                                                          >
+                                                            <FileText className="h-4 w-4" />
+                                                          </a>
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
                                                 </div>
                                               </div>
                                             )}

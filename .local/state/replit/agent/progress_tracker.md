@@ -558,3 +558,48 @@ All quarterly performance chart X-axis labels now correctly use Indian fiscal ye
 The quarterly performance charts now match screener.in conventions across all data sources!
 
 =========================================================
+
+QUARTERLY PDF LINKS BAR - DECEMBER 8, 2025 (6:30 PM)
+
+[x] 1. Added quarterly PDF links bar below the Quarterly Performance Trend chart
+      - Displays below the positive/negative quarter legend
+      - Shows clickable PDF icons (FileText) for each quarter
+
+[x] 2. PDF links bar implementation:
+      - Converts FY quarter format (Q2 FY26) back to month/year display (Sep 2025)
+      - Uses helper function fyQuarterToDate() for conversion
+      - Displays: Jun 2025, Sep 2025, Dec 2024, Mar 2025 (matching quarters)
+      - Each quarter has a FileText icon that links to screener.in
+
+[x] 3. Link destinations:
+      - Each PDF icon links to: https://www.screener.in/company/[SYMBOL]/consolidated/#quarters
+      - Uses the searched stock symbol from window.searchedStockSymbol
+      - Opens in new tab with noopener noreferrer for security
+      - Tooltip shows "View [Month Year] quarterly results"
+
+[x] 4. Styling:
+      - Border-top separator (border-gray-700)
+      - Gray-400 text for month labels
+      - Gray-400 icons with blue-400 hover effect
+      - FileText icons at h-4 w-4 size
+      - Proper spacing with justify-between layout
+
+[x] 5. Applied to both chart locations:
+      - ✅ Main search results Quarterly Performance chart
+      - ✅ Company insights Quarterly Performance chart
+
+[x] 6. Verified FileText icon already imported from lucide-react
+
+[x] 7. Workflow restarted and running on port 5000 ✅
+
+## ✅ QUARTERLY PDF LINKS BAR COMPLETE
+
+Users can now click on PDF icons below the quarterly chart to view detailed financial filings:
+- ✅ PDF links bar displays below quarterly performance chart
+- ✅ Each quarter shows month/year label with clickable icon
+- ✅ Icons link to screener.in quarterly results page
+- ✅ Works for any searched stock symbol
+- ✅ Consistent styling with dark theme
+- ✅ Opens in new tab for easy reference
+
+=========================================================
