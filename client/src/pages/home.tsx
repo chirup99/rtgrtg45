@@ -5415,6 +5415,124 @@ ${
   const [showHeatmapTimeframeDropdown, setShowHeatmapTimeframeDropdown] = useState(false);
   const [showTradeMarkers, setShowTradeMarkers] = useState(true); // Toggle for trade markers visibility
   
+  // Watchlist Feature State
+  const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
+  const [watchlistSymbols, setWatchlistSymbols] = useState<Array<{
+    symbol: string;
+    name: string;
+    token: string;
+    exchange: string;
+    displayName: string;
+    tradingSymbol: string;
+  }>>(() => {
+    const saved = localStorage.getItem('watchlistSymbols');
+    return saved ? JSON.parse(saved) : [
+      { symbol: 'RELIANCE-EQ', name: 'Reliance Industries', token: '2885', exchange: 'NSE', displayName: 'RELIANCE', tradingSymbol: 'RELIANCE-EQ' },
+      { symbol: 'TCS-EQ', name: 'Tata Consultancy Services', token: '11536', exchange: 'NSE', displayName: 'TCS', tradingSymbol: 'TCS-EQ' },
+      { symbol: 'HDFCBANK-EQ', name: 'HDFC Bank', token: '1333', exchange: 'NSE', displayName: 'HDFCBANK', tradingSymbol: 'HDFCBANK-EQ' },
+    ];
+  });
+  const [selectedWatchlistSymbol, setSelectedWatchlistSymbol] = useState<string>('RELIANCE-EQ');
+  const [watchlistSearchQuery, setWatchlistSearchQuery] = useState('');
+  const [watchlistSearchResults, setWatchlistSearchResults] = useState<Array<{
+    symbol: string;
+    name: string;
+    token: string;
+    exchange: string;
+    displayName: string;
+    tradingSymbol: string;
+  }>>([]);
+  const [isWatchlistSearching, setIsWatchlistSearching] = useState(false);
+  const [watchlistNews, setWatchlistNews] = useState<Array<{
+    title: string;
+    description: string;
+    url: string;
+    publishedAt: string;
+    source: string;
+  }>>([]);
+  const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
+  
+  // Save watchlist to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('watchlistSymbols', JSON.stringify(watchlistSymbols));
+  }, [watchlistSymbols]);
+  
+  // Fetch news for selected watchlist symbol
+  useEffect(() => {
+    if (selectedWatchlistSymbol && isWatchlistOpen) {
+      const fetchWatchlistNews = async () => {
+        setIsWatchlistNewsLoading(true);
+        try {
+          const cleanSymbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
+          const response = await fetch(`/api/stock-news/${cleanSymbol}?refresh=${Date.now()}`);
+          if (response.ok) {
+            const data = await response.json();
+            const newsItems = Array.isArray(data) ? data : (data.news || []);
+            setWatchlistNews(newsItems.slice(0, 20));
+          }
+        } catch (error) {
+          console.error('Error fetching watchlist news:', error);
+        } finally {
+          setIsWatchlistNewsLoading(false);
+        }
+      };
+      fetchWatchlistNews();
+    }
+  }, [selectedWatchlistSymbol, isWatchlistOpen]);
+  
+  // Search stocks for watchlist
+  const searchWatchlistStocks = async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setWatchlistSearchResults([]);
+      return;
+    }
+    setIsWatchlistSearching(true);
+    try {
+      const response = await fetch(`/api/search-instruments?query=${encodeURIComponent(query)}&type=stock`);
+      if (response.ok) {
+        const data = await response.json();
+        setWatchlistSearchResults(data.slice(0, 10));
+      }
+    } catch (error) {
+      console.error('Error searching stocks:', error);
+    } finally {
+      setIsWatchlistSearching(false);
+    }
+  };
+  
+  // Add stock to watchlist
+  const addToWatchlist = (stock: { symbol: string; name: string; token: string; exchange: string; displayName: string; tradingSymbol: string }) => {
+    if (!watchlistSymbols.find(s => s.symbol === stock.symbol)) {
+      setWatchlistSymbols(prev => [...prev, stock]);
+      setSelectedWatchlistSymbol(stock.symbol);
+    }
+    setWatchlistSearchQuery('');
+    setWatchlistSearchResults([]);
+  };
+  
+  // Remove stock from watchlist
+  const removeFromWatchlist = (symbol: string) => {
+    setWatchlistSymbols(prev => prev.filter(s => s.symbol !== symbol));
+    if (selectedWatchlistSymbol === symbol && watchlistSymbols.length > 1) {
+      const remaining = watchlistSymbols.filter(s => s.symbol !== symbol);
+      setSelectedWatchlistSymbol(remaining[0]?.symbol || '');
+    }
+  };
+  
+  // Get relative time for news
+  const getWatchlistNewsRelativeTime = (publishedAt: string) => {
+    const now = new Date();
+    const published = new Date(publishedAt);
+    const diffMs = now.getTime() - published.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+  
   // Journal chart timeframe options (same as Trading Master OHLC window)
   const journalTimeframeOptions = [
     { value: '1', label: '1min' },
@@ -12336,15 +12454,12 @@ ${
                         <Button
                           variant="secondary"
                           className="bg-cyan-600 hover:bg-cyan-700  text-white border-0 h-7 px-2 rounded-full text-xs font-medium transition-all duration-200"
-                          onClick={() =>
-                            handleSuggestionClick(
-                              "RSI technical analysis for RELIANCE",
-                            )
-                          }
+                          onClick={() => setIsWatchlistOpen(true)}
+                          data-testid="button-watchlist"
                         >
                           <div className="flex items-center justify-center gap-1">
-                            <BarChart3 className="h-3 w-3" />
-                            <span>Technical Analysis</span>
+                            <Eye className="h-3 w-3" />
+                            <span>Watchlist</span>
                           </div>
                         </Button>
 
@@ -17758,6 +17873,219 @@ ${
                 >
                   Import
                 </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Watchlist Modal - Full Screen with Index Charts, Watchlist, and News */}
+        <Dialog open={isWatchlistOpen} onOpenChange={setIsWatchlistOpen}>
+          <DialogContent className="max-w-6xl w-[95vw] h-[90vh] overflow-hidden p-0 bg-gray-900">
+            <div className="flex flex-col h-full">
+              {/* Header with Search */}
+              <div className="sticky top-0 z-20 bg-gray-800 border-b border-gray-700 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-cyan-400" />
+                    <span className="text-lg font-semibold text-white">Watchlist</span>
+                  </div>
+                  <div className="flex-1 max-w-md relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search stocks to add..."
+                      value={watchlistSearchQuery}
+                      onChange={(e) => {
+                        setWatchlistSearchQuery(e.target.value);
+                        searchWatchlistStocks(e.target.value);
+                      }}
+                      className="pl-10 h-9 bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
+                      data-testid="input-watchlist-search"
+                    />
+                    {watchlistSearchResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-xl z-50 max-h-60 overflow-y-auto">
+                        {watchlistSearchResults.map((stock) => (
+                          <div
+                            key={stock.symbol}
+                            onClick={() => addToWatchlist(stock)}
+                            className="px-3 py-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+                            data-testid={`watchlist-search-result-${stock.symbol}`}
+                          >
+                            <div>
+                              <span className="text-white font-medium text-sm">{stock.displayName || stock.symbol}</span>
+                              <span className="text-gray-400 text-xs ml-2">{stock.name}</span>
+                            </div>
+                            <Plus className="h-4 w-4 text-cyan-400" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isWatchlistSearching && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Content */}
+              <div className="flex-1 overflow-hidden grid grid-cols-12 gap-4 p-4">
+                {/* Left Column - Index Charts + Watchlist */}
+                <div className="col-span-4 flex flex-col gap-4 overflow-y-auto custom-thin-scrollbar">
+                  {/* Nifty 50 Chart */}
+                  <div className="bg-gray-800 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white">NIFTY 50</span>
+                      <span className="text-xs text-gray-400">Index</span>
+                    </div>
+                    <div className="h-32 bg-gray-700/50 rounded flex items-center justify-center">
+                      <MinimalChart 
+                        symbol="NSE:Nifty 50" 
+                        height={120}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bank Nifty Chart */}
+                  <div className="bg-gray-800 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white">BANK NIFTY</span>
+                      <span className="text-xs text-gray-400">Index</span>
+                    </div>
+                    <div className="h-32 bg-gray-700/50 rounded flex items-center justify-center">
+                      <MinimalChart 
+                        symbol="NSE:Nifty Bank" 
+                        height={120}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Watchlist Symbols */}
+                  <div className="bg-gray-800 rounded-lg p-3 flex-1">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-white">My Watchlist</span>
+                      <span className="text-xs text-gray-400">{watchlistSymbols.length} stocks</span>
+                    </div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto custom-thin-scrollbar">
+                      {watchlistSymbols.map((stock) => (
+                        <div
+                          key={stock.symbol}
+                          onClick={() => setSelectedWatchlistSymbol(stock.symbol)}
+                          className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                            selectedWatchlistSymbol === stock.symbol 
+                              ? 'bg-cyan-600/20 border border-cyan-500/50' 
+                              : 'bg-gray-700/50 hover:bg-gray-700'
+                          }`}
+                          data-testid={`watchlist-item-${stock.symbol}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${selectedWatchlistSymbol === stock.symbol ? 'bg-cyan-400' : 'bg-gray-500'}`} />
+                            <div>
+                              <span className="text-white text-sm font-medium">{stock.displayName}</span>
+                              <span className="text-gray-400 text-xs block">{stock.name}</span>
+                            </div>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-gray-400 hover:text-red-400"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromWatchlist(stock.symbol);
+                            }}
+                            data-testid={`button-remove-watchlist-${stock.symbol}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      {watchlistSymbols.length === 0 && (
+                        <div className="text-center py-8 text-gray-400 text-sm">
+                          <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No stocks in watchlist</p>
+                          <p className="text-xs mt-1">Use the search bar to add stocks</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Related News (Full Width) */}
+                <div className="col-span-8 bg-gray-800 rounded-lg overflow-hidden flex flex-col">
+                  <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-cyan-400" />
+                      <span className="text-sm font-medium text-white">
+                        Related News for {selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '')}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-gray-400 hover:text-white"
+                      onClick={() => {
+                        setWatchlistNews([]);
+                        const cleanSymbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
+                        setIsWatchlistNewsLoading(true);
+                        fetch(`/api/stock-news/${cleanSymbol}?refresh=${Date.now()}`)
+                          .then(res => res.json())
+                          .then(data => {
+                            const newsItems = Array.isArray(data) ? data : (data.news || []);
+                            setWatchlistNews(newsItems.slice(0, 20));
+                          })
+                          .finally(() => setIsWatchlistNewsLoading(false));
+                      }}
+                      data-testid="button-refresh-watchlist-news"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Refresh
+                    </Button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto custom-thin-scrollbar p-4 space-y-3">
+                    {isWatchlistNewsLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+                      </div>
+                    ) : watchlistNews.length > 0 ? (
+                      watchlistNews.map((news, index) => (
+                        <a
+                          key={index}
+                          href={news.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block bg-gray-700/60 hover:bg-gray-700 rounded-lg p-4 transition-colors"
+                          data-testid={`watchlist-news-item-${index}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <h4 className="text-white text-sm font-medium leading-snug mb-1">
+                                {news.title}
+                              </h4>
+                              {news.description && (
+                                <p className="text-gray-400 text-xs line-clamp-2 mb-2">
+                                  {news.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>{news.source}</span>
+                                <span>•</span>
+                                <span>{getWatchlistNewsRelativeTime(news.publishedAt)}</span>
+                              </div>
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-gray-500 flex-shrink-0 mt-1" />
+                          </div>
+                        </a>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 text-gray-400">
+                        <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">No recent news for {selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '')}</p>
+                        <p className="text-xs mt-1">Check back later for updates</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </DialogContent>
