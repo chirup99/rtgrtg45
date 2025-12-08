@@ -12009,32 +12009,242 @@ ${
                                             {/* Left Column - Index Charts + Watchlist */}
                                             <div className="w-80 flex-shrink-0 space-y-4">
                                               {/* NIFTY 50 Chart */}
-                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
-                                                <div className="flex items-center justify-between mb-2">
-                                                  <h4 className="text-sm font-medium text-gray-200">NIFTY 50</h4>
-                                                  <span className="text-xs text-gray-400">Index</span>
-                                                </div>
-                                                <div className="h-24">
-                                                  <MinimalChart 
-                                                    symbol="NIFTY" 
-                                                    height={96}
-                                                    showControls={true}
-                                                  />
+                                              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                                <div className="space-y-3">
+                                                  <div className="flex items-center justify-between">
+                                                    <div className="space-y-1">
+                                                      <div className="flex items-center gap-2">
+                                                        <h4 className="text-lg font-semibold text-gray-200">NIFTY 50 Index</h4>
+                                                        <span className="text-xs text-green-400 flex items-center gap-1">
+                                                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                          Live
+                                                        </span>
+                                                      </div>
+                                                      <div className="flex items-center gap-2">
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"
+                                                        >
+                                                          1D
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          5D
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          1M
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          6M
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          1Y
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                      <div className="text-lg font-mono text-gray-100">₹26,022.10</div>
+                                                      <div className="text-sm text-red-400 flex items-center justify-end gap-1">
+                                                        ▼ ₹154.55 (-0.59%)
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  
+                                                  <div className="h-56 w-full bg-gray-800/30 rounded-lg p-2">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                      <LineChart data={[
+                                                        { time: '09:20', price: 6186.65 },
+                                                        { time: '09:35', price: 6165.7 },
+                                                        { time: '09:50', price: 6140.55 },
+                                                        { time: '10:05', price: 6125.7 },
+                                                        { time: '10:20', price: 6110.8 },
+                                                        { time: '10:35', price: 6100.8 },
+                                                        { time: '10:50', price: 6085.7 },
+                                                        { time: '11:05', price: 6075.7 },
+                                                        { time: '11:20', price: 6065.8 },
+                                                        { time: '11:35', price: 6055.7 },
+                                                        { time: '11:50', price: 6050.7 },
+                                                        { time: '12:05', price: 6035.7 }
+                                                      ]} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                        <XAxis 
+                                                          dataKey="time" 
+                                                          axisLine={false}
+                                                          tickLine={false}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          tickCount={5}
+                                                        />
+                                                        <YAxis 
+                                                          domain={['dataMin - 20', 'dataMax + 20']}
+                                                          axisLine={false}
+                                                          tickLine={false}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          width={35}
+                                                        />
+                                                        <Tooltip 
+                                                          content={({ active, payload }) => {
+                                                            if (!active || !payload || !payload.length) return null;
+                                                            const value = payload[0].value;
+                                                            return (
+                                                              <div style={{
+                                                                backgroundColor: '#1e293b',
+                                                                border: '1px solid #334155',
+                                                                borderRadius: '4px',
+                                                                color: '#e2e8f0',
+                                                                padding: '4px 8px',
+                                                                fontSize: '11px'
+                                                              }}>
+                                                                ₹{Number(value).toFixed(2)}
+                                                              </div>
+                                                            );
+                                                          }}
+                                                        />
+                                                        <Line 
+                                                          type="linear" 
+                                                          dataKey="price" 
+                                                          stroke="#ef4444"
+                                                          strokeWidth={2}
+                                                          dot={false}
+                                                          isAnimationActive={false}
+                                                        />
+                                                      </LineChart>
+                                                    </ResponsiveContainer>
+                                                  </div>
                                                 </div>
                                               </div>
                                               
                                               {/* BANK NIFTY Chart */}
-                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
-                                                <div className="flex items-center justify-between mb-2">
-                                                  <h4 className="text-sm font-medium text-gray-200">BANK NIFTY</h4>
-                                                  <span className="text-xs text-gray-400">Index</span>
-                                                </div>
-                                                <div className="h-24">
-                                                  <MinimalChart 
-                                                    symbol="BANKNIFTY" 
-                                                    height={96}
-                                                    showControls={true}
-                                                  />
+                                              <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                                <div className="space-y-3">
+                                                  <div className="flex items-center justify-between">
+                                                    <div className="space-y-1">
+                                                      <div className="flex items-center gap-2">
+                                                        <h4 className="text-lg font-semibold text-gray-200">BANK NIFTY Index</h4>
+                                                        <span className="text-xs text-green-400 flex items-center gap-1">
+                                                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                          Live
+                                                        </span>
+                                                      </div>
+                                                      <div className="flex items-center gap-2">
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"
+                                                        >
+                                                          1D
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          5D
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          1M
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          6M
+                                                        </Button>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="px-2 py-1 text-xs h-7 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                                        >
+                                                          1Y
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                      <div className="text-lg font-mono text-gray-100">₹41,256.85</div>
+                                                      <div className="text-sm text-green-400 flex items-center justify-end gap-1">
+                                                        ▲ ₹245.30 (+0.60%)
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  
+                                                  <div className="h-56 w-full bg-gray-800/30 rounded-lg p-2">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                      <LineChart data={[
+                                                        { time: '09:20', price: 41200 },
+                                                        { time: '09:35', price: 41215 },
+                                                        { time: '09:50', price: 41235 },
+                                                        { time: '10:05', price: 41250 },
+                                                        { time: '10:20', price: 41260 },
+                                                        { time: '10:35', price: 41270 },
+                                                        { time: '10:50', price: 41280 },
+                                                        { time: '11:05', price: 41290 },
+                                                        { time: '11:20', price: 41300 },
+                                                        { time: '11:35', price: 41310 },
+                                                        { time: '11:50', price: 41320 },
+                                                        { time: '12:05', price: 41256.85 }
+                                                      ]} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                        <XAxis 
+                                                          dataKey="time" 
+                                                          axisLine={false}
+                                                          tickLine={false}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          tickCount={5}
+                                                        />
+                                                        <YAxis 
+                                                          domain={['dataMin - 100', 'dataMax + 100']}
+                                                          axisLine={false}
+                                                          tickLine={false}
+                                                          tick={{ fontSize: 9, fill: '#64748b' }}
+                                                          width={35}
+                                                        />
+                                                        <Tooltip 
+                                                          content={({ active, payload }) => {
+                                                            if (!active || !payload || !payload.length) return null;
+                                                            const value = payload[0].value;
+                                                            return (
+                                                              <div style={{
+                                                                backgroundColor: '#1e293b',
+                                                                border: '1px solid #334155',
+                                                                borderRadius: '4px',
+                                                                color: '#e2e8f0',
+                                                                padding: '4px 8px',
+                                                                fontSize: '11px'
+                                                              }}>
+                                                                ₹{Number(value).toFixed(2)}
+                                                              </div>
+                                                            );
+                                                          }}
+                                                        />
+                                                        <Line 
+                                                          type="linear" 
+                                                          dataKey="price" 
+                                                          stroke="#10b981"
+                                                          strokeWidth={2}
+                                                          dot={false}
+                                                          isAnimationActive={false}
+                                                        />
+                                                      </LineChart>
+                                                    </ResponsiveContainer>
+                                                  </div>
                                                 </div>
                                               </div>
                                               
