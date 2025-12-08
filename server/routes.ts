@@ -1792,35 +1792,155 @@ function sortNewsByTime(news: any[]) {
 
 
 async function scrapeQuarterlyResults(symbol: string) {
+  const cheerio = await import('cheerio');
+  
+  const parseNumber = (text: string): number => {
+    if (!text) return 0;
+    const cleanText = text.replace(/[₹%,\s]/g, '').trim();
+    const num = parseFloat(cleanText);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const parseCrores = (text: string): number => {
+    if (!text) return 0;
+    const cleanText = text.replace(/[₹,\s]/g, '').trim();
+    const num = parseFloat(cleanText);
+    return isNaN(num) ? 0 : num;
+  };
+  
   try {
     console.log(`📊 Scraping quarterly results for ${symbol} from screener.in...`);
     
-    const response = await axios.get(`https://www.screener.in/api/company/${symbol}/`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      },
-      timeout: 10000
-    });
-
-    const results: any[] = [];
+    const cleanSymbol = symbol.replace('-EQ', '').replace('-BE', '').toUpperCase();
     
-    if (response.data && response.data.results && response.data.results.length > 0) {
-      const quarters = response.data.results.slice(0, 8); // Last 8 quarters
-      
-      quarters.forEach((q: any) => {
-        results.push({
-          quarter: q.quarter || 'N/A',
-          revenue: q.revenue ? `${(q.revenue / 10000000).toFixed(0)}` : 'N/A',
-          net_profit: q.net_profit ? `${(q.net_profit / 10000000).toFixed(0)}` : 'N/A',
-          eps: q.eps || 'N/A',
-          change_percent: q.change_percent ? `${parseFloat(q.change_percent).toFixed(2)}%` : 'N/A'
+    // Try consolidated page first, then standalone
+    const urls = [
+      `https://www.screener.in/company/${cleanSymbol}/consolidated/`,
+      `https://www.screener.in/company/${cleanSymbol}/`
+    ];
+    
+    let html = '';
+    let fetchedUrl = '';
+    
+    for (const url of urls) {
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+          },
+          timeout: 15000
         });
-      });
-      
-      console.log(`✅ Found ${results.length} quarters of data for ${symbol}`);
+        
+        if (response.status === 200 && response.data) {
+          html = response.data;
+          fetchedUrl = url;
+          console.log(`✅ Successfully fetched ${url}`);
+          break;
+        }
+      } catch (urlError: any) {
+        console.log(`⚠️ Failed to fetch ${url}: ${urlError.response?.status || urlError.message}`);
+        continue;
+      }
     }
     
-    return results;
+    if (!html) {
+      console.log(`❌ Could not fetch any screener page for ${cleanSymbol}`);
+      return [];
+    }
+
+    const $ = cheerio.load(html);
+    const results: any[] = [];
+    
+    // Find the quarterly results section - look for the table with quarters heading
+    const quartersSections = $('section#quarters, section:contains("Quarterly Results"), [data-section="quarters"]');
+    
+    // Try different table selectors for quarterly data
+    const tableSelectors = [
+      '#quarters table',
+      'section#quarters table',
+      '[data-section="quarters"] table',
+      'table:has(th:contains("Quarter"))',
+      '.responsive-holder table'
+    ];
+    
+    let quarterTable: any = null;
+    for (const selector of tableSelectors) {
+      const table = $(selector).first();
+      if (table.length > 0) {
+        // Check if this table has quarter-related data
+        const headerText = table.find('thead, tr:first-child').text().toLowerCase();
+        if (headerText.includes('sales') || headerText.includes('revenue') || headerText.includes('net profit')) {
+          quarterTable = table;
+          break;
+        }
+      }
+    }
+    
+    if (!quarterTable) {
+      // Fallback: look for any table in the quarters section
+      quarterTable = $('#quarters').find('table').first();
+    }
+    
+    if (quarterTable && quarterTable.length > 0) {
+      // Get the header row to understand column positions
+      const headers: string[] = [];
+      quarterTable.find('thead th, thead td, tr:first-child th, tr:first-child td').each((i: number, el: any) => {
+        headers.push($(el).text().trim().toLowerCase());
+      });
+      
+      // Find column indices
+      const salesIdx = headers.findIndex(h => h.includes('sales') || h.includes('revenue'));
+      const expenseIdx = headers.findIndex(h => h.includes('expense'));
+      const profitIdx = headers.findIndex(h => h.includes('operating profit'));
+      const netProfitIdx = headers.findIndex(h => h.includes('net profit') || h.includes('profit'));
+      const epsIdx = headers.findIndex(h => h.includes('eps'));
+      
+      // Parse each data row
+      quarterTable.find('tbody tr, tr').slice(1, 9).each((i: number, el: any) => {
+        const cols = $(el).find('td, th');
+        if (cols.length >= 3) {
+          const quarterName = $(cols[0]).text().trim();
+          
+          // Skip header rows or empty rows
+          if (!quarterName || quarterName.toLowerCase().includes('sales') || quarterName.toLowerCase().includes('quarter')) {
+            return;
+          }
+          
+          const sales = salesIdx >= 0 ? parseCrores($(cols[salesIdx]).text()) : parseCrores($(cols[1]).text());
+          const netProfit = netProfitIdx >= 0 ? parseCrores($(cols[netProfitIdx]).text()) : parseCrores($(cols[cols.length - 2]).text());
+          const eps = epsIdx >= 0 ? parseNumber($(cols[epsIdx]).text()) : parseNumber($(cols[cols.length - 1]).text());
+          
+          // Calculate YoY change if we have previous year's data
+          const changePercent = i > 0 && results.length > 0 ? 
+            ((sales - results[results.length - 1].salesValue) / results[results.length - 1].salesValue * 100).toFixed(2) + '%' : 
+            'N/A';
+          
+          results.push({
+            quarter: quarterName,
+            revenue: sales > 0 ? sales.toFixed(0) : 'N/A',
+            net_profit: netProfit !== 0 ? netProfit.toFixed(0) : 'N/A',
+            eps: eps !== 0 ? eps.toFixed(2) : 'N/A',
+            change_percent: changePercent,
+            salesValue: sales // Keep for calculation, will filter out later
+          });
+        }
+      });
+    }
+    
+    // Clean up salesValue from results
+    const cleanResults = results.map(r => ({
+      quarter: r.quarter,
+      revenue: r.revenue,
+      net_profit: r.net_profit,
+      eps: r.eps,
+      change_percent: r.change_percent
+    }));
+    
+    console.log(`✅ Found ${cleanResults.length} quarters of data for ${symbol} from ${fetchedUrl}`);
+    return cleanResults;
+    
   } catch (error) {
     console.error(`Error scraping quarterly results for ${symbol}:`, error);
     return [];
