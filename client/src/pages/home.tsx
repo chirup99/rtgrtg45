@@ -12133,7 +12133,7 @@ ${
                                                           axisLine={false}
                                                           tickLine={false}
                                                           tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          width={45}
+                                                          width={10}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
@@ -12236,7 +12236,7 @@ ${
                                                           axisLine={false}
                                                           tickLine={false}
                                                           tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          width={45}
+                                                          width={10}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
