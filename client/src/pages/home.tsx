@@ -5459,7 +5459,7 @@ ${
   
   // Fetch news for selected watchlist symbol
   useEffect(() => {
-    if (selectedWatchlistSymbol && isWatchlistOpen) {
+    if (selectedWatchlistSymbol && (isWatchlistOpen || searchResults.includes("[CHART:WATCHLIST]"))) {
       const fetchWatchlistNews = async () => {
         setIsWatchlistNewsLoading(true);
         try {
@@ -5478,7 +5478,7 @@ ${
       };
       fetchWatchlistNews();
     }
-  }, [selectedWatchlistSymbol, isWatchlistOpen]);
+  }, [selectedWatchlistSymbol, isWatchlistOpen, searchResults]);
   
   // Search stocks for watchlist
   const searchWatchlistStocks = async (query: string) => {
@@ -11745,10 +11745,21 @@ ${
                             {searchResults ? (
                               <div className="space-y-3">
                                 <div className="flex items-center gap-2 pb-3 border-b border-transparent">
-                                  <Bot className="h-4 w-4 text-blue-400" />
-                                  <h3 className="text-lg font-medium text-gray-100">
-                                    AI Assistant
-                                  </h3>
+                                  {searchResults.includes("[CHART:WATCHLIST]") ? (
+                                    <>
+                                      <Eye className="h-4 w-4 text-blue-400" />
+                                      <h3 className="text-lg font-medium text-gray-100">
+                                        Watchlist
+                                      </h3>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Bot className="h-4 w-4 text-blue-400" />
+                                      <h3 className="text-lg font-medium text-gray-100">
+                                        AI Assistant
+                                      </h3>
+                                    </>
+                                  )}
                                 </div>
                                 <div className="prose prose-invert max-w-none">
                                   <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
@@ -11986,6 +11997,190 @@ ${
                                             )}
                                           </div>
                                         );
+                                      }
+
+                                      // Handle Watchlist view
+                                      if (searchResults.includes("[CHART:WATCHLIST]")) {
+                                        const selectedStock = watchlistSymbols.find(s => s.symbol === selectedWatchlistSymbol);
+                                        const cleanSymbolForNews = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
+                                        
+                                        renderedContent = (
+                                          <div className="flex gap-4">
+                                            {/* Left Column - Index Charts + Watchlist */}
+                                            <div className="w-80 flex-shrink-0 space-y-4">
+                                              {/* NIFTY 50 Chart */}
+                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
+                                                <div className="flex items-center justify-between mb-2">
+                                                  <h4 className="text-sm font-medium text-gray-200">NIFTY 50</h4>
+                                                  <span className="text-xs text-gray-400">Index</span>
+                                                </div>
+                                                <div className="h-24">
+                                                  <MinimalChart 
+                                                    symbol="NIFTY" 
+                                                    height={96}
+                                                    showControls={true}
+                                                  />
+                                                </div>
+                                              </div>
+                                              
+                                              {/* BANK NIFTY Chart */}
+                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
+                                                <div className="flex items-center justify-between mb-2">
+                                                  <h4 className="text-sm font-medium text-gray-200">BANK NIFTY</h4>
+                                                  <span className="text-xs text-gray-400">Index</span>
+                                                </div>
+                                                <div className="h-24">
+                                                  <MinimalChart 
+                                                    symbol="BANKNIFTY" 
+                                                    height={96}
+                                                    showControls={true}
+                                                  />
+                                                </div>
+                                              </div>
+                                              
+                                              {/* My Watchlist */}
+                                              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <h4 className="text-sm font-medium text-gray-200">My Watchlist</h4>
+                                                  <span className="text-xs text-gray-400">{watchlistSymbols.length} stocks</span>
+                                                </div>
+                                                
+                                                {/* Search to add stocks */}
+                                                <div className="relative mb-3">
+                                                  <Input
+                                                    placeholder="Search to add stock..."
+                                                    value={watchlistSearchQuery}
+                                                    onChange={(e) => {
+                                                      setWatchlistSearchQuery(e.target.value);
+                                                      searchWatchlistStocks(e.target.value);
+                                                    }}
+                                                    className="h-8 text-xs bg-gray-800 border-gray-600 text-gray-200 placeholder:text-gray-500"
+                                                    data-testid="input-watchlist-search"
+                                                  />
+                                                  {watchlistSearchResults.length > 0 && (
+                                                    <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg z-50 max-h-40 overflow-y-auto">
+                                                      {watchlistSearchResults.map((result, idx) => (
+                                                        <div
+                                                          key={idx}
+                                                          className="px-3 py-2 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
+                                                          onClick={() => addToWatchlist(result)}
+                                                          data-testid={`watchlist-search-result-${idx}`}
+                                                        >
+                                                          <div className="text-xs font-medium text-gray-200">{result.displayName || result.symbol}</div>
+                                                          <div className="text-xs text-gray-400">{result.name}</div>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                
+                                                {/* Watchlist Items */}
+                                                <div className="space-y-1 max-h-48 overflow-y-auto">
+                                                  {watchlistSymbols.map((stock, idx) => (
+                                                    <div
+                                                      key={stock.symbol}
+                                                      className={`flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer transition-colors ${
+                                                        selectedWatchlistSymbol === stock.symbol 
+                                                          ? 'bg-blue-600/30 border border-blue-500/50' 
+                                                          : 'hover:bg-gray-700/50'
+                                                      }`}
+                                                      onClick={() => setSelectedWatchlistSymbol(stock.symbol)}
+                                                      data-testid={`watchlist-item-${idx}`}
+                                                    >
+                                                      <div className="flex items-center gap-2">
+                                                        <div className={`w-2 h-2 rounded-full ${
+                                                          selectedWatchlistSymbol === stock.symbol ? 'bg-blue-400' : 'bg-gray-500'
+                                                        }`} />
+                                                        <div>
+                                                          <div className="text-xs font-medium text-gray-200">{stock.displayName || stock.symbol.replace('-EQ', '')}</div>
+                                                          <div className="text-xs text-gray-500 truncate max-w-[150px]">{stock.name}</div>
+                                                        </div>
+                                                      </div>
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          removeFromWatchlist(stock.symbol);
+                                                        }}
+                                                        className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                                                        data-testid={`button-remove-watchlist-${idx}`}
+                                                      >
+                                                        <X className="h-3 w-3" />
+                                                      </button>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Right Column - Related News */}
+                                            <div className="flex-1 bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                              <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-2">
+                                                  <Clock className="h-4 w-4 text-gray-400" />
+                                                  <h3 className="text-sm font-medium text-gray-200">
+                                                    Related News for {cleanSymbolForNews}
+                                                  </h3>
+                                                </div>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-7 text-xs text-gray-400 hover:text-gray-200"
+                                                  onClick={() => {
+                                                    // Trigger news refresh
+                                                    setIsWatchlistNewsLoading(true);
+                                                    fetch(`/api/stock-news/${cleanSymbolForNews}?refresh=${Date.now()}`)
+                                                      .then(res => res.json())
+                                                      .then(data => {
+                                                        const newsItems = Array.isArray(data) ? data : (data.news || []);
+                                                        setWatchlistNews(newsItems.slice(0, 20));
+                                                      })
+                                                      .finally(() => setIsWatchlistNewsLoading(false));
+                                                  }}
+                                                  data-testid="button-refresh-news"
+                                                >
+                                                  <RefreshCw className={`h-3 w-3 mr-1 ${isWatchlistNewsLoading ? 'animate-spin' : ''}`} />
+                                                  Refresh
+                                                </Button>
+                                              </div>
+                                              
+                                              <div className="space-y-3 max-h-[450px] overflow-y-auto">
+                                                {isWatchlistNewsLoading ? (
+                                                  <div className="flex items-center justify-center py-8">
+                                                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                                  </div>
+                                                ) : watchlistNews.length > 0 ? (
+                                                  watchlistNews.map((item, index) => (
+                                                    <div 
+                                                      key={index} 
+                                                      className="p-3 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer border border-gray-700"
+                                                      onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                                                      data-testid={`news-item-${index}`}
+                                                    >
+                                                      <h4 className="text-gray-200 font-medium text-sm mb-2 hover:text-gray-100 transition-colors line-clamp-2">
+                                                        {item.title} <ExternalLink className="h-3 w-3 inline ml-1" />
+                                                      </h4>
+                                                      {item.description && (
+                                                        <p className="text-gray-400 text-xs mb-2 line-clamp-2">{item.description}</p>
+                                                      )}
+                                                      <div className="flex items-center justify-between">
+                                                        <span className="text-gray-500 text-xs">{item.source}</span>
+                                                        <span className="text-gray-500 text-xs">{getWatchlistNewsRelativeTime(item.publishedAt)}</span>
+                                                      </div>
+                                                    </div>
+                                                  ))
+                                                ) : (
+                                                  <div className="text-center py-8 text-gray-500">
+                                                    <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                    <p className="text-sm">No news available for {cleanSymbolForNews}</p>
+                                                    <p className="text-xs mt-1">Select a stock from the watchlist</p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                        
+                                        return renderedContent;
                                       }
 
                                       // Render text with inline charts
@@ -12454,7 +12649,11 @@ ${
                         <Button
                           variant="secondary"
                           className="bg-cyan-600 hover:bg-cyan-700  text-white border-0 h-7 px-2 rounded-full text-xs font-medium transition-all duration-200"
-                          onClick={() => setIsWatchlistOpen(true)}
+                          onClick={() => {
+                            setIsSearchActive(true);
+                            setSearchResults("[CHART:WATCHLIST]");
+                            setIsWatchlistOpen(true);
+                          }}
                           data-testid="button-watchlist"
                         >
                           <div className="flex items-center justify-center gap-1">
@@ -12690,10 +12889,21 @@ ${
                               <div className="p-3 space-y-3">
                                 <div className="flex items-center justify-between pb-2 border-b border-gray-700">
                                   <div className="flex items-center gap-1.5">
-                                    <Bot className="h-4 w-4 text-blue-400" />
-                                    <h3 className="text-xs font-medium text-gray-100">
-                                      AI Assistant
-                                    </h3>
+                                    {searchResults.includes("[CHART:WATCHLIST]") ? (
+                                      <>
+                                        <Eye className="h-4 w-4 text-blue-400" />
+                                        <h3 className="text-xs font-medium text-gray-100">
+                                          Watchlist
+                                        </h3>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Bot className="h-4 w-4 text-blue-400" />
+                                        <h3 className="text-xs font-medium text-gray-100">
+                                          AI Assistant
+                                        </h3>
+                                      </>
+                                    )}
                                   </div>
                                   <Button
                                     variant="ghost"
@@ -12710,7 +12920,168 @@ ${
                                 </div>
                                 <div className="prose prose-invert max-w-none">
                                   <div className="text-gray-300 whitespace-pre-wrap leading-tight text-xs">
-                                    {searchResults}
+                                    {searchResults.includes("[CHART:WATCHLIST]") ? (
+                                      // Mobile Watchlist Layout
+                                      <div className="space-y-3">
+                                        {/* NIFTY 50 Chart */}
+                                        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-xs font-medium text-gray-200">NIFTY 50</h4>
+                                            <span className="text-xs text-gray-400">Index</span>
+                                          </div>
+                                          <div className="h-20">
+                                            <MinimalChart symbol="NIFTY" height={80} showControls={true} />
+                                          </div>
+                                        </div>
+                                        
+                                        {/* BANK NIFTY Chart */}
+                                        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-xs font-medium text-gray-200">BANK NIFTY</h4>
+                                            <span className="text-xs text-gray-400">Index</span>
+                                          </div>
+                                          <div className="h-20">
+                                            <MinimalChart symbol="BANKNIFTY" height={80} showControls={true} />
+                                          </div>
+                                        </div>
+                                        
+                                        {/* My Watchlist */}
+                                        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-xs font-medium text-gray-200">My Watchlist</h4>
+                                            <span className="text-xs text-gray-400">{watchlistSymbols.length} stocks</span>
+                                          </div>
+                                          
+                                          {/* Search to add stocks */}
+                                          <div className="relative mb-2">
+                                            <Input
+                                              placeholder="Search to add stock..."
+                                              value={watchlistSearchQuery}
+                                              onChange={(e) => {
+                                                setWatchlistSearchQuery(e.target.value);
+                                                searchWatchlistStocks(e.target.value);
+                                              }}
+                                              className="h-7 text-xs bg-gray-900 border-gray-600 text-gray-200 placeholder:text-gray-500"
+                                              data-testid="input-watchlist-search-mobile"
+                                            />
+                                            {watchlistSearchResults.length > 0 && (
+                                              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-600 rounded-lg z-50 max-h-32 overflow-y-auto">
+                                                {watchlistSearchResults.map((result, idx) => (
+                                                  <div
+                                                    key={idx}
+                                                    className="px-2 py-1.5 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
+                                                    onClick={() => addToWatchlist(result)}
+                                                    data-testid={`mobile-watchlist-search-result-${idx}`}
+                                                  >
+                                                    <div className="text-xs font-medium text-gray-200">{result.displayName || result.symbol}</div>
+                                                    <div className="text-xs text-gray-400">{result.name}</div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Watchlist Items */}
+                                          <div className="space-y-1 max-h-36 overflow-y-auto">
+                                            {watchlistSymbols.map((stock, idx) => (
+                                              <div
+                                                key={stock.symbol}
+                                                className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                                                  selectedWatchlistSymbol === stock.symbol 
+                                                    ? 'bg-blue-600/30 border border-blue-500/50' 
+                                                    : 'hover:bg-gray-700/50'
+                                                }`}
+                                                onClick={() => setSelectedWatchlistSymbol(stock.symbol)}
+                                                data-testid={`mobile-watchlist-item-${idx}`}
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <div className={`w-1.5 h-1.5 rounded-full ${
+                                                    selectedWatchlistSymbol === stock.symbol ? 'bg-blue-400' : 'bg-gray-500'
+                                                  }`} />
+                                                  <div>
+                                                    <div className="text-xs font-medium text-gray-200">{stock.displayName || stock.symbol.replace('-EQ', '')}</div>
+                                                    <div className="text-xs text-gray-500 truncate max-w-[140px]">{stock.name}</div>
+                                                  </div>
+                                                </div>
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    removeFromWatchlist(stock.symbol);
+                                                  }}
+                                                  className="text-gray-500 hover:text-red-400 transition-colors p-0.5"
+                                                  data-testid={`mobile-button-remove-watchlist-${idx}`}
+                                                >
+                                                  <X className="h-3 w-3" />
+                                                </button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Related News */}
+                                        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-1.5">
+                                              <Clock className="h-3 w-3 text-gray-400" />
+                                              <h4 className="text-xs font-medium text-gray-200">
+                                                News: {selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '')}
+                                              </h4>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 text-xs text-gray-400 hover:text-gray-200 px-2"
+                                              onClick={() => {
+                                                const cleanSymbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
+                                                setIsWatchlistNewsLoading(true);
+                                                fetch(`/api/stock-news/${cleanSymbol}?refresh=${Date.now()}`)
+                                                  .then(res => res.json())
+                                                  .then(data => {
+                                                    const newsItems = Array.isArray(data) ? data : (data.news || []);
+                                                    setWatchlistNews(newsItems.slice(0, 20));
+                                                  })
+                                                  .finally(() => setIsWatchlistNewsLoading(false));
+                                              }}
+                                              data-testid="mobile-button-refresh-news"
+                                            >
+                                              <RefreshCw className={`h-3 w-3 ${isWatchlistNewsLoading ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                          </div>
+                                          
+                                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                                            {isWatchlistNewsLoading ? (
+                                              <div className="flex items-center justify-center py-4">
+                                                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                              </div>
+                                            ) : watchlistNews.length > 0 ? (
+                                              watchlistNews.slice(0, 10).map((item, index) => (
+                                                <div 
+                                                  key={index} 
+                                                  className="p-2 bg-gray-900/50 rounded hover:bg-gray-700/50 transition-colors cursor-pointer"
+                                                  onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                                                  data-testid={`mobile-news-item-${index}`}
+                                                >
+                                                  <h5 className="text-gray-200 font-medium text-xs mb-1 line-clamp-2">
+                                                    {item.title} <ExternalLink className="h-2.5 w-2.5 inline ml-0.5" />
+                                                  </h5>
+                                                  <div className="flex items-center justify-between">
+                                                    <span className="text-gray-500 text-xs">{item.source}</span>
+                                                    <span className="text-gray-500 text-xs">{getWatchlistNewsRelativeTime(item.publishedAt)}</span>
+                                                  </div>
+                                                </div>
+                                              ))
+                                            ) : (
+                                              <div className="text-center py-4 text-gray-500">
+                                                <Newspaper className="h-5 w-5 mx-auto mb-1 opacity-50" />
+                                                <p className="text-xs">No news available</p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      searchResults
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -17873,219 +18244,6 @@ ${
                 >
                   Import
                 </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Watchlist Modal - Full Screen with Index Charts, Watchlist, and News */}
-        <Dialog open={isWatchlistOpen} onOpenChange={setIsWatchlistOpen}>
-          <DialogContent className="max-w-6xl w-[95vw] h-[90vh] overflow-hidden p-0 bg-gray-900">
-            <div className="flex flex-col h-full">
-              {/* Header with Search */}
-              <div className="sticky top-0 z-20 bg-gray-800 border-b border-gray-700 px-4 py-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-5 w-5 text-cyan-400" />
-                    <span className="text-lg font-semibold text-white">Watchlist</span>
-                  </div>
-                  <div className="flex-1 max-w-md relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search stocks to add..."
-                      value={watchlistSearchQuery}
-                      onChange={(e) => {
-                        setWatchlistSearchQuery(e.target.value);
-                        searchWatchlistStocks(e.target.value);
-                      }}
-                      className="pl-10 h-9 bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
-                      data-testid="input-watchlist-search"
-                    />
-                    {watchlistSearchResults.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-xl z-50 max-h-60 overflow-y-auto">
-                        {watchlistSearchResults.map((stock) => (
-                          <div
-                            key={stock.symbol}
-                            onClick={() => addToWatchlist(stock)}
-                            className="px-3 py-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
-                            data-testid={`watchlist-search-result-${stock.symbol}`}
-                          >
-                            <div>
-                              <span className="text-white font-medium text-sm">{stock.displayName || stock.symbol}</span>
-                              <span className="text-gray-400 text-xs ml-2">{stock.name}</span>
-                            </div>
-                            <Plus className="h-4 w-4 text-cyan-400" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {isWatchlistSearching && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Content */}
-              <div className="flex-1 overflow-hidden grid grid-cols-12 gap-4 p-4">
-                {/* Left Column - Index Charts + Watchlist */}
-                <div className="col-span-4 flex flex-col gap-4 overflow-y-auto custom-thin-scrollbar">
-                  {/* Nifty 50 Chart */}
-                  <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">NIFTY 50</span>
-                      <span className="text-xs text-gray-400">Index</span>
-                    </div>
-                    <div className="h-32 bg-gray-700/50 rounded flex items-center justify-center">
-                      <MinimalChart 
-                        symbol="NSE:Nifty 50" 
-                        height={120}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Bank Nifty Chart */}
-                  <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">BANK NIFTY</span>
-                      <span className="text-xs text-gray-400">Index</span>
-                    </div>
-                    <div className="h-32 bg-gray-700/50 rounded flex items-center justify-center">
-                      <MinimalChart 
-                        symbol="NSE:Nifty Bank" 
-                        height={120}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Watchlist Symbols */}
-                  <div className="bg-gray-800 rounded-lg p-3 flex-1">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-white">My Watchlist</span>
-                      <span className="text-xs text-gray-400">{watchlistSymbols.length} stocks</span>
-                    </div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto custom-thin-scrollbar">
-                      {watchlistSymbols.map((stock) => (
-                        <div
-                          key={stock.symbol}
-                          onClick={() => setSelectedWatchlistSymbol(stock.symbol)}
-                          className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
-                            selectedWatchlistSymbol === stock.symbol 
-                              ? 'bg-cyan-600/20 border border-cyan-500/50' 
-                              : 'bg-gray-700/50 hover:bg-gray-700'
-                          }`}
-                          data-testid={`watchlist-item-${stock.symbol}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${selectedWatchlistSymbol === stock.symbol ? 'bg-cyan-400' : 'bg-gray-500'}`} />
-                            <div>
-                              <span className="text-white text-sm font-medium">{stock.displayName}</span>
-                              <span className="text-gray-400 text-xs block">{stock.name}</span>
-                            </div>
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-gray-400 hover:text-red-400"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeFromWatchlist(stock.symbol);
-                            }}
-                            data-testid={`button-remove-watchlist-${stock.symbol}`}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                      {watchlistSymbols.length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p>No stocks in watchlist</p>
-                          <p className="text-xs mt-1">Use the search bar to add stocks</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - Related News (Full Width) */}
-                <div className="col-span-8 bg-gray-800 rounded-lg overflow-hidden flex flex-col">
-                  <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-cyan-400" />
-                      <span className="text-sm font-medium text-white">
-                        Related News for {selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '')}
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs text-gray-400 hover:text-white"
-                      onClick={() => {
-                        setWatchlistNews([]);
-                        const cleanSymbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
-                        setIsWatchlistNewsLoading(true);
-                        fetch(`/api/stock-news/${cleanSymbol}?refresh=${Date.now()}`)
-                          .then(res => res.json())
-                          .then(data => {
-                            const newsItems = Array.isArray(data) ? data : (data.news || []);
-                            setWatchlistNews(newsItems.slice(0, 20));
-                          })
-                          .finally(() => setIsWatchlistNewsLoading(false));
-                      }}
-                      data-testid="button-refresh-watchlist-news"
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      Refresh
-                    </Button>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto custom-thin-scrollbar p-4 space-y-3">
-                    {isWatchlistNewsLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
-                      </div>
-                    ) : watchlistNews.length > 0 ? (
-                      watchlistNews.map((news, index) => (
-                        <a
-                          key={index}
-                          href={news.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block bg-gray-700/60 hover:bg-gray-700 rounded-lg p-4 transition-colors"
-                          data-testid={`watchlist-news-item-${index}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <h4 className="text-white text-sm font-medium leading-snug mb-1">
-                                {news.title}
-                              </h4>
-                              {news.description && (
-                                <p className="text-gray-400 text-xs line-clamp-2 mb-2">
-                                  {news.description}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span>{news.source}</span>
-                                <span>•</span>
-                                <span>{getWatchlistNewsRelativeTime(news.publishedAt)}</span>
-                              </div>
-                            </div>
-                            <ExternalLink className="h-4 w-4 text-gray-500 flex-shrink-0 mt-1" />
-                          </div>
-                        </a>
-                      ))
-                    ) : (
-                      <div className="text-center py-12 text-gray-400">
-                        <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">No recent news for {selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '')}</p>
-                        <p className="text-xs mt-1">Check back later for updates</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </DialogContent>
