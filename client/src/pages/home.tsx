@@ -11768,7 +11768,7 @@ ${
                                                   <h3 className="text-gray-900 dark:text-white font-semibold">Related News</h3>
                                                 </div>
 
-                                                <div className="space-y-3 max-h-80 overflow-y-auto bg-gray-50 dark:bg-gray-700/60 rounded-xl p-4 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-200 dark:scrollbar-track-gray-800">
+                                                <div className="space-y-3 max-h-80 overflow-y-auto bg-gray-50 dark:bg-gray-700/60 rounded-xl p-4 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-200 dark:scrollbar-track-gray-800 ">
                                                   {(() => {
                                                     const getRelativeTime = (dateString: string) => {
                                                       try {
@@ -11818,7 +11818,7 @@ ${
                                                           const articles = Array.isArray(data) ? data : (data.articles || data.data || []);
                                                           
                                                           if (articles && articles.length > 0) {
-                                                            const formattedNews = articles.slice(0, 5).map((article: any) => ({
+                                                            const formattedNews = articles.map((article: any) => ({
                                                               title: article.title,
                                                               source: article.source || "Market News",
                                                               time: getRelativeTime(article.publishedAt || article.date || new Date().toISOString()),
@@ -11833,28 +11833,27 @@ ${
                                                       })();
                                                     }
 
-                                                    return newsItems.length > 0 ? (
-                                                      newsItems.map((item: any, idx: number) => (
+                                                    return newsItems && newsItems.length > 0 ? (
+                                                      newsItems.map((item: any, index: number) => (
                                                         <div 
-                                                          key={idx} 
+                                                          key={index} 
                                                           className="p-3 bg-gray-100 dark:bg-gray-600/60 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/70 transition-colors backdrop-blur-sm shadow-sm cursor-pointer"
-                                                          onClick={() => item.url && item.url !== '#' && window.open(item.url, '_blank', 'noopener,noreferrer')}
-                                                          data-testid={`news-item-${idx}`}
+                                                          onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
                                                         >
                                                           <h4 className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
                                                             {item.title} ↗
                                                           </h4>
                                                           <div className="flex items-center justify-between">
-                                                            <span className="text-gray-500 dark:text-gray-400 text-xs">{item.source}</span>
-                                                            <span className="text-gray-500 dark:text-gray-500 text-xs">{item.time}</span>
+                                                            <span className="text-gray-500 dark:text-gray-400 text-xs ">{item.source}</span>
+                                                            <span className="text-gray-500 dark:text-gray-500 text-xs ">{item.time}</span>
                                                           </div>
                                                         </div>
                                                       ))
                                                     ) : (
-                                                      <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                                                      <div className="text-center py-6 text-gray-500 dark:text-gray-400 ">
                                                         <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                        <p className="text-sm">Loading news for {currentSymbol}...</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Fetching latest articles</p>
+                                                        <p className="text-sm">No recent news available for this stock</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ">Check back later for updates</p>
                                                       </div>
                                                     );
                                                   })()}
