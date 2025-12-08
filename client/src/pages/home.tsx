@@ -39,7 +39,7 @@ import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cognitoSignOut, getCognitoToken } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
-import { LogOut, ArrowLeft, Save } from "lucide-react";
+import { LogOut, ArrowLeft, Save, Clock, Newspaper, TrendingUp, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
 import { parseBrokerTrades, ParseError } from "@/utils/trade-parser";
 
 // Global window type declaration for audio control
@@ -5451,6 +5451,14 @@ ${
     source: string;
   }>>([]);
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
+  const [watchlistQuarterlyResults, setWatchlistQuarterlyResults] = useState<Array<{
+    quarter: string;
+    revenue: string;
+    net_profit: string;
+    eps: string;
+    change_percent: string;
+  }>>([]);
+  const [isWatchlistQuarterlyLoading, setIsWatchlistQuarterlyLoading] = useState(false);
   const [nifty50Timeframe, setNifty50Timeframe] = useState('1D');
   const [niftyBankTimeframe, setNiftyBankTimeframe] = useState('1D');
   
@@ -12419,7 +12427,6 @@ ${
                                                   size="sm"
                                                   className="h-7 text-xs text-gray-400 hover:text-gray-200"
                                                   onClick={() => {
-                                                    // Trigger news refresh
                                                     setIsWatchlistNewsLoading(true);
                                                     fetch(`/api/stock-news/${cleanSymbolForNews}?refresh=${Date.now()}`)
                                                       .then(res => res.json())
@@ -12436,7 +12443,7 @@ ${
                                                 </Button>
                                               </div>
                                               
-                                              <div className="space-y-3 max-h-[450px] overflow-y-auto">
+                                              <div className="space-y-3 max-h-[450px] overflow-y-auto mb-4">
                                                 {isWatchlistNewsLoading ? (
                                                   <div className="flex items-center justify-center py-8">
                                                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -12468,6 +12475,80 @@ ${
                                                     <p className="text-xs mt-1">Select a stock from the watchlist</p>
                                                   </div>
                                                 )}
+                                              </div>
+
+                                              {/* Quarterly Results Section */}
+                                              <div className="border-t border-gray-700 pt-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <div className="flex items-center gap-2">
+                                                    <TrendingUp className="h-4 w-4 text-gray-400" />
+                                                    <h3 className="text-sm font-medium text-gray-200">
+                                                      Quarterly Results
+                                                    </h3>
+                                                  </div>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs text-gray-400 hover:text-gray-200"
+                                                    onClick={() => {
+                                                      setIsWatchlistQuarterlyLoading(true);
+                                                      fetch(`/api/quarterly-results/${cleanSymbolForNews}`)
+                                                        .then(res => res.json())
+                                                        .then(data => {
+                                                          setWatchlistQuarterlyResults(data.results || []);
+                                                        })
+                                                        .catch(err => {
+                                                          console.error('Error fetching quarterly results:', err);
+                                                          setWatchlistQuarterlyResults([]);
+                                                        })
+                                                        .finally(() => setIsWatchlistQuarterlyLoading(false));
+                                                    }}
+                                                    data-testid="button-refresh-quarterly"
+                                                  >
+                                                    <RefreshCw className={`h-3 w-3 mr-1 ${isWatchlistQuarterlyLoading ? 'animate-spin' : ''}`} />
+                                                    Load
+                                                  </Button>
+                                                </div>
+
+                                                <div className="max-h-[250px] overflow-y-auto">
+                                                  {isWatchlistQuarterlyLoading ? (
+                                                    <div className="flex items-center justify-center py-8">
+                                                      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                                                    </div>
+                                                  ) : watchlistQuarterlyResults.length > 0 ? (
+                                                    <div className="overflow-x-auto">
+                                                      <table className="w-full text-xs">
+                                                        <thead>
+                                                          <tr className="border-b border-gray-700">
+                                                            <th className="text-left py-2 px-2 text-gray-400 font-medium">Quarter</th>
+                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">Revenue (Cr)</th>
+                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">Net Profit (Cr)</th>
+                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">EPS</th>
+                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">Change %</th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          {watchlistQuarterlyResults.map((result, idx) => (
+                                                            <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
+                                                              <td className="py-2 px-2 text-gray-300 font-medium">{result.quarter}</td>
+                                                              <td className="text-right py-2 px-2 text-gray-300">{result.revenue}</td>
+                                                              <td className="text-right py-2 px-2 text-gray-300">{result.net_profit}</td>
+                                                              <td className="text-right py-2 px-2 text-gray-300">{result.eps}</td>
+                                                              <td className={`text-right py-2 px-2 ${parseFloat(result.change_percent) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                                {result.change_percent}
+                                                              </td>
+                                                            </tr>
+                                                          ))}
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="text-center py-6 text-gray-500">
+                                                      <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                                      <p className="text-xs">Click "Load" to fetch quarterly results</p>
+                                                    </div>
+                                                  )}
+                                                </div>
                                               </div>
                                             </div>
                                           </div>

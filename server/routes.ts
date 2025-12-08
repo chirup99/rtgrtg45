@@ -1791,6 +1791,42 @@ function sortNewsByTime(news: any[]) {
 }
 
 
+async function scrapeQuarterlyResults(symbol: string) {
+  try {
+    console.log(`📊 Scraping quarterly results for ${symbol} from screener.in...`);
+    
+    const response = await axios.get(`https://www.screener.in/api/company/${symbol}/`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      timeout: 10000
+    });
+
+    const results: any[] = [];
+    
+    if (response.data && response.data.results && response.data.results.length > 0) {
+      const quarters = response.data.results.slice(0, 8); // Last 8 quarters
+      
+      quarters.forEach((q: any) => {
+        results.push({
+          quarter: q.quarter || 'N/A',
+          revenue: q.revenue ? `${(q.revenue / 10000000).toFixed(0)}` : 'N/A',
+          net_profit: q.net_profit ? `${(q.net_profit / 10000000).toFixed(0)}` : 'N/A',
+          eps: q.eps || 'N/A',
+          change_percent: q.change_percent ? `${parseFloat(q.change_percent).toFixed(2)}%` : 'N/A'
+        });
+      });
+      
+      console.log(`✅ Found ${results.length} quarters of data for ${symbol}`);
+    }
+    
+    return results;
+  } catch (error) {
+    console.error(`Error scraping quarterly results for ${symbol}:`, error);
+    return [];
+  }
+}
+
 async function getStockNews(symbol: string) {
   console.log(`📰 Fetching real financial news for ${symbol}...`);
 
@@ -5679,6 +5715,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching stock news:', error);
       res.status(500).json({ error: 'Failed to fetch stock news' });
+    }
+  });
+
+  app.get('/api/quarterly-results/:symbol', async (req, res) => {
+    const { symbol } = req.params;
+
+    try {
+      console.log(`📊 Fetching quarterly results for ${symbol} from screener.in...`);
+      
+      // Scrape quarterly results from screener.in
+      const quarterlyData = await scrapeQuarterlyResults(symbol.toUpperCase());
+      
+      res.json({
+        success: true,
+        symbol: symbol.toUpperCase(),
+        results: quarterlyData
+      });
+    } catch (error) {
+      console.error(`Error fetching quarterly results for ${symbol}:`, error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch quarterly results',
+        results: []
+      });
     }
   });
 
