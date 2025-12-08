@@ -12088,28 +12088,13 @@ ${
                                               {/* NIFTY 50 Chart */}
                                               <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
                                                 <div className="space-y-2">
-                                                  <div className="flex items-start justify-between gap-2">
-                                                    <div className="space-y-1 flex-1">
-                                                      <div className="flex items-center gap-1">
-                                                        <h4 className="text-sm font-semibold text-gray-200">NIFTY 50</h4>
-                                                        <span className="text-xs text-green-400 flex items-center gap-1">
-                                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                                                          Live
-                                                        </span>
-                                                      </div>
-                                                      <div className="flex items-center gap-1">
-                                                        {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
-                                                          <Button
-                                                            key={tf}
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setNifty50Timeframe(tf)}
-                                                            className={`px-1.5 py-0.5 text-xs h-6 ${nifty50Timeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
-                                                          >
-                                                            {tf}
-                                                          </Button>
-                                                        ))}
-                                                      </div>
+                                                  <div className="flex items-center justify-between mb-1">
+                                                    <div className="flex items-center gap-1">
+                                                      <h4 className="text-sm font-semibold text-gray-200">NIFTY 50</h4>
+                                                      <span className="text-xs text-green-400 flex items-center gap-1">
+                                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                                        Live
+                                                      </span>
                                                     </div>
                                                     <div className="text-right">
                                                       <div className="text-sm font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
@@ -12118,10 +12103,23 @@ ${
                                                       </div>
                                                     </div>
                                                   </div>
+                                                  <div className="flex items-center gap-1">
+                                                    {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
+                                                      <Button
+                                                        key={tf}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setNifty50Timeframe(tf)}
+                                                        className={`px-1.5 py-0.5 text-xs h-6 ${nifty50Timeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+                                                      >
+                                                        {tf}
+                                                      </Button>
+                                                    ))}
+                                                  </div>
                                                   
                                                   <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 35, bottom: 5 }}>
+                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 25, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
@@ -12193,28 +12191,13 @@ ${
                                               {/* BANK NIFTY Chart */}
                                               <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
                                                 <div className="space-y-2">
-                                                  <div className="flex items-start justify-between gap-2">
-                                                    <div className="space-y-1 flex-1">
-                                                      <div className="flex items-center gap-1">
-                                                        <h4 className="text-sm font-semibold text-gray-200">BANK NIFTY</h4>
-                                                        <span className="text-xs text-green-400 flex items-center gap-1">
-                                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                                                          Live
-                                                        </span>
-                                                      </div>
-                                                      <div className="flex items-center gap-1">
-                                                        {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
-                                                          <Button
-                                                            key={tf}
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setNiftyBankTimeframe(tf)}
-                                                            className={`px-1.5 py-0.5 text-xs h-6 ${niftyBankTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
-                                                          >
-                                                            {tf}
-                                                          </Button>
-                                                        ))}
-                                                      </div>
+                                                  <div className="flex items-center justify-between mb-1">
+                                                    <div className="flex items-center gap-1">
+                                                      <h4 className="text-sm font-semibold text-gray-200">BANK NIFTY</h4>
+                                                      <span className="text-xs text-green-400 flex items-center gap-1">
+                                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                                        Live
+                                                      </span>
                                                     </div>
                                                     <div className="text-right">
                                                       <div className="text-sm font-mono text-gray-100">₹{getNiftyBankCurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
@@ -12223,10 +12206,23 @@ ${
                                                       </div>
                                                     </div>
                                                   </div>
+                                                  <div className="flex items-center gap-1">
+                                                    {['1D', '5D', '1M', '6M', '1Y'].map((tf) => (
+                                                      <Button
+                                                        key={tf}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setNiftyBankTimeframe(tf)}
+                                                        className={`px-1.5 py-0.5 text-xs h-6 ${niftyBankTimeframe === tf ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'}`}
+                                                      >
+                                                        {tf}
+                                                      </Button>
+                                                    ))}
+                                                  </div>
                                                   
                                                   <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 35, bottom: 5 }}>
+                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 25, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
