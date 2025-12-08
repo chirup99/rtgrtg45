@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { extractStockSymbol as extractStockSymbolFromUniverse, STOCK_UNIVERSE } from './comprehensive-stock-universe';
 
 export interface ScrapedStockData {
   symbol: string;
@@ -244,64 +245,19 @@ export class EnhancedFinancialScraper {
   }
 
   private extractStockSymbol(query: string): string | null {
-    const lowerQuery = query.toLowerCase();
+    // Handle exchange prefixes first (e.g., "NSE:TCS", "BSE:500410")
+    const prefixMatch = query.match(/(?:NSE|BSE):([A-Z0-9]+)/i);
+    if (prefixMatch) {
+      return prefixMatch[1].toUpperCase();
+    }
     
-    const stockMap: Record<string, string> = {
-      'reliance': 'RELIANCE',
-      'tcs': 'TCS',
-      'tata consultancy': 'TCS',
-      'infosys': 'INFY',
-      'infy': 'INFY',
-      'hdfc bank': 'HDFCBANK',
-      'hdfcbank': 'HDFCBANK',
-      'hdfc': 'HDFCBANK',
-      'icici bank': 'ICICIBANK',
-      'icicibank': 'ICICIBANK',
-      'icici': 'ICICIBANK',
-      'sbi': 'SBIN',
-      'state bank': 'SBIN',
-      'bharti airtel': 'BHARTIARTL',
-      'airtel': 'BHARTIARTL',
-      'itc': 'ITC',
-      'wipro': 'WIPRO',
-      'nifty': 'NIFTY50',
-      'banknifty': 'BANKNIFTY',
-      'sensex': 'SENSEX',
-      'tata motors': 'TATAMOTORS',
-      'maruti': 'MARUTI',
-      'adani ports': 'ADANIPORTS',
-      'adani enterprises': 'ADANIENT',
-      'axis bank': 'AXISBANK',
-      'kotak bank': 'KOTAKBANK',
-      'bajaj finance': 'BAJFINANCE',
-      'asian paints': 'ASIANPAINT',
-      'larsen': 'LT',
-      'l&t': 'LT',
-      'tech mahindra': 'TECHM',
-      'sun pharma': 'SUNPHARMA',
-      'titan': 'TITAN',
-      'ultratech': 'ULTRACEMCO',
-      'nestle': 'NESTLEIND',
-      'hul': 'HINDUNILVR',
-      'hindustan unilever': 'HINDUNILVR',
-      'power grid': 'POWERGRID',
-      'ntpc': 'NTPC',
-      'ongc': 'ONGC',
-      'coal india': 'COALINDIA',
-      'jio': 'JIOFINANCE'
-    };
-
-    for (const [keyword, symbol] of Object.entries(stockMap)) {
-      if (lowerQuery.includes(keyword)) {
-        return symbol;
-      }
+    // Use the comprehensive stock universe for enhanced stock detection
+    // This now supports both predefined stocks AND dynamic symbols
+    const stockInfo = extractStockSymbolFromUniverse(query);
+    if (stockInfo) {
+      return stockInfo.symbol;
     }
-
-    const symbolMatch = query.match(/\b([A-Z]{2,})\b/);
-    if (symbolMatch) {
-      return symbolMatch[1];
-    }
-
+    
     return null;
   }
 

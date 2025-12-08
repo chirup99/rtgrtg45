@@ -13,6 +13,7 @@
 
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { STOCK_UNIVERSE, extractStockSymbol, SYMBOL_TO_INFO, extractMultipleStocks } from "./comprehensive-stock-universe";
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -20,57 +21,6 @@ import * as cheerio from "cheerio";
 
 const TIMEOUT_SHORT = 5000;
 const TIMEOUT_MEDIUM = 10000;
-
-// Indian Stock Universe - Common stocks with aliases
-const STOCK_UNIVERSE: Record<string, { symbol: string; name: string; sector: string }> = {
-  'reliance': { symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Oil & Gas' },
-  'tcs': { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT' },
-  'infy': { symbol: 'INFY', name: 'Infosys', sector: 'IT' },
-  'infosys': { symbol: 'INFY', name: 'Infosys', sector: 'IT' },
-  'hdfc': { symbol: 'HDFCBANK', name: 'HDFC Bank', sector: 'Banking' },
-  'hdfcbank': { symbol: 'HDFCBANK', name: 'HDFC Bank', sector: 'Banking' },
-  'icici': { symbol: 'ICICIBANK', name: 'ICICI Bank', sector: 'Banking' },
-  'icicibank': { symbol: 'ICICIBANK', name: 'ICICI Bank', sector: 'Banking' },
-  'sbi': { symbol: 'SBIN', name: 'State Bank of India', sector: 'Banking' },
-  'sbin': { symbol: 'SBIN', name: 'State Bank of India', sector: 'Banking' },
-  'bharti': { symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom' },
-  'airtel': { symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom' },
-  'itc': { symbol: 'ITC', name: 'ITC Limited', sector: 'FMCG' },
-  'wipro': { symbol: 'WIPRO', name: 'Wipro', sector: 'IT' },
-  'adani': { symbol: 'ADANIENT', name: 'Adani Enterprises', sector: 'Conglomerate' },
-  'tatamotors': { symbol: 'TATAMOTORS', name: 'Tata Motors', sector: 'Automobile' },
-  'tata motors': { symbol: 'TATAMOTORS', name: 'Tata Motors', sector: 'Automobile' },
-  'maruti': { symbol: 'MARUTI', name: 'Maruti Suzuki', sector: 'Automobile' },
-  'bajaj': { symbol: 'BAJFINANCE', name: 'Bajaj Finance', sector: 'Finance' },
-  'bajfinance': { symbol: 'BAJFINANCE', name: 'Bajaj Finance', sector: 'Finance' },
-  'axis': { symbol: 'AXISBANK', name: 'Axis Bank', sector: 'Banking' },
-  'axisbank': { symbol: 'AXISBANK', name: 'Axis Bank', sector: 'Banking' },
-  'kotak': { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', sector: 'Banking' },
-  'kotakbank': { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', sector: 'Banking' },
-  'techm': { symbol: 'TECHM', name: 'Tech Mahindra', sector: 'IT' },
-  'tech mahindra': { symbol: 'TECHM', name: 'Tech Mahindra', sector: 'IT' },
-  'hul': { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', sector: 'FMCG' },
-  'hindustan unilever': { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', sector: 'FMCG' },
-  'asian paints': { symbol: 'ASIANPAINT', name: 'Asian Paints', sector: 'Paints' },
-  'asianpaint': { symbol: 'ASIANPAINT', name: 'Asian Paints', sector: 'Paints' },
-  'titan': { symbol: 'TITAN', name: 'Titan Company', sector: 'Consumer Goods' },
-  'sunpharma': { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', sector: 'Pharma' },
-  'sun pharma': { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', sector: 'Pharma' },
-  'lt': { symbol: 'LT', name: 'Larsen & Toubro', sector: 'Engineering' },
-  'larsen': { symbol: 'LT', name: 'Larsen & Toubro', sector: 'Engineering' },
-  'nestle': { symbol: 'NESTLEIND', name: 'Nestle India', sector: 'FMCG' },
-  'powergrid': { symbol: 'POWERGRID', name: 'Power Grid Corporation', sector: 'Power' },
-  'ntpc': { symbol: 'NTPC', name: 'NTPC Limited', sector: 'Power' },
-  'ongc': { symbol: 'ONGC', name: 'Oil and Natural Gas Corporation', sector: 'Oil & Gas' },
-  'coal india': { symbol: 'COALINDIA', name: 'Coal India', sector: 'Mining' },
-  'coalindia': { symbol: 'COALINDIA', name: 'Coal India', sector: 'Mining' },
-  'gold': { symbol: 'GOLD', name: 'Gold', sector: 'Commodity' },
-  'silver': { symbol: 'SILVER', name: 'Silver', sector: 'Commodity' },
-  'crude': { symbol: 'CRUDEOIL', name: 'Crude Oil', sector: 'Commodity' },
-  'nifty': { symbol: 'NIFTY', name: 'Nifty 50', sector: 'Index' },
-  'sensex': { symbol: 'SENSEX', name: 'BSE Sensex', sector: 'Index' },
-  'banknifty': { symbol: 'BANKNIFTY', name: 'Bank Nifty', sector: 'Index' },
-};
 
 // Intent patterns for query classification
 const INTENT_PATTERNS = {
@@ -161,26 +111,19 @@ class NeuralQueryEngine {
     const lowerQuery = query.toLowerCase().trim();
     const words = lowerQuery.split(/\s+/);
     
-    // Detect stocks in query
-    const detectedStocks: Array<{ symbol: string; name: string; sector: string }> = [];
-    for (const word of words) {
-      const cleanWord = word.replace(/[^a-z0-9]/g, '');
-      if (STOCK_UNIVERSE[cleanWord]) {
-        const stock = STOCK_UNIVERSE[cleanWord];
-        if (!detectedStocks.find(s => s.symbol === stock.symbol)) {
-          detectedStocks.push(stock);
-        }
-      }
-    }
+    // Use the enhanced extractMultipleStocks function that handles:
+    // - Multi-word stock names (e.g., "tata motors", "asian paints")
+    // - Single word aliases (e.g., "reliance", "hdfc")
+    // - Direct uppercase symbols (e.g., "TATAMOTORS", "TCS")
+    // - Comparison queries (e.g., "tata motors vs reliance")
+    const stocksFromQuery = extractMultipleStocks(query);
     
-    // Also check for uppercase stock symbols directly
-    const symbolMatches = query.match(/\b[A-Z]{2,15}\b/g) || [];
-    for (const sym of symbolMatches) {
-      const existing = Object.values(STOCK_UNIVERSE).find(s => s.symbol === sym);
-      if (existing && !detectedStocks.find(s => s.symbol === existing.symbol)) {
-        detectedStocks.push(existing);
-      }
-    }
+    // Convert to the expected format
+    const detectedStocks: Array<{ symbol: string; name: string; sector: string }> = stocksFromQuery.map(s => ({
+      symbol: s.symbol,
+      name: s.name,
+      sector: s.sector
+    }));
     
     // Classify intent
     const intents: string[] = [];
