@@ -9082,18 +9082,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       results = results.slice(0, maxResults);
 
       // Format results for frontend
-      const formattedResults = results.map(inst => ({
-        symbol: inst.symbol,
-        name: inst.name,
-        token: inst.token,
-        exchange: inst.exch_seg,
-        instrumentType: inst.instrumenttype,
-        expiry: inst.expiry || null,
-        strike: inst.strike || null,
-        lotSize: inst.lotsize || null,
-        displayName: `${inst.name} (${inst.exch_seg})`,
-        tradingSymbol: inst.symbol
-      }));
+      const formattedResults = results.map(inst => {
+        // Ensure name is always available - use symbol if name is missing
+        const instrumentName = inst.name && inst.name.trim() ? inst.name.trim() : inst.symbol;
+        const instrumentSymbol = inst.symbol || inst.tradingsymbol || '';
+        
+        return {
+          symbol: instrumentSymbol,
+          name: instrumentName,
+          token: inst.token,
+          exchange: inst.exch_seg,
+          instrumentType: inst.instrumenttype,
+          expiry: inst.expiry || null,
+          strike: inst.strike || null,
+          lotSize: inst.lotsize || null,
+          displayName: `${instrumentName} (${inst.exch_seg || 'NSE'})`,
+          tradingSymbol: instrumentSymbol
+        };
+      });
 
       res.json({ 
         success: true,
