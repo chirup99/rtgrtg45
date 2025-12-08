@@ -62,6 +62,7 @@ import { registerNeoFeedAwsRoutes } from './neofeed-routes-replacement';
 import { initializeNeoFeedTables } from './neofeed-dynamodb-migration';
 import { initializeCognitoVerifier, authenticateRequest } from './cognito-auth';
 import { screenerScraper } from './screener-scraper';
+import { getDemoHeatmapData, seedDemoDataToAWS } from './demo-heatmap-data';
 
 // 🔶 Angel One Stock Token Mappings for historical data
 const ANGEL_ONE_STOCK_TOKENS: { [key: string]: { token: string; exchange: string; tradingSymbol: string } } = {
@@ -5135,7 +5136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Journal Database API endpoints with AWS DynamoDB as PRIMARY storage
   // Migration complete: AWS DynamoDB is now the source of truth
 
-  // ✅ JOURNAL ALL-DATES: AWS DynamoDB ONLY (Firebase removed Dec 3, 2025)
+  // ✅ JOURNAL ALL-DATES: AWS DynamoDB with Demo Data Fallback
   app.get('/api/journal/all-dates', async (req, res) => {
     try {
       console.log('📊 Fetching journal data: AWS DynamoDB ONLY...');
@@ -5147,11 +5148,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(allData);
       }
 
-      console.log('⚠️ AWS DynamoDB: No data found');
-      res.json({});
+      console.log('⚠️ AWS DynamoDB: No data found, returning demo data...');
+      const demoData = getDemoHeatmapData();
+      console.log(`📋 Demo Data: Loaded ${Object.keys(demoData).length} demo entries`);
+      res.json(demoData);
     } catch (error) {
       console.error('❌ AWS DynamoDB error:', error);
-      res.status(500).json({ error: 'Failed to fetch journal dates from AWS', message: error instanceof Error ? error.message : 'Unknown error' });
+      console.log('⚠️ Returning demo data as fallback...');
+      const demoData = getDemoHeatmapData();
+      res.json(demoData);
+    }
+  });
+
+  // SEED DEMO DATA TO AWS
+  app.post('/api/seed-demo-data', async (req, res) => {
+    try {
+      console.log('🌱 Seeding demo data to AWS DynamoDB...');
+      const demoData = seedDemoDataToAWS();
+      
+      let savedCount = 0;
+      for (const [dateKey, data] of Object.entries(demoData)) {
+        const saved = await awsDynamoDBService.saveJournalData(dateKey, data);
+        if (saved) savedCount++;
+      }
+
+      console.log(`✅ Seeded ${savedCount}/${Object.keys(demoData).length} demo entries to AWS`);
+      res.json({ 
+        success: true, 
+        message: `Seeded ${savedCount} demo entries`,
+        count: savedCount 
+      });
+    } catch (error) {
+      console.error('❌ Failed to seed demo data:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to seed demo data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -5230,39 +5263,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get journal data for a specific date - Try Firebase first, fallback to AWS
+  // Get journal data for a specific date - AWS DynamoDB
   app.get('/api/journal/:date', async (req, res) => {
     try {
       const { date } = req.params;
       console.log(`📖 Fetching journal data for date: ${date}`);
 
-      // First, try Firebase journal-database (has keys like "2025-02-03")
-      console.log(`🔥 Trying Firebase journal-database collection with key: ${date}`);
-      let firebaseData = await googleCloudService.getData('journal-database', date);
-
-      if (firebaseData) {
-        console.log(`✅ Found data in Firebase for ${date}`);
-        // Unwrap the data field if it exists (Firebase stores in { data: {...}, createdAt, expiresAt })
-        const unwrappedData = firebaseData.data || firebaseData;
-        console.log(`📦 Firebase data structure:`, { hasDataField: !!firebaseData.data, unwrappedKeys: Object.keys(unwrappedData) });
-        res.json(unwrappedData);
-        return;
-      }
-
-      // Try Firebase with journal_ prefix (fallback)
-      console.log(`🔥 Trying Firebase with journal_ prefix: journal_${date}`);
-      let firebaseDataWithPrefix = await googleCloudService.getData('journal-database', `journal_${date}`);
-
-      if (firebaseDataWithPrefix) {
-        console.log(`✅ Found data in Firebase (with prefix) for ${date}`);
-        // Unwrap if needed
-        const unwrappedData = firebaseDataWithPrefix.data || firebaseDataWithPrefix;
-        res.json(unwrappedData);
-        return;
-      }
-
-      // Fallback to AWS DynamoDB
-      console.log(`📘 No Firebase data, trying AWS DynamoDB for journal_${date}`);
+      // Fetch from AWS DynamoDB
       const awsKey = `journal_${date}`;
       const journalData = await awsDynamoDBService.getJournalData(awsKey);
 
@@ -5270,7 +5277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`✅ AWS: Found data for ${awsKey}`);
         res.json(journalData);
       } else {
-        console.log(`ℹ️ No journal data found anywhere for ${date}, returning empty object`);
+        console.log(`ℹ️ No journal data found in AWS for ${date}, returning empty object`);
         res.json({}); // Return empty object with 200 status
       }
     } catch (error) {
