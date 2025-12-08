@@ -437,7 +437,8 @@ export class EnhancedFinancialScraper {
         chartData: quarterlyData.map(q => ({
           quarter: q.quarter,
           value: q.value,
-          trend: q.changePercent >= 0 ? 'positive' : 'negative'
+          trend: q.changePercent >= 0 ? 'positive' : 'negative',
+          pdfUrl: q.pdfUrl // Include PDF link from scraped data
         })),
         // Include annual financial statements if available
         annualFinancials: annualFinancials || undefined
@@ -501,41 +502,55 @@ export class EnhancedFinancialScraper {
         $tableRows = $('table tbody tr'); // Fallback
       }
       
-      // Extract PDF links from the quarterly table (typically in cells with document links)
+      // Extract PDF links from the "Raw PDF" row in the quarterly table
+      // This row contains links to actual NSE/BSE quarterly result documents
+      // Links are in format: /company/source/quarter/XXXX/M/YYYY/ which redirects to NSE/BSE
       const pdfLinks: string[] = [];
       $tableRows.each((idx, elem) => {
-        const $cells = $(elem).find('td');
-        // Check for PDF/document links row - usually contains links to NSE/BSE filings
-        $cells.each((cellIdx, cell) => {
-          const $link = $(cell).find('a[href]');
-          if ($link.length > 0) {
-            const href = $link.attr('href');
-            // Look for document links (typically NSE/BSE quarterly result PDFs)
-            if (href && (href.includes('nseindia') || href.includes('bseindia') || 
-                href.includes('.pdf') || href.includes('documents') || 
-                href.includes('result') || href.includes('filing'))) {
-              // Make sure it's an absolute URL
-              const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
+        const $firstCell = $(elem).find('td').first();
+        const rowLabel = $firstCell.text().trim().toLowerCase();
+        
+        // Look specifically for "Raw PDF" row
+        if (rowLabel === 'raw pdf' || rowLabel.includes('raw pdf')) {
+          console.log(`[ENHANCED-SCRAPER] 📄 Found "Raw PDF" row, extracting PDF links...`);
+          const $cells = $(elem).find('td');
+          
+          // Skip the first cell (label) and extract links from each quarter column
+          $cells.slice(1).each((cellIdx, cell) => {
+            const $link = $(cell).find('a[href]');
+            if ($link.length > 0) {
+              const href = $link.attr('href');
+              if (href) {
+                // Make sure it's an absolute URL - screener.in links are relative
+                const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
+                pdfLinks.push(fullUrl);
+                console.log(`[ENHANCED-SCRAPER]   📄 Column ${cellIdx}: ${fullUrl}`);
+              }
+            } else {
+              // No link in this cell, push empty string to maintain index alignment
+              pdfLinks.push('');
+            }
+          });
+          console.log(`[ENHANCED-SCRAPER] ✅ Found ${pdfLinks.filter(l => l).length} PDF links from Raw PDF row`);
+        }
+      });
+      
+      // If Raw PDF row not found in table rows, try searching the entire quarters section
+      if (pdfLinks.length === 0) {
+        console.log(`[ENHANCED-SCRAPER] ⚠️ Raw PDF row not found in table, trying alternate selectors...`);
+        $('section#quarters a[href*="source/quarter"]').each((idx, elem) => {
+          const href = $(elem).attr('href');
+          if (href) {
+            const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
+            if (!pdfLinks.includes(fullUrl)) {
               pdfLinks.push(fullUrl);
             }
           }
         });
-      });
+        console.log(`[ENHANCED-SCRAPER] Found ${pdfLinks.length} PDF links from section search`);
+      }
       
-      // Also try to find PDF links in the quarterly section directly
-      $('section#quarters a[href]').each((idx, elem) => {
-        const href = $(elem).attr('href');
-        if (href && (href.includes('nseindia') || href.includes('bseindia') || 
-            href.includes('.pdf') || href.includes('documents') || 
-            href.includes('result') || href.includes('filing'))) {
-          const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
-          if (!pdfLinks.includes(fullUrl)) {
-            pdfLinks.push(fullUrl);
-          }
-        }
-      });
-      
-      console.log(`[ENHANCED-SCRAPER] Found ${pdfLinks.length} PDF links for quarterly results`);
+      console.log(`[ENHANCED-SCRAPER] 📊 Total PDF links extracted: ${pdfLinks.filter(l => l).length}`);
       
       $tableRows.each((idx, elem) => {
         const rowLabel = $(elem).find('td').first().text().trim().toLowerCase();
@@ -587,9 +602,10 @@ export class EnhancedFinancialScraper {
             const changePercent = prevRevenue > 0 ? 
               Math.round(((revenue - prevRevenue) / prevRevenue) * 100 * 100) / 100 : 0;
             
-            // Get the PDF link for this quarter (match by index position from start)
-            const pdfIndex = i - startIdx;
-            const pdfUrl = pdfLinks[pdfIndex] || undefined;
+            // Get the PDF link for this quarter
+            // pdfLinks array has links for all quarter columns in same order as headers
+            // Use same index 'i' since both arrays are aligned by column position
+            const pdfUrl = pdfLinks[i] && pdfLinks[i].length > 0 ? pdfLinks[i] : undefined;
             
             quarters.push({
               quarter: quarterLabel,
@@ -1120,7 +1136,8 @@ export class EnhancedFinancialScraper {
       chartData: quarterlyData.map(q => ({
         quarter: q.quarter,
         value: q.value,
-        trend: q.changePercent >= 0 ? 'positive' : 'negative'
+        trend: q.changePercent >= 0 ? 'positive' : 'negative',
+        pdfUrl: q.pdfUrl // Include PDF link if available
       }))
     };
   }
