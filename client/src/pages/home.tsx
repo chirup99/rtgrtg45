@@ -5459,9 +5459,9 @@ ${
     queryKey: ['stock-chart', 'NIFTY50', nifty50Timeframe],
     queryFn: () => fetch(`/api/stock-chart-data/NIFTY50?timeframe=${nifty50Timeframe}`).then(res => res.json()),
     refetchInterval: nifty50Timeframe === '1D' ? 60000 : 300000,
-    staleTime: nifty50Timeframe === '1D' ? 30000 : 180000,
+    staleTime: 0,
     gcTime: 600000,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnWindowFocus: false
   });
 
@@ -5469,9 +5469,9 @@ ${
     queryKey: ['stock-chart', 'NIFTYBANK', niftyBankTimeframe],
     queryFn: () => fetch(`/api/stock-chart-data/NIFTYBANK?timeframe=${niftyBankTimeframe}`).then(res => res.json()),
     refetchInterval: niftyBankTimeframe === '1D' ? 60000 : 300000,
-    staleTime: niftyBankTimeframe === '1D' ? 30000 : 180000,
+    staleTime: 0,
     gcTime: 600000,
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnWindowFocus: false
   });
 
@@ -12082,9 +12082,9 @@ ${
                                         const cleanSymbolForNews = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
                                         
                                         renderedContent = (
-                                          <div className="flex gap-4">
+                                          <div className="flex gap-4 w-full">
                                             {/* Left Column - Index Charts + Watchlist */}
-                                            <div className="w-80 flex-shrink-0 space-y-4">
+                                            <div className="flex-1 space-y-4">
                                               {/* NIFTY 50 Chart */}
                                               <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-600">
                                                 <div className="space-y-2">
@@ -12119,7 +12119,7 @@ ${
                                                   
                                                   <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 25, bottom: 5 }}>
+                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
@@ -12133,7 +12133,7 @@ ${
                                                           axisLine={false}
                                                           tickLine={false}
                                                           tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          width={40}
+                                                          width={0}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
@@ -12222,7 +12222,7 @@ ${
                                                   
                                                   <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 25, bottom: 5 }}>
+                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
@@ -12236,7 +12236,7 @@ ${
                                                           axisLine={false}
                                                           tickLine={false}
                                                           tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          width={40}
+                                                          width={0}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
