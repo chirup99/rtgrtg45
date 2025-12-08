@@ -5453,13 +5453,15 @@ ${
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
   const [watchlistChartTimeframe, setWatchlistChartTimeframe] = useState('1D');
   
-  // Queries for NIFTY50 and NIFTYBANK chart data
+  // Queries for NIFTY50 and NIFTYBANK chart data - optimized with caching
   const { data: nifty50ChartData = [], isLoading: isNifty50Loading } = useQuery({
     queryKey: ['stock-chart', 'NIFTY50', watchlistChartTimeframe],
     queryFn: () => fetch(`/api/stock-chart-data/NIFTY50?timeframe=${watchlistChartTimeframe}`).then(res => res.json()),
     refetchInterval: watchlistChartTimeframe === '1D' ? 60000 : 300000,
     staleTime: watchlistChartTimeframe === '1D' ? 30000 : 180000,
     gcTime: 600000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
   });
 
   const { data: niftyBankChartData = [], isLoading: isNiftyBankLoading } = useQuery({
@@ -5468,43 +5470,62 @@ ${
     refetchInterval: watchlistChartTimeframe === '1D' ? 60000 : 300000,
     staleTime: watchlistChartTimeframe === '1D' ? 30000 : 180000,
     gcTime: 600000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
   });
 
-  // Transform chart data to match LineChart format
+  // Transform chart data to match LineChart format - uses price field consistently
   const transformChartData = (data: any[]) => {
     if (!Array.isArray(data)) return [];
     return data.map((candle: any) => ({
-      time: new Date(candle.timestamp * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      price: candle.close || candle.price || 0
+      time: candle.time || new Date(candle.timestamp * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      price: Number(candle.price) || Number(candle.close) || 0
     }));
   };
 
   const nifty50FormattedData = transformChartData(nifty50ChartData);
   const niftyBankFormattedData = transformChartData(niftyBankChartData);
 
-  // Get current prices from latest data
+  // Get current price from chart data (latest point) - matches NeoFeed pattern
   const getNifty50CurrentPrice = () => {
-    if (nifty50FormattedData.length === 0) return 0;
-    return nifty50ChartData[nifty50ChartData.length - 1]?.close || 0;
+    if (nifty50ChartData && nifty50ChartData.length > 0) {
+      return nifty50ChartData[nifty50ChartData.length - 1]?.price || nifty50ChartData[nifty50ChartData.length - 1]?.close || 0;
+    }
+    return 0;
   };
 
   const getNiftyBankCurrentPrice = () => {
-    if (niftyBankFormattedData.length === 0) return 0;
-    return niftyBankChartData[niftyBankChartData.length - 1]?.close || 0;
+    if (niftyBankChartData && niftyBankChartData.length > 0) {
+      return niftyBankChartData[niftyBankChartData.length - 1]?.price || niftyBankChartData[niftyBankChartData.length - 1]?.close || 0;
+    }
+    return 0;
+  };
+
+  // Calculate baseline for change calculation - uses first data point as baseline
+  const getNifty50Baseline = () => {
+    if (!nifty50ChartData || nifty50ChartData.length === 0) {
+      return getNifty50CurrentPrice();
+    }
+    return nifty50ChartData[0]?.price || nifty50ChartData[0]?.close || getNifty50CurrentPrice();
+  };
+
+  const getNiftyBankBaseline = () => {
+    if (!niftyBankChartData || niftyBankChartData.length === 0) {
+      return getNiftyBankCurrentPrice();
+    }
+    return niftyBankChartData[0]?.price || niftyBankChartData[0]?.close || getNiftyBankCurrentPrice();
   };
 
   const getNifty50Change = () => {
-    if (nifty50ChartData.length === 0) return 0;
-    const first = nifty50ChartData[0]?.open || 0;
-    const last = nifty50ChartData[nifty50ChartData.length - 1]?.close || 0;
-    return last - first;
+    const current = getNifty50CurrentPrice();
+    const baseline = getNifty50Baseline();
+    return current - baseline;
   };
 
   const getNiftyBankChange = () => {
-    if (niftyBankChartData.length === 0) return 0;
-    const first = niftyBankChartData[0]?.open || 0;
-    const last = niftyBankChartData[niftyBankChartData.length - 1]?.close || 0;
-    return last - first;
+    const current = getNiftyBankCurrentPrice();
+    const baseline = getNiftyBankBaseline();
+    return current - baseline;
   };
   
   // Save watchlist to localStorage whenever it changes
@@ -12156,7 +12177,7 @@ ${
                                                           activeDot={{ r: 4, fill: '#ef4444' }}
                                                         />
                                                         <ReferenceLine 
-                                                          y={6186.65} 
+                                                          y={getNifty50Baseline()} 
                                                           stroke="#64748b" 
                                                           strokeDasharray="2 2" 
                                                           strokeWidth={1}
@@ -12260,7 +12281,7 @@ ${
                                                           activeDot={{ r: 4, fill: '#10b981' }}
                                                         />
                                                         <ReferenceLine 
-                                                          y={41200} 
+                                                          y={getNiftyBankBaseline()} 
                                                           stroke="#64748b" 
                                                           strokeDasharray="2 2" 
                                                           strokeWidth={1}
