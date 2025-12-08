@@ -12679,7 +12679,8 @@ ${
                                                               };
                                                               const displayDate = fyQuarterToDate(q.quarter);
                                                               const searchedSymbol = (window as any).searchedStockSymbol || 'RELIANCE';
-                                                              const pdfUrl = `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
+                                                              // Use real PDF URL from scraped data, fallback to screener.in page
+                                                              const pdfUrl = q.pdfUrl || `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
                                                               
                                                               return (
                                                                 <div key={idx} className="flex flex-col items-center gap-1">
@@ -12689,7 +12690,7 @@ ${
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="text-gray-400 hover:text-blue-400 transition-colors"
-                                                                    title={`View ${displayDate} quarterly results`}
+                                                                    title={q.pdfUrl ? `View ${displayDate} quarterly results (NSE/BSE)` : `View ${displayDate} quarterly results on Screener`}
                                                                     data-testid={`pdf-link-${idx}`}
                                                                   >
                                                                     <FileText className="h-4 w-4" />
@@ -13022,7 +13023,8 @@ ${
                                                       };
                                                       const displayDate = fyQuarterToDate(q.quarter);
                                                       const searchedSymbol = (window as any).searchedStockSymbol || companyInsights?.symbol || 'RELIANCE';
-                                                      const pdfUrl = `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
+                                                      // Use real PDF URL from scraped data, fallback to screener.in page
+                                                      const pdfUrl = q.pdfUrl || `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
                                                       
                                                       return (
                                                         <div key={idx} className="flex flex-col items-center gap-1">
@@ -13032,7 +13034,7 @@ ${
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-gray-400 hover:text-blue-400 transition-colors"
-                                                            title={`View ${displayDate} quarterly results`}
+                                                            title={q.pdfUrl ? `View ${displayDate} quarterly results (NSE/BSE)` : `View ${displayDate} quarterly results on Screener`}
                                                             data-testid={`pdf-link-insights-${idx}`}
                                                           >
                                                             <FileText className="h-4 w-4" />

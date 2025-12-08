@@ -45,6 +45,7 @@ export interface QuarterlyData {
   value: number;
   change: number;
   changePercent: number;
+  pdfUrl?: string; // Link to NSE/BSE quarterly result PDF from screener.in
 }
 
 // Balance Sheet row item
@@ -500,6 +501,42 @@ export class EnhancedFinancialScraper {
         $tableRows = $('table tbody tr'); // Fallback
       }
       
+      // Extract PDF links from the quarterly table (typically in cells with document links)
+      const pdfLinks: string[] = [];
+      $tableRows.each((idx, elem) => {
+        const $cells = $(elem).find('td');
+        // Check for PDF/document links row - usually contains links to NSE/BSE filings
+        $cells.each((cellIdx, cell) => {
+          const $link = $(cell).find('a[href]');
+          if ($link.length > 0) {
+            const href = $link.attr('href');
+            // Look for document links (typically NSE/BSE quarterly result PDFs)
+            if (href && (href.includes('nseindia') || href.includes('bseindia') || 
+                href.includes('.pdf') || href.includes('documents') || 
+                href.includes('result') || href.includes('filing'))) {
+              // Make sure it's an absolute URL
+              const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
+              pdfLinks.push(fullUrl);
+            }
+          }
+        });
+      });
+      
+      // Also try to find PDF links in the quarterly section directly
+      $('section#quarters a[href]').each((idx, elem) => {
+        const href = $(elem).attr('href');
+        if (href && (href.includes('nseindia') || href.includes('bseindia') || 
+            href.includes('.pdf') || href.includes('documents') || 
+            href.includes('result') || href.includes('filing'))) {
+          const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
+          if (!pdfLinks.includes(fullUrl)) {
+            pdfLinks.push(fullUrl);
+          }
+        }
+      });
+      
+      console.log(`[ENHANCED-SCRAPER] Found ${pdfLinks.length} PDF links for quarterly results`);
+      
       $tableRows.each((idx, elem) => {
         const rowLabel = $(elem).find('td').first().text().trim().toLowerCase();
         const $cells = $(elem).find('td');
@@ -550,18 +587,23 @@ export class EnhancedFinancialScraper {
             const changePercent = prevRevenue > 0 ? 
               Math.round(((revenue - prevRevenue) / prevRevenue) * 100 * 100) / 100 : 0;
             
+            // Get the PDF link for this quarter (match by index position from start)
+            const pdfIndex = i - startIdx;
+            const pdfUrl = pdfLinks[pdfIndex] || undefined;
+            
             quarters.push({
               quarter: quarterLabel,
               value: Math.round(revenue), // Revenue in Cr
               change: changePercent,
-              changePercent: changePercent
+              changePercent: changePercent,
+              pdfUrl: pdfUrl
             });
           }
         }
         
         if (quarters.length >= 3) {
           console.log(`[ENHANCED-SCRAPER] ✅ SUCCESS! Returning ${quarters.length} quarters of REAL data for ${cleanSymbol}:`);
-          quarters.forEach(q => console.log(`   ${q.quarter}: ₹${q.value} Cr (${q.changePercent > 0 ? '+' : ''}${q.changePercent}%)`));
+          quarters.forEach(q => console.log(`   ${q.quarter}: ₹${q.value} Cr (${q.changePercent > 0 ? '+' : ''}${q.changePercent}%)${q.pdfUrl ? ' [PDF]' : ''}`));
           return quarters;
         }
       }
