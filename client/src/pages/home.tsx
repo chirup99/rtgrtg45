@@ -12119,7 +12119,7 @@ ${
                                                   
                                                   <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                                                      <LineChart data={isNifty50Loading ? [] : nifty50FormattedData} margin={{ top: 5, right: 15, left: 50, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
@@ -12133,7 +12133,7 @@ ${
                                                           axisLine={false}
                                                           tickLine={false}
                                                           tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          width={0}
+                                                          width={45}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
@@ -12222,7 +12222,7 @@ ${
                                                   
                                                   <div className="h-48 w-full bg-gray-800/30 rounded-lg p-2">
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                                                      <LineChart data={isNiftyBankLoading ? [] : niftyBankFormattedData} margin={{ top: 5, right: 15, left: 50, bottom: 5 }}>
                                                         <XAxis 
                                                           dataKey="time" 
                                                           axisLine={false}
@@ -12236,7 +12236,7 @@ ${
                                                           axisLine={false}
                                                           tickLine={false}
                                                           tick={{ fontSize: 9, fill: '#64748b' }}
-                                                          width={0}
+                                                          width={45}
                                                         />
                                                         <Tooltip 
                                                           content={({ active, payload, label }) => {
