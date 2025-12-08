@@ -103,7 +103,6 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  TrendingUp,
   TrendingDown,
   Activity,
   Calendar,
@@ -114,7 +113,6 @@ import {
   RotateCw,
   DollarSign,
   Zap,
-  Newspaper,
   Sun,
   Moon,
   GraduationCap,
@@ -133,7 +131,6 @@ import {
   Users,
   Upload,
   Timer,
-  Clock,
   Edit,
   Check,
   X,
@@ -167,7 +164,6 @@ import {
   Share2,
   Copy,
   Link2,
-  ExternalLink,
   Facebook,
   Linkedin,
   Twitter,
