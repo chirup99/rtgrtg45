@@ -1,56 +1,9 @@
-
-import * as admin from 'firebase-admin';
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import fileUpload from 'express-fileupload';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { liveWebSocketStreamer } from "./live-websocket-streamer";
-
-// --- Firebase Admin SDK Initialization ---
-// This version has been corrected to work with Google Secret Manager.
-// It directly uses the FIREBASE_PRIVATE_KEY from the environment, trusting that
-// Secret Manager provides it in the correct format without extra escaping.
-
-if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-  const credential = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    // The private key is now passed directly from the secret.
-    privateKey: process.env.FIREBASE_PRIVATE_KEY,
-  };
-
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(credential),
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      storageBucket: `${process.env.FIREBASE_PROJECT_ID}.appspot.com`,
-    });
-    log('✅ Firebase Admin SDK initialized successfully via environment variables and Secret Manager.');
-    log(`📋 Project ID: ${process.env.FIREBASE_PROJECT_ID}`);
-  } catch (error) {
-    console.error('⚠️ Firebase Admin SDK initialization failed:', error);
-  }
-
-} else {
-  log('⚠️ Firebase Admin credentials not found in environment variables. Attempting default initialization.');
-  // Fallback for local development or other environments where GOOGLE_APPLICATION_CREDENTIALS might be set.
-  // Also set projectId from GOOGLE_CLOUD_PROJECT (standard Cloud Run env var) or FIREBASE_PROJECT_ID
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
-  
-  try {
-    admin.initializeApp({
-      ...(projectId ? { projectId } : {})
-    });
-    log('✅ Firebase Admin SDK initialized with default application credentials.');
-    if (projectId) {
-      log(`📋 Project ID: ${projectId}`);
-    }
-  } catch(e) {
-    log('⚠️ Could not initialize Firebase with default credentials.');
-  }
-}
-// --- End of Firebase Initialization ---
 
 
 const app = express();
@@ -73,26 +26,22 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
-// Enhanced CORS and security headers for Cloud Run and Firebase compatibility
+// Enhanced CORS and security headers
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
   // Define trusted origins - explicitly list all allowed domains for security
   const allowedOrigins = [
-    // Firebase Hosting domains for this specific project
-    'https://fast-planet-470408-f1.web.app',
-    'https://fast-planet-470408-f1.firebaseapp.com',
     // Production custom domains
     'https://perala.in',
     'https://www.perala.in',
-    // Production Cloud Run deployments
+    // Production deployments
     'https://perala-808950990883.us-central1.run.app',
     'https://perala-zup2rskmja-uc.a.run.app',
-    // Cloud Run backend URL
+    // Backend API URL
     process.env.VITE_API_URL ? process.env.VITE_API_URL : null,
-    // Cloud Run frontend URL (for deployments)
+    // Frontend URL (for deployments)
     process.env.FRONTEND_URL ? process.env.FRONTEND_URL : null,
-    process.env.CLOUD_RUN_FRONTEND_URL ? process.env.CLOUD_RUN_FRONTEND_URL : null,
     // Replit development domain
     process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
   ].filter(Boolean);
@@ -104,9 +53,9 @@ app.use((req, res, next) => {
     // Check exact matches against allowlist
     if (allowedOrigins.includes(origin)) return true;
     
-    // Production: Allow all Cloud Run URLs (*.run.app domains with multiple subdomains)
+    // Production: Allow all deployment URLs (*.run.app domains with multiple subdomains)
     if (origin.match(/^https:\/\/[a-zA-Z0-9\-\.]+\.run\.app$/)) {
-      log(`✅ CORS allowed for Cloud Run domain: ${origin}`);
+      log(`✅ CORS allowed for deployment domain: ${origin}`);
       return true;
     }
     
@@ -288,17 +237,7 @@ server.listen(listenOptions, () => {
         }
       };
 
-      // Post finance news after delay, then every hour (non-blocking)
-      // Only start if Google Cloud/Firebase is configured
-      if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL) {
-        setTimeout(() => {
-          console.log('📰 Attempting to start hourly Google Finance news posting...');
-          postHourlyFinanceNews();
-          setInterval(postHourlyFinanceNews, 60 * 60 * 1000); // Every 1 hour
-        }, 30000); // Wait 30 seconds for server to be fully ready
-      } else {
-        console.log('⚠️  Firebase credentials not found, skipping auto news posting');
-      }
+      // Auto-news posting disabled - using AWS services instead
     }, 5000); // Delay background tasks by 5 seconds for Cloud Run health check
   });
 })();

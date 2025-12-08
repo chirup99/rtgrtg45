@@ -9,7 +9,6 @@ import { fyersApi } from "./fyers-api";
 import { C2BlockSimpleAnalyzer } from "./c2-block-simple-analyzer";
 import { recursiveC2BlockAnalyzer } from "./recursive-c2-block-analyzer";
 import { RecursivePointABAnalyzer } from "./recursive-point-ab-analyzer";
-import { googleCloudService } from './google-cloud-service';
 // REMOVED: C2BlockInternalPatternAnalyzer - Building new simple version
 
 // Utility function to resample 1-minute candles to larger timeframes
@@ -49,22 +48,12 @@ function resampleCandles(oneMinuteData: any[], targetMinutes: number) {
   return resampledCandles;
 }
 
+import { googleCloudService } from './google-cloud-service';
+
 const router = Router();
 const scannerEngine = new BattuScannerEngine();
 const storage = new BattuStorage();
 const recursiveAnalyzer = new RecursivePointABAnalyzer(fyersApi);
-
-// Initialize Google Cloud Storage for BATTU data
-async function initializeBattuCloudStorage() {
-  try {
-    await googleCloudService.initializeBucket('cb-connect-battu-data');
-    console.log('🎯 BATTU Google Cloud Storage initialized successfully');
-  } catch (error) {
-    console.error('❌ Failed to initialize BATTU Google Cloud storage:', error);
-  }
-}
-
-initializeBattuCloudStorage();
 
 // DEEP PATTERN ANALYSIS FUNCTIONS
 // Pattern power hierarchy: 1-3 > 2-4 > 1-4 > 2-3 (2-3 is waste pattern)

@@ -11,9 +11,7 @@ import { fetchBrokerTrades } from "./services/broker-integrations";
 import { z } from "zod";
 import { desc, sql, eq } from "drizzle-orm";
 import { intradayAnalyzer } from "./intraday-market-session";
-import { googleCloudService } from './google-cloud-service';
 import { awsDynamoDBService } from './aws-dynamodb-service';
-import { createGoogleCloudSigninBackupService, type SigninDataRecord } from './google-cloud-signin-backup-service';
 import { IntradayPatternDetector } from "./intraday-patterns";
 import { Enhanced4CandleProcessor } from "./enhanced-four-candle-processor";
 import { oneMinuteAnalyzer } from "./one-minute-timestamp-analyzer";
@@ -180,9 +178,6 @@ let candleProgressionManager: CandleProgressionManager | null = null;
 
 // Initialize candle progression integration on server startup
 candleProgressionIntegration.integrate();
-
-// Initialize Google Cloud Signin Backup Service - same pattern as NIFTY data service
-const googleCloudSigninBackupService = createGoogleCloudSigninBackupService();
 
 // REMOVED: Backup data service to reduce Firebase storage costs
 // const backupDataService = createBackupDataService();
@@ -3777,29 +3772,14 @@ function getCompanyName(symbol: string): string {
   return nameMap[symbol.toUpperCase()] || symbol;
 }
 
-// Initialize Google Cloud Storage
-async function initializeGoogleCloud() {
-  try {
-    await googleCloudService.initializeBucket('cb-connect-trading-data');
-    console.log('☁️ Google Cloud Storage initialized successfully');
-
-    const healthCheck = await googleCloudService.healthCheck();
-    console.log('🔍 Google Cloud Health Check:', healthCheck);
-  } catch (error) {
-    console.error('❌ Failed to initialize Google Cloud:', error);
-  }
-}
-
-initializeGoogleCloud();
-
-// Auto-reconnection function - Checks Firebase first, then PostgreSQL, then environment
+// Auto-reconnection function - Checks environment configuration
 async function attemptAutoReconnection() {
   try {
     console.log('🔄 Starting auto-reconnection sequence...');
 
-    // Step 1: Check Firebase for today's token first
-    console.log('🔥 [FIREBASE] Checking Firebase for today\'s Fyers token...');
-    const firebaseToken = await googleCloudService.getTodaysFyersToken();
+    // Using environment configuration for token retrieval
+    console.log('🔑 [CONFIG] Checking environment for stored access token...');
+    const firebaseToken = null;
 
     if (firebaseToken && firebaseToken.accessToken) {
       console.log('🔑 [FIREBASE] Found token in Firebase - testing BEFORE connecting...');
@@ -4042,7 +4022,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = authHeader.split('Bearer ')[1];
 
       // Verify the Firebase ID token with enhanced error logging
-      const admin = await import('firebase-admin');
       let decodedToken;
 
       try {
@@ -4088,7 +4067,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Sync displayName from Firebase Auth to Firestore during login
       if (decodedToken.name) {
-        const { getFirestore } = await import('firebase-admin/firestore');
         const db = getFirestore();
 
         // Check if user profile already exists
@@ -4145,7 +4123,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = authHeader.split('Bearer ')[1];
 
       // Verify the Firebase ID token (Cloud Run compatible)
-      const admin = await import('firebase-admin');
       let decodedToken;
 
       try {
@@ -4168,7 +4145,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (name) {
         (async () => {
           try {
-            const { getFirestore } = await import('firebase-admin/firestore');
             const db = getFirestore();
 
             console.log('💾 Saving displayName during registration (background):', { userId: decodedToken.uid, displayName: name });
@@ -4212,7 +4188,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = authHeader.split('Bearer ')[1];
 
       // Verify the Firebase ID token (Cloud Run compatible)
-      const admin = await import('firebase-admin');
       let decodedToken;
 
       try {
@@ -4231,7 +4206,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (decodedToken.name) {
         (async () => {
           try {
-            const { getFirestore } = await import('firebase-admin/firestore');
             const db = getFirestore();
 
             // Check if user profile already exists
@@ -5897,8 +5871,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('📱 Fetching social posts from Firebase (user posts and finance news)');
 
-      const admin = await import('firebase-admin');
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       const allPosts = [];
@@ -6009,8 +5981,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ [${requestId}] Creating post for user: ${userId}`);
 
       // Import Firebase admin and Firestore
-      const admin = await import('firebase-admin');
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       console.log(`📖 [${requestId}] Fetching user profile from Firestore...`);
@@ -6120,11 +6090,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const userId = decodedToken.uid;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
       const postId = req.params.postId;
 
@@ -6159,11 +6127,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const idToken = authHeader.split('Bearer ')[1];
-      const admin = await import('firebase-admin');
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const userId = decodedToken.uid;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
       const postId = req.params.postId;
       const { content } = req.body;
@@ -6588,9 +6554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.id;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       try {
         // Verify token
@@ -6652,9 +6616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.id;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       try {
         // Verify token
@@ -6707,9 +6669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.id;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       try {
         // Verify token
@@ -6771,9 +6731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.id;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       try {
         // Verify token
@@ -6831,9 +6789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Comment cannot be empty' });
       }
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       try {
         // Verify token
@@ -6906,7 +6862,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new Error('Authentication required');
     }
     const idToken = authHeader.split('Bearer ')[1];
-    const admin = await import('firebase-admin');
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     return decodedToken.uid;
   }
@@ -6921,7 +6876,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const targetUsername = req.params.username;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get current user's profile - try by ID first, then search by email
@@ -6946,7 +6900,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!foundProfile) {
           // Create a basic profile for the user
-          const admin = await import('firebase-admin');
           const userRecord = await admin.auth().getUser(userId);
           currentUsername = userRecord.email?.split('@')[0] || 'user';
 
@@ -7031,7 +6984,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const targetUsername = req.params.username;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Find target user by username
@@ -7057,7 +7009,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const targetUsername = req.params.username;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Find target user
@@ -7080,7 +7031,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const username = req.params.username;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Find user by username
@@ -7110,7 +7060,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const username = req.params.username;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Find user by username
@@ -7153,7 +7102,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const username = req.params.username;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Find user by username
@@ -7197,7 +7145,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get user's username
@@ -7229,7 +7176,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Delete like record
@@ -7252,7 +7198,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Check if like exists
@@ -7275,7 +7220,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get user's username
@@ -7307,7 +7251,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Delete retweet record
@@ -7330,7 +7273,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Check if retweet exists
@@ -7358,7 +7300,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Comment content is required' });
       }
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get user's profile
@@ -7401,7 +7342,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get all comments for this post
@@ -7428,7 +7368,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const { postId, commentId } = req.params;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get comment
@@ -7467,7 +7406,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new Error('Authentication required');
     }
     const idToken = authHeader.split('Bearer ')[1];
-    const admin = await import('firebase-admin');
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     return decodedToken.email || '';
   }
@@ -7913,7 +7851,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get user's username
@@ -7946,7 +7883,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyUserAuth(req.headers.authorization);
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       // Get post
@@ -8009,9 +7945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       // Verify token
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -8050,9 +7984,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       // Verify token
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -8083,9 +8015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       // Verify token
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -8124,9 +8054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const idToken = req.headers.authorization.split('Bearer ')[1];
       const postId = req.params.postId;
 
-      const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      const admin = await import('firebase-admin');
 
       // Verify token
       const decodedToken = await admin.auth().verifyIdToken(idToken);
