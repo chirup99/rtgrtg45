@@ -62,7 +62,31 @@ RELATED NEWS - UNIFIED DESIGN - DECEMBER 8, 2025 (4:20 AM)
       - News cards are clickable and open in new tab with proper flags
       - Timestamps display relative times (e.g., "2h ago", "60 days ago")
 
-[x] 4. Workflow verified:
+=========================================================
+
+NEWS FILTERING BY SEARCHED SYMBOL - DECEMBER 8, 2025 (4:35 AM)
+
+[x] 1. Identified issue: Search results news was not filtering by searched symbol
+      - Old implementation cached news without tracking which symbol it was for
+      - When user searched for different symbols, old news stayed cached
+      - Used generic `/api/stock-news?query=` endpoint instead of symbol-based
+
+[x] 2. Fixed news fetching to use NeoFeed's approach:
+      - Track symbol using `searchResultsNewsSymbol` window variable
+      - Clear cache when user searches for a different symbol
+      - Use `/api/stock-news/${symbol}` endpoint (same as NeoFeed)
+      - Add refresh timestamp: `?refresh=${Date.now()}` for fresh data
+      - Handle both array and object format from API response
+      - Show "Loading news for {symbol}..." message while fetching
+
+[x] 3. Key implementation changes:
+      - Lines 11798-11837 in client/src/pages/home.tsx
+      - Symbol tracking: `(window as any).searchResultsNewsSymbol`
+      - Cache clearing: if symbol changed, reset news arrays
+      - Fresh fetch: only fetch if symbol is new
+      - Better error handling: handles multiple API response formats
+
+[x] 4. Verification:
       - Server running on port 5000 ✅
       - All AWS services operational ✅
       - Frontend rendering correctly ✅
@@ -70,14 +94,15 @@ RELATED NEWS - UNIFIED DESIGN - DECEMBER 8, 2025 (4:20 AM)
 
 =========================================================
 
-## ✅ TRADING PLATFORM READY - DECEMBER 8, 2025
+## ✅ TRADING PLATFORM FULLY OPTIMIZED - DECEMBER 8, 2025
 
-The trading platform now has fully unified and professional design:
+The trading platform now has fully unified and professional design with proper news filtering:
 - ✅ Core application operational
 - ✅ All AWS integrations working
 - ✅ Stock chart loads dynamically when user searches
 - ✅ Related News window uses professional NeoFeed design
-- ✅ News fetches dynamically for searched symbols
+- ✅ News fetches dynamically and filters by searched symbol (NEW!)
+- ✅ Cache properly clears when user searches different symbols (NEW!)
 - ✅ Consistent styling across all tabs (NeoFeed and Search Results)
 - ✅ All features tested and verified working
 

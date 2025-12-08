@@ -11792,30 +11792,43 @@ ${
                                                       }
                                                     };
 
-                                                    const newsItems = (window as any).searchResultsNews || [];
                                                     const currentSymbol = stockName?.split('\n')?.[0] || 'TCS';
+                                                    const cachedSymbol = (window as any).searchResultsNewsSymbol || '';
+                                                    const cachedNews = (window as any).searchResultsNews || [];
+                                                    
+                                                    // Clear cache if symbol changed
+                                                    if (cachedSymbol && cachedSymbol !== currentSymbol) {
+                                                      (window as any).searchResultsNews = [];
+                                                      (window as any).searchResultsNewsSymbol = '';
+                                                    }
 
-                                                    // Fetch news if we have a symbol and haven't fetched yet
-                                                    if (newsItems.length === 0 && currentSymbol) {
+                                                    const newsItems = cachedNews;
+
+                                                    // Fetch news if we have a symbol and haven't fetched yet for this symbol
+                                                    if (newsItems.length === 0 && currentSymbol && cachedSymbol !== currentSymbol) {
+                                                      (window as any).searchResultsNewsSymbol = currentSymbol;
                                                       (async () => {
                                                         try {
                                                           const response = await fetch(
-                                                            getFullApiUrl(`/api/stock-news?query=${encodeURIComponent(currentSymbol.toUpperCase())}`)
+                                                            getFullApiUrl(`/api/stock-news/${encodeURIComponent(currentSymbol.toUpperCase())}?refresh=${Date.now()}`)
                                                           );
                                                           const data = await response.json();
                                                           
-                                                          if (data.success && data.articles && data.articles.length > 0) {
-                                                            const formattedNews = data.articles.slice(0, 5).map((article: any) => ({
+                                                          // Handle both array format and object format from API
+                                                          const articles = Array.isArray(data) ? data : (data.articles || data.data || []);
+                                                          
+                                                          if (articles && articles.length > 0) {
+                                                            const formattedNews = articles.slice(0, 5).map((article: any) => ({
                                                               title: article.title,
                                                               source: article.source || "Market News",
-                                                              time: getRelativeTime(article.publishedAt || new Date().toISOString()),
-                                                              url: article.url
+                                                              time: getRelativeTime(article.publishedAt || article.date || new Date().toISOString()),
+                                                              url: article.url || article.link || '#'
                                                             }));
                                                             (window as any).searchResultsNews = formattedNews;
                                                             window.dispatchEvent(new Event('newsUpdated'));
                                                           }
                                                         } catch (error) {
-                                                          console.warn("Failed to fetch news:", error);
+                                                          console.warn("Failed to fetch news for symbol:", currentSymbol, error);
                                                         }
                                                       })();
                                                     }
@@ -11825,7 +11838,7 @@ ${
                                                         <div 
                                                           key={idx} 
                                                           className="p-3 bg-gray-100 dark:bg-gray-600/60 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/70 transition-colors backdrop-blur-sm shadow-sm cursor-pointer"
-                                                          onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                                                          onClick={() => item.url && item.url !== '#' && window.open(item.url, '_blank', 'noopener,noreferrer')}
                                                           data-testid={`news-item-${idx}`}
                                                         >
                                                           <h4 className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
@@ -11840,8 +11853,8 @@ ${
                                                     ) : (
                                                       <div className="text-center py-6 text-gray-500 dark:text-gray-400">
                                                         <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                        <p className="text-sm">No recent news available for this stock</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Check back later for updates</p>
+                                                        <p className="text-sm">Loading news for {currentSymbol}...</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Fetching latest articles</p>
                                                       </div>
                                                     );
                                                   })()}
