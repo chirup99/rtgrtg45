@@ -5679,6 +5679,26 @@ ${
     return () => clearTimeout(debounceTimer);
   }, [watchlistSearchQuery]);
   
+
+  // Fetch company insights when watchlist stock is selected (same logic as main search)
+  useEffect(() => {
+    if (selectedWatchlistSymbol) {
+      const fetchWatchlistCompanyInsights = async () => {
+        try {
+          const response = await fetch(`/api/trading-agent?symbol=${encodeURIComponent(selectedWatchlistSymbol)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.companyInsights) {
+              (window as any).companyInsightsData = data.companyInsights;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching watchlist company insights:', error);
+        }
+      };
+      fetchWatchlistCompanyInsights();
+    }
+  }, [selectedWatchlistSymbol]);
   // Add stock to watchlist
   const addToWatchlist = (stock: { symbol: string; name: string; token: string; exchange: string; displayName: string; tradingSymbol: string }) => {
     if (!watchlistSymbols.find(s => s.symbol === stock.symbol)) {
