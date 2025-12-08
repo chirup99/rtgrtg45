@@ -5445,13 +5445,13 @@ ${
     source: string;
   }>>([]);
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
-  const [watchlistQuarterlyResults, setWatchlistQuarterlyResults] = useState<Array<{
+  const [allWatchlistQuarterlyData, setAllWatchlistQuarterlyData] = useState<{[symbol: string]: Array<{
     quarter: string;
     revenue: string;
     net_profit: string;
     eps: string;
     change_percent: string;
-  }>>([]);
+  }>}>({});
   const [isWatchlistQuarterlyLoading, setIsWatchlistQuarterlyLoading] = useState(false);
   const [nifty50Timeframe, setNifty50Timeframe] = useState('1D');
   const [niftyBankTimeframe, setNiftyBankTimeframe] = useState('1D');
@@ -5537,6 +5537,43 @@ ${
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('watchlistSymbols', JSON.stringify(watchlistSymbols));
+  }, [watchlistSymbols]);
+
+  // Fetch quarterly results for ALL watchlist stocks
+  useEffect(() => {
+    const fetchAllQuarterlyData = async () => {
+      if (watchlistSymbols.length === 0) {
+        setAllWatchlistQuarterlyData({});
+        return;
+      }
+      
+      setIsWatchlistQuarterlyLoading(true);
+      try {
+        const results: {[symbol: string]: Array<any>} = {};
+        
+        await Promise.all(
+          watchlistSymbols.map(async (stock) => {
+            try {
+              const cleanSymbol = stock.symbol.replace('-EQ', '').replace('-BE', '');
+              const response = await fetch(`/api/quarterly-results/${cleanSymbol}`);
+              if (response.ok) {
+                const data = await response.json();
+                results[stock.symbol] = data.results || [];
+              }
+            } catch (error) {
+              console.error(`Error fetching quarterly data for ${stock.symbol}:`, error);
+              results[stock.symbol] = [];
+            }
+          })
+        );
+        
+        setAllWatchlistQuarterlyData(results);
+      } finally {
+        setIsWatchlistQuarterlyLoading(false);
+      }
+    };
+    
+    fetchAllQuarterlyData();
   }, [watchlistSymbols]);
   
   // Fetch news for selected watchlist symbol
@@ -12471,75 +12508,81 @@ ${
                                                 )}
                                               </div>
 
-                                              {/* Quarterly Results Section */}
+                                              {/* Quarterly Results for All Watchlist Stocks */}
                                               <div className="border-t border-gray-700 pt-4">
                                                 <div className="flex items-center justify-between mb-3">
                                                   <div className="flex items-center gap-2">
                                                     <TrendingUp className="h-4 w-4 text-gray-400" />
                                                     <h3 className="text-sm font-medium text-gray-200">
-                                                      Quarterly Results
+                                                      Quarterly Results ({watchlistSymbols.length} stocks)
                                                     </h3>
                                                   </div>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-7 text-xs text-gray-400 hover:text-gray-200"
-                                                    onClick={() => {
-                                                      setIsWatchlistQuarterlyLoading(true);
-                                                      fetch(`/api/quarterly-results/${cleanSymbolForNews}`)
-                                                        .then(res => res.json())
-                                                        .then(data => {
-                                                          setWatchlistQuarterlyResults(data.results || []);
-                                                        })
-                                                        .catch(err => {
-                                                          console.error('Error fetching quarterly results:', err);
-                                                          setWatchlistQuarterlyResults([]);
-                                                        })
-                                                        .finally(() => setIsWatchlistQuarterlyLoading(false));
-                                                    }}
-                                                    data-testid="button-refresh-quarterly"
-                                                  >
-                                                    <RefreshCw className={`h-3 w-3 mr-1 ${isWatchlistQuarterlyLoading ? 'animate-spin' : ''}`} />
-                                                    Load
-                                                  </Button>
                                                 </div>
 
-                                                <div className="max-h-[250px] overflow-y-auto">
+                                                <div className="max-h-[600px] overflow-y-auto space-y-3">
                                                   {isWatchlistQuarterlyLoading ? (
                                                     <div className="flex items-center justify-center py-8">
                                                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                                                     </div>
-                                                  ) : watchlistQuarterlyResults.length > 0 ? (
-                                                    <div className="overflow-x-auto">
-                                                      <table className="w-full text-xs">
-                                                        <thead>
-                                                          <tr className="border-b border-gray-700">
-                                                            <th className="text-left py-2 px-2 text-gray-400 font-medium">Quarter</th>
-                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">Revenue (Cr)</th>
-                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">Net Profit (Cr)</th>
-                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">EPS</th>
-                                                            <th className="text-right py-2 px-2 text-gray-400 font-medium">Change %</th>
-                                                          </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                          {watchlistQuarterlyResults.map((result, idx) => (
-                                                            <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/30">
-                                                              <td className="py-2 px-2 text-gray-300 font-medium">{result.quarter}</td>
-                                                              <td className="text-right py-2 px-2 text-gray-300">{result.revenue}</td>
-                                                              <td className="text-right py-2 px-2 text-gray-300">{result.net_profit}</td>
-                                                              <td className="text-right py-2 px-2 text-gray-300">{result.eps}</td>
-                                                              <td className={`text-right py-2 px-2 ${parseFloat(result.change_percent) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                                {result.change_percent}
-                                                              </td>
-                                                            </tr>
-                                                          ))}
-                                                        </tbody>
-                                                      </table>
-                                                    </div>
+                                                  ) : watchlistSymbols.length > 0 ? (
+                                                    watchlistSymbols.map((stock) => {
+                                                      const quarterlyData = allWatchlistQuarterlyData[stock.symbol] || [];
+                                                      const hasTrendingUp = quarterlyData.length > 1 && 
+                                                        parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
+                                                      
+                                                      // Prepare chart data
+                                                      const chartData = quarterlyData.map((q: any) => ({
+                                                        quarter: q.quarter,
+                                                        value: parseFloat(q.revenue.replace(/,/g, '')) || 0,
+                                                        changePercent: parseFloat(q.change_percent) || 0
+                                                      }));
+                                                      
+                                                      const trendColor = hasTrendingUp ? '#22c55e' : '#ef4444';
+                                                      
+                                                      return (
+                                                        <div key={stock.symbol} className="bg-gray-800/30 rounded-lg p-3 border border-gray-700">
+                                                          <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-sm font-medium text-gray-200">{stock.displayName}</span>
+                                                            <span className={`text-xs px-2 py-1 rounded ${hasTrendingUp ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                              {hasTrendingUp ? '↑ Uptrend' : '↓ Downtrend'}
+                                                            </span>
+                                                          </div>
+                                                          
+                                                          {quarterlyData.length > 0 ? (
+                                                            <>
+                                                              <div className="h-24 w-full mb-2">
+                                                                <ResponsiveContainer width="100%" height="100%">
+                                                                  <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                                                    <defs>
+                                                                      <linearGradient id={`grad-${stock.symbol}`} x1="0" y1="0" x2="0" y2="1">
+                                                                        <stop offset="0%" stopColor={trendColor} stopOpacity={0.4} />
+                                                                        <stop offset="100%" stopColor={trendColor} stopOpacity={0.05} />
+                                                                      </linearGradient>
+                                                                    </defs>
+                                                                    <XAxis dataKey="quarter" tick={{ fontSize: 9, fill: '#9ca3af' }} />
+                                                                    <YAxis tick={{ fontSize: 8, fill: '#6b7280' }} />
+                                                                    <Tooltip contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', fontSize: '11px' }} />
+                                                                    <Area type="monotone" dataKey="value" stroke={trendColor} strokeWidth={1.5} fill={`url(#grad-${stock.symbol})`} />
+                                                                  </AreaChart>
+                                                                </ResponsiveContainer>
+                                                              </div>
+                                                              <div className="text-xs text-gray-400 grid grid-cols-2 gap-2">
+                                                                <div>Latest: ₹{quarterlyData[quarterlyData.length - 1]?.revenue} Cr</div>
+                                                                <div>Change: {quarterlyData[quarterlyData.length - 1]?.change_percent}</div>
+                                                              </div>
+                                                            </>
+                                                          ) : (
+                                                            <div className="text-center py-4 text-gray-500 text-xs">
+                                                              No quarterly data available
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                      );
+                                                    })
                                                   ) : (
-                                                    <div className="text-center py-6 text-gray-500">
+                                                    <div className="text-center py-8 text-gray-500">
                                                       <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                                                      <p className="text-xs">Click "Load" to fetch quarterly results</p>
+                                                      <p className="text-xs">Add stocks to watchlist to see quarterly results</p>
                                                     </div>
                                                   )}
                                                 </div>
