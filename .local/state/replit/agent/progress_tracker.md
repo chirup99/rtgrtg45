@@ -185,6 +185,40 @@ All features are operational and ready for continued development!
 
 =========================================================
 
+WATCHLIST SEARCH FUNCTIONALITY - DECEMBER 8, 2025 (9:09 AM)
+
+[x] 1. Fixed watchlist search to call correct API endpoint:
+      - Changed from `/api/search-instruments` to `/api/angelone/search-instruments`
+      - Added proper exchange filtering: NSE, BSE, MCX
+      - Set result limit to 10 instruments
+      
+[x] 2. Implemented proper data mapping:
+      - Maps Angel One instrument data to display format
+      - Extracts symbol, displayName, name, token, exchange
+      - Filters out empty/invalid entries
+      
+[x] 3. Search displays results with + icon to add to watchlist:
+      - Results show symbol and company name
+      - Plus icon (⊕) visible on hover for adding to watchlist
+      - Clicking + adds stock to watchlist and clears search
+      - Works with NSE, BSE, and MCX symbols
+      
+[x] 4. Verified server implementation:
+      - Backend endpoint `/api/angelone/search-instruments` operational
+      - Supports dynamic search across NSE, BSE, MCX instruments
+      - Returns properly formatted instrument data
+      - Workflow running successfully on port 5000
+
+## ✅ WATCHLIST SEARCH FEATURE COMPLETE
+
+Users can now:
+- Type any stock symbol in the watchlist search bar
+- See live search results from NSE, BSE, MCX
+- Click + icon to add stocks to watchlist (same pattern as NeoFeed)
+- Results display symbol name with company details
+
+=========================================================
+
 SEARCH RESULTS CHARTS UPGRADE - DECEMBER 8, 2025 (7:05 AM)
 
 [x] 1. Replaced NIFTY 50 chart in search results:

@@ -5565,13 +5565,24 @@ ${
     }
     setIsWatchlistSearching(true);
     try {
-      const response = await fetch(`/api/search-instruments?query=${encodeURIComponent(query)}&type=stock`);
+      const response = await fetch(`/api/angelone/search-instruments?query=${encodeURIComponent(query)}&exchange=NSE,BSE,MCX&limit=10`);
       if (response.ok) {
         const data = await response.json();
-        setWatchlistSearchResults(data.slice(0, 10));
+        const instruments = data.instruments || data || [];
+        // Map to display format with symbol and name
+        const formatted = instruments.slice(0, 10).map((inst: any) => ({
+          symbol: inst.symbol || inst.trading_symbol || '',
+          displayName: inst.symbol || inst.trading_symbol || '',
+          name: inst.name || inst.company_name || inst.instrument_name || '',
+          token: inst.token || inst.exch_instrument_token || '',
+          exchange: inst.exch_seg || 'NSE',
+          tradingSymbol: inst.symbol || inst.trading_symbol || ''
+        })).filter((item: any) => item.symbol);
+        setWatchlistSearchResults(formatted);
       }
     } catch (error) {
       console.error('Error searching stocks:', error);
+      setWatchlistSearchResults([]);
     } finally {
       setIsWatchlistSearching(false);
     }
