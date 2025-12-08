@@ -5634,6 +5634,27 @@ ${
       fetchWatchlistNews();
     }
   }, [selectedWatchlistSymbol, isWatchlistOpen, searchResults]);
+
+  // Fetch company insights when watchlist stock is selected (same logic as main search)
+  useEffect(() => {
+    if (selectedWatchlistSymbol) {
+      const fetchWatchlistCompanyInsights = async () => {
+        try {
+          const cleanSymbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
+          const response = await fetch(`/api/trading-agent?q=${encodeURIComponent(cleanSymbol)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.companyInsights) {
+              (window as any).companyInsightsData = data.companyInsights;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching watchlist company insights:', error);
+        }
+      };
+      fetchWatchlistCompanyInsights();
+    }
+  }, [selectedWatchlistSymbol]);
   
   // Search stocks for watchlist
   const searchWatchlistStocks = async (query: string) => {
@@ -12554,70 +12575,76 @@ ${
                                                     </h3>
                                                   </div>
                                                   {(() => {
-                                                    const selectedStock = watchlistSymbols.find(s => s.symbol === searchResultsNewsSymbol);
-                                                    if (!selectedStock) return null;
-                                                    const quarterlyData = allWatchlistQuarterlyData[selectedStock.symbol] || [];
-                                                    const hasTrendingUp = quarterlyData.length > 1 && 
-                                                      parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
+                                                    const companyInsights = (window as any).companyInsightsData || null;
+                                                    if (!companyInsights?.quarterlyPerformance?.length) return null;
+                                                    const overallTrend = companyInsights.trend || 
+                                                      (companyInsights.quarterlyPerformance.length > 1 
+                                                        ? companyInsights.quarterlyPerformance[companyInsights.quarterlyPerformance.length - 1].value > companyInsights.quarterlyPerformance[0].value 
+                                                          ? 'positive' 
+                                                          : 'negative'
+                                                        : 'neutral');
                                                     return (
-                                                      <span className={`text-xs px-2 py-1 rounded ${hasTrendingUp ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                        {hasTrendingUp ? '↑ Uptrend' : '↓ Downtrend'}
+                                                      <span className={`text-xs px-2 py-1 rounded ${overallTrend === 'positive' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                        {overallTrend === 'positive' ? '↑ Uptrend' : '↓ Downtrend'}
                                                       </span>
                                                     );
                                                   })()}
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                  {isWatchlistQuarterlyLoading ? (
-                                                    <div className="flex items-center justify-center py-8">
-                                                      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-                                                    </div>
-                                                  ) : searchResultsNewsSymbol ? (() => {
-                                                    const selectedStock = watchlistSymbols.find(s => s.symbol === searchResultsNewsSymbol);
-                                                    if (!selectedStock) {
+                                                  {(() => {
+                                                    const companyInsights = (window as any).companyInsightsData || null;
+                                                    
+                                                    if (!companyInsights?.quarterlyPerformance?.length) {
                                                       return (
                                                         <div className="text-center py-8 text-gray-500">
+                                                          <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
                                                           <p className="text-xs">Search for a stock to see quarterly results</p>
                                                         </div>
                                                       );
                                                     }
-                                                    const quarterlyData = allWatchlistQuarterlyData[selectedStock.symbol] || [];
-                                                    const hasTrendingUp = quarterlyData.length > 1 && 
-                                                      parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
                                                     
-                                                    const chartData = quarterlyData.map((q: any) => ({
+                                                    const chartData = companyInsights.quarterlyPerformance.map((q: any) => ({
                                                       quarter: q.quarter,
-                                                      value: parseFloat(q.revenue.replace(/,/g, '')) || 0,
-                                                      changePercent: parseFloat(q.change_percent) || 0
+                                                      value: q.value || q.revenue || 0,
+                                                      changePercent: q.changePercent || 0
                                                     }));
                                                     
-                                                    const trendColor = hasTrendingUp ? '#22c55e' : '#ef4444';
+                                                    const overallTrend = companyInsights.trend || 
+                                                      (chartData.length > 1 
+                                                        ? chartData[chartData.length - 1].value > chartData[0].value 
+                                                          ? 'positive' 
+                                                          : 'negative'
+                                                        : 'neutral');
                                                     
-                                                    return quarterlyData.length > 0 ? (
+                                                    const trendColor = overallTrend === 'positive' ? '#22c55e' : '#ef4444';
+                                                    
+                                                    return (
                                                       <>
                                                         <div className="h-40 w-full mb-3">
                                                           <ResponsiveContainer width="100%" height="100%">
                                                             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                                                               <defs>
-                                                                <linearGradient id={`grad-${selectedStock.symbol}`} x1="0" y1="0" x2="0" y2="1">
+                                                                <linearGradient id="watchlistQuarterlyGrad" x1="0" y1="0" x2="0" y2="1">
                                                                   <stop offset="0%" stopColor={trendColor} stopOpacity={0.4} />
                                                                   <stop offset="100%" stopColor={trendColor} stopOpacity={0.05} />
                                                                 </linearGradient>
                                                               </defs>
                                                               <XAxis dataKey="quarter" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                                              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K Cr`} axisLine={false} tickLine={false} />
+                                                              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K Cr`} axisLine={false} tickLine={false} domain={['dataMin - 1000', 'dataMax + 1000']} />
                                                               <Tooltip 
-                                                                contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', fontSize: '11px' }}
-                                                                formatter={(value: any, name: any, props: any) => [`₹${Number(value).toLocaleString()} Cr`, 'Revenue']}
+                                                                contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '8px', color: '#f3f4f6', fontSize: '12px', padding: '8px 12px' }}
+                                                                formatter={(value: any, name: any, props: any) => [`₹${Number(value).toLocaleString()} Cr (${props.payload.changePercent >= 0 ? '+' : ''}${props.payload.changePercent.toFixed(2)}%)`, 'Revenue']}
+                                                                labelFormatter={(label) => `${label}`}
                                                               />
                                                               <Area 
                                                                 type="monotone" 
                                                                 dataKey="value" 
                                                                 stroke={trendColor} 
                                                                 strokeWidth={2} 
-                                                                fill={`url(#grad-${selectedStock.symbol})`}
-                                                                dot={{ r: 5, stroke: trendColor, strokeWidth: 2, fill: '#1f2937' }}
-                                                                activeDot={{ r: 7, stroke: trendColor, strokeWidth: 2, fill: '#ffffff' }}
+                                                                fill="url(#watchlistQuarterlyGrad)"
+                                                                dot={{ r: 4, stroke: trendColor, strokeWidth: 2, fill: '#1f2937' }}
+                                                                activeDot={{ r: 6, stroke: trendColor, strokeWidth: 2, fill: '#ffffff' }}
                                                               />
                                                             </AreaChart>
                                                           </ResponsiveContainer>
@@ -12631,17 +12658,8 @@ ${
                                                           </span>
                                                         </div>
                                                       </>
-                                                    ) : (
-                                                      <div className="text-center py-4 text-gray-500 text-xs">
-                                                        No quarterly data available
-                                                      </div>
                                                     );
-                                                  })() : (
-                                                    <div className="text-center py-8 text-gray-500">
-                                                      <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                                                      <p className="text-xs">Search for a stock to see quarterly results</p>
-                                                    </div>
-                                                  )}
+                                                  })()}
                                                 </div>
                                               </div>
                                             </div>
