@@ -1893,6 +1893,8 @@ export default function Home() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchResults, setSearchResults] = useState("");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [searchResultsNews, setSearchResultsNews] = useState<any[]>([]);
+  const [searchResultsNewsSymbol, setSearchResultsNewsSymbol] = useState("");
   const [aiChartSelectedTimeframe, setAiChartSelectedTimeframe] = useState('1Y');
 
   // Listen for timeframe change events to trigger re-render
@@ -1905,6 +1907,64 @@ export default function Home() {
     window.addEventListener('timeframeChange', handleTimeframeChange);
     return () => window.removeEventListener('timeframeChange', handleTimeframeChange);
   }, []);
+
+  // Fetch news for search results when symbol changes
+  useEffect(() => {
+    const stockDataStr = localStorage.getItem('stockData');
+    if (!stockDataStr) return;
+    
+    const stockData = JSON.parse(stockDataStr);
+    const currentSymbol = stockData.name?.split('\n')?.[0] || '';
+    
+    if (!currentSymbol || currentSymbol === searchResultsNewsSymbol) return;
+    
+    setSearchResultsNewsSymbol(currentSymbol);
+    setSearchResultsNews([]);
+    
+    (async () => {
+      try {
+        const response = await fetch(`/api/stock-news/${encodeURIComponent(currentSymbol.toUpperCase())}?refresh=${Date.now()}`);
+        const data = await response.json();
+        
+        const articles = Array.isArray(data) ? data : (data.articles || data.data || []);
+        
+        if (articles && articles.length > 0) {
+          const getRelativeTime = (dateString: string) => {
+            try {
+              const date = new Date(dateString);
+              const now = new Date();
+              const diffMs = now.getTime() - date.getTime();
+              const diffSecs = Math.floor(diffMs / 1000);
+              const diffMins = Math.floor(diffSecs / 60);
+              const diffHours = Math.floor(diffMins / 60);
+              const diffDays = Math.floor(diffHours / 24);
+              const diffWeeks = Math.floor(diffDays / 7);
+              
+              if (diffSecs < 60) return 'Just now';
+              if (diffMins < 60) return `${diffMins}m ago`;
+              if (diffHours < 24) return `${diffHours}h ago`;
+              if (diffDays < 7) return `${diffDays}d ago`;
+              if (diffWeeks < 4) return `${diffWeeks}w ago`;
+              return 'Recently';
+            } catch (error) {
+              return 'Recently';
+            }
+          };
+          
+          const formattedNews = articles.map((article: any) => ({
+            title: article.title,
+            source: article.source || "Market News",
+            time: getRelativeTime(article.publishedAt || article.date || new Date().toISOString()),
+            url: article.url || article.link || '#'
+          }));
+          
+          setSearchResultsNews(formattedNews);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch news for symbol:", currentSymbol, error);
+      }
+    })();
+  }, [isSearchActive]);
 
   // ❌ REMOVED: journalSelectedDate - manual search chart is now completely standalone
 
@@ -11769,94 +11829,29 @@ ${
                                                 </div>
 
                                                 <div className="space-y-3 max-h-80 overflow-y-auto bg-gray-50 dark:bg-gray-700/60 rounded-xl p-4 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-200 dark:scrollbar-track-gray-800 ">
-                                                  {(() => {
-                                                    const getRelativeTime = (dateString: string) => {
-                                                      try {
-                                                        const date = new Date(dateString);
-                                                        const now = new Date();
-                                                        const diffMs = now.getTime() - date.getTime();
-                                                        const diffSecs = Math.floor(diffMs / 1000);
-                                                        const diffMins = Math.floor(diffSecs / 60);
-                                                        const diffHours = Math.floor(diffMins / 60);
-                                                        const diffDays = Math.floor(diffHours / 24);
-                                                        const diffWeeks = Math.floor(diffDays / 7);
-                                                        
-                                                        if (diffSecs < 60) return 'Just now';
-                                                        if (diffMins < 60) return `${diffMins}m ago`;
-                                                        if (diffHours < 24) return `${diffHours}h ago`;
-                                                        if (diffDays < 7) return `${diffDays}d ago`;
-                                                        if (diffWeeks < 4) return `${diffWeeks}w ago`;
-                                                        return 'Recently';
-                                                      } catch (error) {
-                                                        return 'Recently';
-                                                      }
-                                                    };
-
-                                                    const currentSymbol = stockName?.split('\n')?.[0] || 'TCS';
-                                                    const cachedSymbol = (window as any).searchResultsNewsSymbol || '';
-                                                    const cachedNews = (window as any).searchResultsNews || [];
-                                                    
-                                                    // Clear cache if symbol changed
-                                                    if (cachedSymbol && cachedSymbol !== currentSymbol) {
-                                                      (window as any).searchResultsNews = [];
-                                                      (window as any).searchResultsNewsSymbol = '';
-                                                    }
-
-                                                    const newsItems = cachedNews;
-
-                                                    // Fetch news if we have a symbol and haven't fetched yet for this symbol
-                                                    if (newsItems.length === 0 && currentSymbol && cachedSymbol !== currentSymbol) {
-                                                      (window as any).searchResultsNewsSymbol = currentSymbol;
-                                                      (async () => {
-                                                        try {
-                                                          const response = await fetch(
-                                                            getFullApiUrl(`/api/stock-news/${encodeURIComponent(currentSymbol.toUpperCase())}?refresh=${Date.now()}`)
-                                                          );
-                                                          const data = await response.json();
-                                                          
-                                                          // Handle both array format and object format from API
-                                                          const articles = Array.isArray(data) ? data : (data.articles || data.data || []);
-                                                          
-                                                          if (articles && articles.length > 0) {
-                                                            const formattedNews = articles.map((article: any) => ({
-                                                              title: article.title,
-                                                              source: article.source || "Market News",
-                                                              time: getRelativeTime(article.publishedAt || article.date || new Date().toISOString()),
-                                                              url: article.url || article.link || '#'
-                                                            }));
-                                                            (window as any).searchResultsNews = formattedNews;
-                                                            window.dispatchEvent(new Event('newsUpdated'));
-                                                          }
-                                                        } catch (error) {
-                                                          console.warn("Failed to fetch news for symbol:", currentSymbol, error);
-                                                        }
-                                                      })();
-                                                    }
-
-                                                    return newsItems && newsItems.length > 0 ? (
-                                                      newsItems.map((item: any, index: number) => (
-                                                        <div 
-                                                          key={index} 
-                                                          className="p-3 bg-gray-100 dark:bg-gray-600/60 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/70 transition-colors backdrop-blur-sm shadow-sm cursor-pointer"
-                                                          onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
-                                                        >
-                                                          <h4 className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
-                                                            {item.title} ↗
-                                                          </h4>
-                                                          <div className="flex items-center justify-between">
-                                                            <span className="text-gray-500 dark:text-gray-400 text-xs ">{item.source}</span>
-                                                            <span className="text-gray-500 dark:text-gray-500 text-xs ">{item.time}</span>
-                                                          </div>
+                                                  {searchResultsNews && searchResultsNews.length > 0 ? (
+                                                    searchResultsNews.map((item: any, index: number) => (
+                                                      <div 
+                                                        key={index} 
+                                                        className="p-3 bg-gray-100 dark:bg-gray-600/60 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/70 transition-colors backdrop-blur-sm shadow-sm cursor-pointer"
+                                                        onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                                                      >
+                                                        <h4 className="text-gray-700 dark:text-gray-300 font-medium text-sm mb-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+                                                          {item.title} ↗
+                                                        </h4>
+                                                        <div className="flex items-center justify-between">
+                                                          <span className="text-gray-500 dark:text-gray-400 text-xs ">{item.source}</span>
+                                                          <span className="text-gray-500 dark:text-gray-500 text-xs ">{item.time}</span>
                                                         </div>
-                                                      ))
-                                                    ) : (
-                                                      <div className="text-center py-6 text-gray-500 dark:text-gray-400 ">
-                                                        <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                        <p className="text-sm">No recent news available for this stock</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ">Check back later for updates</p>
                                                       </div>
-                                                    );
-                                                  })()}
+                                                    ))
+                                                  ) : (
+                                                    <div className="text-center py-6 text-gray-500 dark:text-gray-400 ">
+                                                      <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                      <p className="text-sm">No recent news available for this stock</p>
+                                                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 ">Check back later for updates</p>
+                                                    </div>
+                                                  )}
                                                 </div>
                                               </div>
                                             )}
