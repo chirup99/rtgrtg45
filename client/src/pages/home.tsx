@@ -5723,27 +5723,39 @@ ${
   }, [selectedWatchlistSymbol]);
   
   // Search stocks for watchlist
+  // Search stocks for watchlist (using same approach as paper trading)
   const searchWatchlistStocks = async (query: string) => {
-    if (!query.trim() || query.length < 2) {
+    if (!query.trim() || query.length < 1) {
       setWatchlistSearchResults([]);
       return;
     }
     setIsWatchlistSearching(true);
     try {
-      const response = await fetch(`/api/angelone/search-instruments?query=${encodeURIComponent(query)}&exchange=NSE,BSE,MCX&limit=10`);
+      // Use same API as paper trading with larger limit
+      const url = `/api/angelone/search-instruments?query=${encodeURIComponent(query)}&exchange=NSE&limit=50`;
+      console.log(`[WATCHLIST] Searching: ${url}`);
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        const instruments = data.instruments || data || [];
-        // Map to display format with symbol and name
-        const formatted = instruments.slice(0, 10).map((inst: any) => ({
-          symbol: inst.symbol || inst.trading_symbol || '',
-          displayName: inst.symbol || inst.trading_symbol || '',
-          name: inst.name || inst.company_name || inst.instrument_name || '',
-          token: inst.token || inst.exch_instrument_token || '',
-          exchange: inst.exch_seg || 'NSE',
-          tradingSymbol: inst.symbol || inst.trading_symbol || ''
-        })).filter((item: any) => item.symbol);
-        setWatchlistSearchResults(formatted);
+        const instruments = data.instruments || data.results || data || [];
+        console.log(`[WATCHLIST] Found ${instruments.length} instruments`);
+        
+        // Map to display format with all required fields (same as paper trading)
+        const formatted = instruments.map((inst: any) => ({
+          symbol: inst.symbol || inst.tradingSymbol || inst.trading_symbol || '',
+          displayName: (inst.symbol || inst.tradingSymbol || '').replace('-EQ', ''),
+          name: inst.name || inst.company_name || inst.instrument_name || inst.symbol || '',
+          token: inst.token || inst.symbolToken || inst.exch_instrument_token || '',
+          exchange: inst.exchange || inst.exch_seg || 'NSE',
+          tradingSymbol: inst.symbol || inst.tradingSymbol || inst.trading_symbol || ''
+        })).filter((item: any) => item.symbol && item.token);
+        
+        console.log(`[WATCHLIST] Formatted ${formatted.length} results`);
+        setWatchlistSearchResults(formatted.slice(0, 20)); // Show top 20 for watchlist
+      } else {
+        console.error(`[WATCHLIST] API error: ${response.status}`);
+        setWatchlistSearchResults([]);
       }
     } catch (error) {
       console.error('Error searching stocks:', error);
