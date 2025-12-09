@@ -19437,7 +19437,7 @@ ${
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
                 <select
                   value={selectedOptionIndex}
-                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); fetchOptionChainData(idx); }}
+                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                   data-testid="select-option-index"
                 >
