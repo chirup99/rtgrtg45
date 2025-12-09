@@ -5325,6 +5325,34 @@ ${
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
   const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
+  // Get expiry dates based on selected index
+  const getOptionExpiryDates = (index: string): Array<{value: string, label: string}> => {
+    // Get today's date
+    const today = new Date(2024, 11, 12); // Dec 12, 2024 for consistency
+    
+    // For SENSEX - monthly expiries (last Thursday of month)
+    if (index === 'SENSEX') {
+      return [
+        { value: '2024-12-26', label: '26 Dec 2024 (Monthly)' },
+        { value: '2025-01-30', label: '30 Jan 2025 (Monthly)' },
+        { value: '2025-02-27', label: '27 Feb 2025 (Monthly)' },
+      ];
+    }
+    
+    // For NIFTY, BANKNIFTY, FINNIFTY - weekly expiries (Wed/Thu/Fri)
+    return [
+      { value: '2024-12-18', label: '18 Dec 2024 (Wed)' },
+      { value: '2024-12-19', label: '19 Dec 2024 (Thu)' },
+      { value: '2024-12-20', label: '20 Dec 2024 (Fri)' },
+      { value: '2024-12-25', label: '25 Dec 2024 (Wed)' },
+      { value: '2024-12-26', label: '26 Dec 2024 (Thu)' },
+      { value: '2024-12-27', label: '27 Dec 2024 (Fri)' },
+      { value: '2025-01-01', label: '01 Jan 2025 (Wed)' },
+      { value: '2025-01-02', label: '02 Jan 2025 (Thu)' },
+      { value: '2025-01-03', label: '03 Jan 2025 (Fri)' },
+    ];
+  };
+  
   // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
     'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
@@ -19429,9 +19457,11 @@ ${
                   data-testid="select-option-expiry-date"
                 >
                   <option value="">Select Expiry</option>
-                  <option value="2024-12-19">19 Dec 2024</option>
-                  <option value="2024-12-26">26 Dec 2024</option>
-                  <option value="2025-01-02">02 Jan 2025</option>
+                  {getOptionExpiryDates(selectedOptionIndex).map((date) => (
+                    <option key={date.value} value={date.value}>
+                      {date.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
