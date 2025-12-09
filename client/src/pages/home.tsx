@@ -19071,16 +19071,11 @@ ${
                                 }
                                 fetchPaperTradePrice(stock);
                               }}
-                              className="w-full text-left px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between gap-2 text-xs"
+                              className="w-full text-left px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs"
                               data-testid={`select-stock-${stock.symbol}`}
                             >
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{stock.symbol}</div>
-                                <div className="text-[10px] text-gray-400">{stock.exchange}</div>
-                              </div>
-                              <div className="text-right flex-shrink-0">
-                                <div className="font-medium">{stock.lastPrice ? `₹${stock.lastPrice.toFixed(2)}` : 'N/A'}</div>
-                              </div>
+                              <div className="font-medium">{stock.symbol}</div>
+                              <div className="text-[10px] text-gray-400">{stock.exchange}</div>
                             </button>
                           ))
                         )}
