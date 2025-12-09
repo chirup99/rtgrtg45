@@ -126,7 +126,6 @@ import {
   Code,
   PenTool,
   Target,
-  Grid3X3,
   Send,
   Sparkles,
   Users,
@@ -5790,6 +5789,7 @@ ${
   // ========== CHART MODE SYSTEM ==========
   // Two separate charts: Search Chart (manual symbol search) vs Heatmap Chart (date selection)
   const [journalChartMode, setJournalChartMode] = useState<'search' | 'heatmap'>('search');
+  const [journalChartTimeframe, setJournalChartTimeframe] = useState('1'); // Default 1 minute
   
   // ========== HEATMAP CHART STATE (Separate from Search Chart) ==========
   const [heatmapChartData, setHeatmapChartData] = useState<Array<{ time: number; open: number; high: number; low: number; close: number; volume?: number }>>([]);
