@@ -18960,7 +18960,7 @@ ${
                   )}
 
                   {/* Price Display */}
-                  <div className="w-24 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
+                  <div className="w-40 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
                     {paperTradePriceLoading ? (
                       <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : paperTradeCurrentPrice ? (

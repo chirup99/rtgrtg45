@@ -18889,20 +18889,18 @@ ${
                     )}
                   </div>
                   {/* Option Chain Button */}
-                  {paperTradeType !== "STOCK" && (
-                    <Button
-                      onClick={() => {
-                        fetchOptionChainData();
-                        setShowOptionChain(true);
-                      }}
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8"
-                      data-testid="button-option-chain"
-                    >
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => {
+                      fetchOptionChainData();
+                      setShowOptionChain(true);
+                    }}
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    data-testid="button-option-chain"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </Button>
 
 
                   {/* Type */}
@@ -19490,11 +19488,36 @@ ${
                   if (diff <= atmThreshold) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
-                const handleOptionClick = (instrumentSymbol) => {
-                  setSearchQuery(instrumentSymbol);
                 };
+                const handleOptionClick = (instrumentSymbol: string, ltp?: number) => {
+                  // Populate paper trading search bar with selected option
+                  setPaperTradeSymbol(instrumentSymbol);
+                  setPaperTradeSymbolSearch(instrumentSymbol);
+                  setPaperTradeType('OPTIONS');
+                  setPaperTradeLotInput("1");
+                  
+                  // Set the price directly from option chain if available
+                  if (ltp && ltp > 0) {
+                    setPaperTradeCurrentPrice(ltp);
+                    setPaperTradePriceLoading(false);
+                    
+                    // Create instrument object for paper trading
+                    const optionInstrument = {
+                      symbol: instrumentSymbol,
+                      exchange: 'NFO',
+                      token: '',
+                      name: instrumentSymbol
+                    };
+                    setSelectedPaperTradingInstrument(optionInstrument);
+                    
+                    // Start live price streaming for this instrument
+                    fetchPaperTradePrice(optionInstrument);
+                  }
+                  
+                  // Close option chain dialog
+                  setShowOptionChain(false);
                 };
-                };
+                const getClasses = (strike, isCall) => {
                   const status = getOptionStatus(strike, isCall);
                   if (status === 'ATM') return 'px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded text-center cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors';
                   if (status === 'ITM' && isCall) return 'px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors';
@@ -19518,7 +19541,7 @@ ${
                 if (maxRows === 0) {
                   return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
-                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Call (CE)</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">Put (PE)</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div onClick={() => handleOptionClick(calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`)} className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><span className={getTextClasses(calls[index].strikePrice, true)}>{calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`}</span><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-3">{puts[index] ? <div onClick={() => handleOptionClick(puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`)} className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><span className={getTextClasses(puts[index].strikePrice, false)}>{puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`}</span><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Call (CE)</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">Put (PE)</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div onClick={() => handleOptionClick(calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`, calls[index].ltp)} className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><span className={getTextClasses(calls[index].strikePrice, true)}>{calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`}</span><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-3">{puts[index] ? <div onClick={() => handleOptionClick(puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`, puts[index].ltp)} className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><span className={getTextClasses(puts[index].strikePrice, false)}>{puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`}</span><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
               {!optionChainLoading && !selectedOptionExpiryDate && (
