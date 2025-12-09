@@ -19490,11 +19490,12 @@ ${
                   if (diff <= atmThreshold) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
-                const handleOptionClick = (instrumentSymbol) => {
                 };
+                const handleOptionClick = (instrumentSymbol) => {
                   setSearchQuery(instrumentSymbol);
                 };
-                };
+                const getClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
                   if (status === 'ATM') return 'px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded text-center cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors';
                   if (status === 'ITM' && isCall) return 'px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors';
                   if (status === 'ITM') return 'px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors';
