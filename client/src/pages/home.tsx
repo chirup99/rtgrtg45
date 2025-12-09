@@ -5446,6 +5446,7 @@ ${
   }>>([]);
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
   const [allWatchlistQuarterlyData, setAllWatchlistQuarterlyData] = useState<{[symbol: string]: Array<{
+  const [watchlistLivePrices, setWatchlistLivePrices] = useState<{[symbol: string]: { ltp: number; change: number; changePercent: number; isLive: boolean }}>({});
     quarter: string;
     revenue: string;
     net_profit: string;
@@ -5537,6 +5538,31 @@ ${
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('watchlistSymbols', JSON.stringify(watchlistSymbols));
+  }, [watchlistSymbols]);
+
+  // Fetch live WebSocket prices for watchlist stocks every 700ms
+  useEffect(() => {
+    if (watchlistSymbols.length === 0) return;
+    
+    const fetchLivePrices = async () => {
+      try {
+        const response = await fetch('/api/angelone/live-watchlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbols: watchlistSymbols })
+        });
+        const data = await response.json();
+        if (data.success && data.prices) {
+          setWatchlistLivePrices(data.prices);
+        }
+      } catch (error) {
+        console.error('Failed to fetch watchlist live prices:', error);
+      }
+    };
+    
+    fetchLivePrices();
+    const interval = setInterval(fetchLivePrices, 700);
+    return () => clearInterval(interval);
   }, [watchlistSymbols]);
 
   // Fetch quarterly results for ALL watchlist stocks
@@ -12485,16 +12511,25 @@ ${
                                                           <div className="text-xs text-gray-500 truncate max-w-[150px]">{stock.name}</div>
                                                         </div>
                                                       </div>
-                                                      <button
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          removeFromWatchlist(stock.symbol);
-                                                        }}
-                                                        className="text-gray-500 hover:text-red-400 transition-colors p-1"
-                                                        data-testid={`button-remove-watchlist-${idx}`}
-                                                      >
-                                                        <X className="h-3 w-3" />
-                                                      </button>
+                                                      {/* Live Price Display */}
+                                                      <div className="text-right">
+                                                        {(() => {
+                                                          const price = watchlistLivePrices[stock.symbol];
+                                                          if (!price || price.ltp === 0) {
+                                                            return <span className="text-xs text-gray-500">--</span>;
+                                                          }
+                                                          return (
+                                                            <div className="flex flex-col items-end">
+                                                              <span className="text-xs font-semibold text-gray-200">
+                                                                {price.ltp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                              </span>
+                                                              {price.isLive && (
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Live" />
+                                                              )}
+                                                            </div>
+                                                          );
+                                                        })()}
+                                                      </div>
                                                     </div>
                                                   ))}
                                                 </div>
@@ -13577,16 +13612,25 @@ ${
                                                     <div className="text-xs text-gray-500 truncate max-w-[140px]">{stock.name}</div>
                                                   </div>
                                                 </div>
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    removeFromWatchlist(stock.symbol);
-                                                  }}
-                                                  className="text-gray-500 hover:text-red-400 transition-colors p-0.5"
-                                                  data-testid={`mobile-button-remove-watchlist-${idx}`}
-                                                >
-                                                  <X className="h-3 w-3" />
-                                                </button>
+                                                {/* Live Price Display */}
+                                                <div className="text-right">
+                                                  {(() => {
+                                                    const price = watchlistLivePrices[stock.symbol];
+                                                    if (!price || price.ltp === 0) {
+                                                      return <span className="text-xs text-gray-500">--</span>;
+                                                    }
+                                                    return (
+                                                      <div className="flex items-center gap-1">
+                                                        <span className="text-xs font-semibold text-gray-200">
+                                                          {price.ltp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                        </span>
+                                                        {price.isLive && (
+                                                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Live" />
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </div>
                                               </div>
                                             ))}
                                           </div>

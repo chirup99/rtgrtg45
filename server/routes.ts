@@ -8758,6 +8758,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Angel One - Get live watchlist prices (dynamic tokens from frontend)
+  app.post("/api/angelone/live-watchlist", async (req, res) => {
+    try {
+      const { symbols } = req.body;
+      
+      if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+        return res.json({
+          success: true,
+          connected: false,
+          prices: {}
+        });
+      }
+
+      const isConnected = angelOneApi.isConnected();
+      const now = new Date();
+      const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+      const istHour = istTime.getUTCHours();
+      const istMinute = istTime.getUTCMinutes();
+      const istTimeDecimal = istHour + (istMinute / 60);
+      const nseOpen = istTimeDecimal >= 9.25 && istTimeDecimal <= 15.5;
+      const mcxOpen = istTimeDecimal >= 9 && istTimeDecimal <= 23.5;
+      const dayOfWeek = istTime.getUTCDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+      if (!isConnected) {
+        return res.json({
+          success: true,
+          connected: false,
+          websocketActive: false,
+          prices: {}
+        });
+      }
+
+      // Get tokens from the request
+      const tokens = symbols.map((s: any) => s.token).filter((t: string) => t);
+      const cachedPrices = angelOneWebSocket.getLatestPrices(tokens);
+
+      // Build price map keyed by symbol
+      const prices: { [key: string]: any } = {};
+      for (const sym of symbols) {
+        const price = cachedPrices.get(sym.token);
+        const exchange = sym.exchange || 'NSE';
+        const marketOpen = exchange === 'MCX' ? (!isWeekend && mcxOpen) : (!isWeekend && nseOpen);
+        const isLive = marketOpen && price && price.close > 0;
+        
+        prices[sym.symbol] = {
+          symbol: sym.symbol,
+          token: sym.token,
+          exchange,
+          marketOpen,
+          ltp: price?.close || 0,
+          change: 0,
+          changePercent: 0,
+          open: price?.open || 0,
+          high: price?.high || 0,
+          low: price?.low || 0,
+          close: price?.close || 0,
+          volume: price?.volume || 0,
+          isLive,
+          lastUpdate: isLive && price ? new Date(price.time * 1000).toISOString() : null
+        };
+      }
+
+      res.json({
+        success: true,
+        connected: true,
+        websocketActive: cachedPrices.size > 0,
+        timestamp: new Date().toISOString(),
+        prices
+      });
+    } catch (error: any) {
+      console.error('❌ [LIVE-WATCHLIST] Error:', error.message);
+      res.status(500).json({ 
+        success: false,
+        message: error.message,
+        prices: {}
+      });
+    }
+  });
+
   // Angel One - Get profile
   app.get("/api/angelone/profile", async (req, res) => {
     try {
