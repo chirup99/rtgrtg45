@@ -5330,7 +5330,7 @@ ${
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
       return [];
     }
-    return optionChainData.expiries.map((expiry: string) => ({
+    return optionChainData.expiries.slice(0, 4).map((expiry: string) => ({
       value: expiry,
       label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     }));
@@ -19501,7 +19501,7 @@ ${
                 const filteredCalls = (() => {
                   const itm = calls.filter(c => c.strikePrice < currentPrice).reverse().slice(0, 10).reverse();
                   const oTm = calls.filter(c => c.strikePrice > currentPrice).slice(0, 10);
-                  const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike) : [];
+                  const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike).slice(0, 1) : [];
                   return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
                 })();
                 
@@ -19509,7 +19509,7 @@ ${
                 const filteredPuts = (() => {
                   const itm = puts.filter(p => p.strikePrice > currentPrice).slice(0, 10);
                   const oTm = puts.filter(p => p.strikePrice < currentPrice).reverse().slice(0, 10).reverse();
-                  const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike) : [];
+                  const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike).slice(0, 1) : [];
                   return [...oTm, ...atm, ...itm].sort((a, b) => a.strikePrice - b.strikePrice);
                 })();
                 
