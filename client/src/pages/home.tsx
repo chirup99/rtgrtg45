@@ -5417,7 +5417,7 @@ ${
   };
   
   // Fetch option chain data
-  const fetchOptionChainData = async () => {
+  const fetchOptionChainData = async (indexToFetch?: string) => {
     const underlying = getUnderlyingSymbol();
     if (!underlying) return;
     
@@ -19424,7 +19424,7 @@ ${
         </Dialog>
 
         {/* Option Chain Modal */}
-        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(); } }}>
+        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
           <DialogContent className="w-full max-w-2xl">
             {/* Top Bar with Index Selection, Price, and Expiry */}
             <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -19433,7 +19433,7 @@ ${
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
                 <select
                   value={selectedOptionIndex}
-                  onChange={(e) => { setSelectedOptionIndex(e.target.value); setSelectedOptionExpiryDate(""); }}
+                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); fetchOptionChainData(idx); }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                   data-testid="select-option-index"
                 >
