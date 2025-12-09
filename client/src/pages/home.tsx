@@ -19483,65 +19483,39 @@ ${
               {!optionChainLoading && selectedOptionExpiryDate && (() => {
                 const { calls, puts } = getOptionSymbols();
                 const maxRows = Math.max(calls.length, puts.length);
-                
+                const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
+                const getOptionStatus = (strike, isCall) => {
+                  const atmThreshold = currentPrice * 0.02;
+                  const diff = Math.abs(strike - currentPrice);
+                  if (diff <= atmThreshold) return 'ATM';
+                  if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
+                  return strike > currentPrice ? 'ITM' : 'OTM';
+                };
+                const getClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded text-center cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors';
+                  if (status === 'ITM' && isCall) return 'px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors';
+                  if (status === 'ITM') return 'px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors';
+                  return 'px-2 py-1 bg-gray-50 dark:bg-gray-800/40 rounded text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors';
+                };
+                const getTextClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'text-xs font-semibold text-yellow-900 dark:text-yellow-300';
+                  if (status === 'ITM' && isCall) return 'text-xs font-semibold text-blue-900 dark:text-blue-300';
+                  if (status === 'ITM') return 'text-xs font-semibold text-red-900 dark:text-red-300';
+                  return 'text-xs font-semibold text-gray-700 dark:text-gray-400';
+                };
+                const getPriceClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'text-xs text-yellow-700 dark:text-yellow-400 mt-0.5';
+                  if (status === 'ITM' && isCall) return 'text-xs text-blue-700 dark:text-blue-400 mt-0.5';
+                  if (status === 'ITM') return 'text-xs text-red-700 dark:text-red-400 mt-0.5';
+                  return 'text-xs text-gray-600 dark:text-gray-500 mt-0.5';
+                };
                 if (maxRows === 0) {
-                  return (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}
-                      </p>
-                    </div>
-                  );
+                  return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
-                
-                return (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
-                        <tr className="border-b border-gray-300 dark:border-gray-600">
-                          <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Call (CE)</th>
-                          <th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">Put (PE)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Array.from({ length: maxRows }).map((_, index) => (
-                          <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td className="py-2 px-3">
-                              {calls[index] ? (
-                                <div
-                                  className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                                  data-testid={`option-call-${calls[index].strikePrice}`}
-                                >
-                                  <span className="text-xs font-semibold text-blue-900 dark:text-blue-300">
-                                    {calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`}
-                                  </span>
-                                  <div className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
-                                    ₹{calls[index].ltp?.toFixed(2) || 0}
-                                  </div>
-                                </div>
-                              ) : null}
-                            </td>
-                            <td className="py-2 px-3">
-                              {puts[index] ? (
-                                <div
-                                  className="px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                                  data-testid={`option-put-${puts[index].strikePrice}`}
-                                >
-                                  <span className="text-xs font-semibold text-red-900 dark:text-red-300">
-                                    {puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`}
-                                  </span>
-                                  <div className="text-xs text-red-700 dark:text-red-400 mt-0.5">
-                                    ₹{puts[index].ltp?.toFixed(2) || 0}
-                                  </div>
-                                </div>
-                              ) : null}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      </table>
-                  </div>
-                );
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Call (CE)</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">Put (PE)</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><span className={getTextClasses(calls[index].strikePrice, true)}>{calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`}</span><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-3">{puts[index] ? <div className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><span className={getTextClasses(puts[index].strikePrice, false)}>{puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`}</span><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
               {!optionChainLoading && !selectedOptionExpiryDate && (
