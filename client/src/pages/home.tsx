@@ -5446,13 +5446,13 @@ ${
   }>>([]);
   const [isWatchlistNewsLoading, setIsWatchlistNewsLoading] = useState(false);
   const [allWatchlistQuarterlyData, setAllWatchlistQuarterlyData] = useState<{[symbol: string]: Array<{
-  const [watchlistLivePrices, setWatchlistLivePrices] = useState<{[symbol: string]: { ltp: number; change: number; changePercent: number; isLive: boolean }}>({});
     quarter: string;
     revenue: string;
     net_profit: string;
     eps: string;
     change_percent: string;
   }>}>({});
+  const [watchlistLivePrices, setWatchlistLivePrices] = useState<{[symbol: string]: { ltp: number; change: number; changePercent: number; isLive: boolean }}>({});
   const [isWatchlistQuarterlyLoading, setIsWatchlistQuarterlyLoading] = useState(false);
   const [nifty50Timeframe, setNifty50Timeframe] = useState('1D');
   const [niftyBankTimeframe, setNiftyBankTimeframe] = useState('1D');
