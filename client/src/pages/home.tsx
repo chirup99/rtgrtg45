@@ -18970,8 +18970,9 @@ ${
                     )}
                   </div>
 
-                  {/* Buy/Sell Buttons */}
-                  {(() => {
+                  {/* Buy/Sell and SL Buttons - Right Side */}
+                  <div className="flex gap-2 ml-auto">
+                    {(() => {
                     const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                     return (
                       <>
@@ -18998,7 +18999,7 @@ ${
                   })()}
 
                   {/* SL Button with Dropdown - Right Corner */}
-                  <div className="relative ml-auto">
+                  <div className="relative">
                     {(() => {
                       const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                       return (
@@ -19113,6 +19114,7 @@ ${
                         </div>
                       </div>
                     )}
+                  </div>
                   </div>
                 </div>
 
