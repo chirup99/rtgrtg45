@@ -5326,7 +5326,7 @@ ${
   const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
   // Get expiry dates from optionChainData (real Angel One NFO data)
-  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
+  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
       return [];
     }
@@ -5422,7 +5422,7 @@ ${
   
   // Fetch option chain data
   const fetchOptionChainData = async (indexToFetch?: string) => {
-    const underlying = getUnderlyingSymbol();
+    const underlying = getUnderlyingSymbol(indexToFetch);
     if (!underlying) return;
     
     setOptionChainLoading(true);
@@ -19466,7 +19466,7 @@ ${
                   data-testid="select-option-expiry-date"
                 >
                   <option value="">Select Expiry</option>
-                  {getOptionExpiryDates().map((date) => (
+                  {getOptionExpiryDates(selectedOptionIndex).map((date) => (
                     <option key={date.value} value={date.value}>
                       {date.label}
                     </option>
@@ -19534,6 +19534,17 @@ ${
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
                 };
+  const getExchangeForIndex = (index: string): string => {
+    const exchangeMap: Record<string, string> = {
+      'NIFTY': 'NFO',
+      'BANKNIFTY': 'NFO',
+      'FINNIFTY': 'NFO',
+      'SENSEX': 'BFO',
+      'MIDCPNIFTY': 'NFO'
+    };
+    return exchangeMap[index] || 'NFO';
+  };
+
                 const handleOptionClick = (instrumentSymbol: string, ltp?: number) => {
                   // Populate paper trading search bar with selected option
                   setPaperTradeSymbol(instrumentSymbol);
@@ -19549,7 +19560,7 @@ ${
                     // Create instrument object for paper trading
                     const optionInstrument = {
                       symbol: instrumentSymbol,
-                      exchange: 'NFO',
+                      exchange: getExchangeForIndex(selectedOptionIndex),
                       token: '',
                       name: instrumentSymbol
                     };
