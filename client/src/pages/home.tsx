@@ -19477,31 +19477,66 @@ ${
               </div>
             </div>
 
-            {/* Content Area - NFO Options Symbols Grid */}
+            {/* Content Area - Call/Put Options Table */}
             <div className="py-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Available Symbols</h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {selectedOptionExpiryDate ? `Expiry: ${selectedOptionExpiryDate}` : 'Select expiry date'}
-                </span>
-              </div>
+              {selectedOptionExpiryDate && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-300 dark:border-gray-600">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Call</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900 dark:text-white">Put</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const symbols = getNFOOptionSymbols(selectedOptionIndex);
+                        const callSymbols = symbols.slice(0, Math.ceil(symbols.length / 2));
+                        const putSymbols = symbols.slice(Math.ceil(symbols.length / 2));
+                        const maxRows = Math.max(callSymbols.length, putSymbols.length);
+                        
+                        return Array.from({ length: maxRows }).map((_, index) => (
+                          <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="py-3 px-4">
+                              {callSymbols[index] ? (
+                                <div
+                                  className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                  data-testid={`option-call-${callSymbols[index]}`}
+                                >
+                                  <span className="text-xs font-medium text-blue-900 dark:text-blue-300">{callSymbols[index]}</span>
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="py-3 px-4">
+                              {putSymbols[index] ? (
+                                <div
+                                  className="px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-md text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                  data-testid={`option-put-${putSymbols[index]}`}
+                                >
+                                  <span className="text-xs font-medium text-red-900 dark:text-red-300">{putSymbols[index]}</span>
+                                </div>
+                              ) : null}
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {getNFOOptionSymbols(selectedOptionIndex).map((symbol) => (
-                  <div
-                    key={symbol}
-                    className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    data-testid={`option-symbol-${symbol}`}
-                  >
-                    <span className="text-xs font-medium text-gray-900 dark:text-white">{symbol}</span>
-                  </div>
-                ))}
-              </div>
-              
-              {getNFOOptionSymbols(selectedOptionIndex).length === 0 && (
+              {!selectedOptionExpiryDate && (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No symbols available for {selectedOptionIndex}
+                    Select an expiry date to view {selectedOptionIndex} options
+                  </p>
+                </div>
+              )}
+              
+              {selectedOptionExpiryDate && getNFOOptionSymbols(selectedOptionIndex).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No options available for {selectedOptionIndex}
                   </p>
                 </div>
               )}
