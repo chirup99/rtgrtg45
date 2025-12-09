@@ -4088,7 +4088,7 @@ ${
       const stored = localStorage.getItem("paperTradingCapital");
       return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
     }
-    return 1000000;
+    return 1800000;
   });
   
   // Paper trading position interface
@@ -4679,19 +4679,19 @@ ${
   
   // Reset paper trading account
   const resetPaperTradingAccount = () => {
-    setPaperTradingCapital(1000000);
+    setPaperTradingCapital(1800000);
     setPaperPositions([]);
     setPaperTradeHistory([]);
     setPaperTradeSymbol("");
     setPaperTradeQuantity("");
     setPaperTradeLotInput("");
     setPaperTradeCurrentPrice(null);
-    localStorage.setItem("paperTradingCapital", "1000000");
+    localStorage.setItem("paperTradingCapital", "1800000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
     toast({
       title: "Account Reset",
-      description: "Paper trading account reset to ₹10,00,000"
+      description: "Paper trading account reset to ₹18,00,000"
     });
   };
   
@@ -5321,6 +5321,42 @@ ${
   const [optionChainData, setOptionChainData] = useState<any>(null);
   const [optionChainLoading, setOptionChainLoading] = useState(false);
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
+  const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
+  const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
+  
+  // Get expiry dates from optionChainData (real Angel One NFO data)
+  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
+    if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
+      return [];
+    }
+    return optionChainData.expiries.map((expiry: string) => ({
+      value: expiry,
+      label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    }));
+  };
+  
+  // Get call and put option symbols (strike prices with CE/PE) from optionChainData
+  const getOptionSymbols = (): { calls: any[], puts: any[] } => {
+    if (!optionChainData) {
+      return { calls: [], puts: [] };
+    }
+    
+    // Filter by selected expiry if set
+    const calls = selectedOptionExpiryDate 
+      ? optionChainData.calls?.filter((c: any) => c.expiryDate === selectedOptionExpiryDate) || []
+      : optionChainData.calls || [];
+    
+    const puts = selectedOptionExpiryDate 
+      ? optionChainData.puts?.filter((p: any) => p.expiryDate === selectedOptionExpiryDate) || []
+      : optionChainData.puts || [];
+    
+    // Sort by strike price
+    calls.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
+    puts.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
+    
+    return { calls, puts };
+  };
   
   // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
@@ -5358,7 +5394,10 @@ ${
   
   // Get underlying symbol for option chain
   const getUnderlyingSymbol = (): string => {
-    if (!selectedInstrument) return 'NIFTY';
+    if (!selectedInstrument) {
+    const pt = paperTradeSymbol ? paperTradeSymbol.replace(/-..*$/, "").toUpperCase() : "NIFTY";
+    return pt;
+  }
     
     const symbol = selectedInstrument.symbol.replace('-EQ', '').replace('-INDEX', '').toUpperCase();
     
@@ -5679,6 +5718,26 @@ ${
     return () => clearTimeout(debounceTimer);
   }, [watchlistSearchQuery]);
   
+
+  // Fetch company insights when watchlist stock is selected (same logic as main search)
+  useEffect(() => {
+    if (selectedWatchlistSymbol) {
+      const fetchWatchlistCompanyInsights = async () => {
+        try {
+          const response = await fetch(`/api/trading-agent?symbol=${encodeURIComponent(selectedWatchlistSymbol)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.companyInsights) {
+              (window as any).companyInsightsData = data.companyInsights;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching watchlist company insights:', error);
+        }
+      };
+      fetchWatchlistCompanyInsights();
+    }
+  }, [selectedWatchlistSymbol]);
   // Add stock to watchlist
   const addToWatchlist = (stock: { symbol: string; name: string; token: string; exchange: string; displayName: string; tradingSymbol: string }) => {
     if (!watchlistSymbols.find(s => s.symbol === stock.symbol)) {
@@ -18829,6 +18888,20 @@ ${
                       </div>
                     )}
                   </div>
+                  {/* Option Chain Button */}
+                  <Button
+                    onClick={() => {
+                      fetchOptionChainData();
+                      setShowOptionChain(true);
+                    }}
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    data-testid="button-option-chain"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </Button>
+
 
                   {/* Type */}
                   <Select 
@@ -18887,7 +18960,7 @@ ${
                   )}
 
                   {/* Price Display */}
-                  <div className="w-24 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
+                  <div className="w-40 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
                     {paperTradePriceLoading ? (
                       <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : paperTradeCurrentPrice ? (
@@ -18897,8 +18970,9 @@ ${
                     )}
                   </div>
 
-                  {/* Buy/Sell Buttons */}
-                  {(() => {
+                  {/* Buy/Sell and SL Buttons - Right Side */}
+                  <div className="flex gap-2 ml-auto">
+                    {(() => {
                     const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                     return (
                       <>
@@ -18925,7 +18999,7 @@ ${
                   })()}
 
                   {/* SL Button with Dropdown - Right Corner */}
-                  <div className="relative ml-auto">
+                  <div className="relative">
                     {(() => {
                       const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                       return (
@@ -19040,6 +19114,7 @@ ${
                         </div>
                       </div>
                     )}
+                  </div>
                   </div>
                 </div>
 
@@ -19349,140 +19424,133 @@ ${
         </Dialog>
 
         {/* Option Chain Modal */}
-        <Dialog open={showOptionChain} onOpenChange={setShowOptionChain}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto custom-thin-scrollbar">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <Grid3X3 className="h-5 w-5 text-white" />
-                </div>
-                <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent font-bold">
-                  Option Chain - {getUnderlyingSymbol()}
+        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(); } }}>
+          <DialogContent className="w-full max-w-2xl">
+            {/* Top Bar with Index Selection, Price, and Expiry */}
+            <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+              {/* Left: Index Dropdown */}
+              <div className="flex items-center gap-3 flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
+                <select
+                  value={selectedOptionIndex}
+                  onChange={(e) => setSelectedOptionIndex(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  data-testid="select-option-index"
+                >
+                  <option value="NIFTY">NIFTY</option>
+                  <option value="BANKNIFTY">BANKNIFTY</option>
+                  <option value="FINNIFTY">FINNIFTY</option>
+                  <option value="SENSEX">SENSEX</option>
+                </select>
+              </div>
+
+              {/* Middle: Price Display */}
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Price</span>
+                <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-option-price">
+                  {optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
                 </span>
-              </DialogTitle>
-            </DialogHeader>
+              </div>
 
-            <div className="space-y-4">
-              {/* Expiry Date Selector */}
-              {optionChainData?.expiryDates && optionChainData.expiryDates.length > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</span>
-                  <select
-                    value={selectedOptionExpiry}
-                    onChange={(e) => setSelectedOptionExpiry(e.target.value)}
-                    className="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
-                    data-testid="select-option-expiry"
-                  >
-                    {optionChainData.expiryDates.map((date: string) => (
-                      <option key={date} value={date}>{date}</option>
-                    ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={fetchOptionChainData}
-                    disabled={optionChainLoading}
-                    data-testid="button-refresh-option-chain"
-                  >
-                    <RefreshCcw className={`h-4 w-4 ${optionChainLoading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
-              )}
+              {/* Right: Expiry Dropdown */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
+                <select
+                  value={selectedOptionExpiryDate}
+                  onChange={(e) => setSelectedOptionExpiryDate(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  data-testid="select-option-expiry-date"
+                >
+                  <option value="">Select Expiry</option>
+                  {getOptionExpiryDates().map((date) => (
+                    <option key={date.value} value={date.value}>
+                      {date.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-              {/* Loading State */}
+            {/* Content Area - Call/Put Options Table */}
+            <div className="py-6 space-y-4 max-h-96 overflow-y-auto">
               {optionChainLoading && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-gray-500">Loading option chain...</span>
-                  </div>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading {selectedOptionIndex} options...</p>
                 </div>
               )}
-
-              {/* Option Chain Table */}
-              {!optionChainLoading && optionChainData?.chain && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-100 dark:bg-gray-800 sticky top-0">
-                      <tr>
-                        <th colSpan={5} className="py-2 px-2 text-center font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
-                          CALLS
-                        </th>
-                        <th className="py-2 px-3 text-center font-bold bg-gray-200 dark:bg-gray-700 border-x border-gray-300 dark:border-gray-600">
-                          STRIKE
-                        </th>
-                        <th colSpan={5} className="py-2 px-2 text-center font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-                          PUTS
-                        </th>
-                      </tr>
-                      <tr className="text-gray-600 dark:text-gray-400">
-                        <th className="py-1.5 px-2 text-right">OI</th>
-                        <th className="py-1.5 px-2 text-right">Chg OI</th>
-                        <th className="py-1.5 px-2 text-right">Vol</th>
-                        <th className="py-1.5 px-2 text-right">IV</th>
-                        <th className="py-1.5 px-2 text-right bg-green-50 dark:bg-green-900/10">LTP</th>
-                        <th className="py-1.5 px-3 text-center font-bold bg-gray-200 dark:bg-gray-700">Price</th>
-                        <th className="py-1.5 px-2 text-left bg-red-50 dark:bg-red-900/10">LTP</th>
-                        <th className="py-1.5 px-2 text-left">IV</th>
-                        <th className="py-1.5 px-2 text-left">Vol</th>
-                        <th className="py-1.5 px-2 text-left">Chg OI</th>
-                        <th className="py-1.5 px-2 text-left">OI</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(optionChainData.chain[selectedOptionExpiry] || Object.values(optionChainData.chain)[0] || [])
-                        .slice(0, 30)
-                        .map((row: any, idx: number) => {
-                          const isATM = row.isATM || false;
-                          return (
-                            <tr 
-                              key={idx} 
-                              className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isATM ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
-                            >
-                              <td className="py-1.5 px-2 text-right text-gray-700 dark:text-gray-300">{row.call?.oi?.toLocaleString() || '-'}</td>
-                              <td className={`py-1.5 px-2 text-right ${(row.call?.oiChange || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {row.call?.oiChange?.toLocaleString() || '-'}
-                              </td>
-                              <td className="py-1.5 px-2 text-right text-gray-600 dark:text-gray-400">{row.call?.volume?.toLocaleString() || '-'}</td>
-                              <td className="py-1.5 px-2 text-right text-gray-600 dark:text-gray-400">{row.call?.iv?.toFixed(1) || '-'}</td>
-                              <td className="py-1.5 px-2 text-right font-medium text-green-600 dark:text-green-400 bg-green-50/50 dark:bg-green-900/10">
-                                {row.call?.ltp?.toFixed(2) || '-'}
-                              </td>
-                              <td className={`py-1.5 px-3 text-center font-bold bg-gray-100 dark:bg-gray-700 ${isATM ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                                {row.strikePrice?.toLocaleString()}
-                              </td>
-                              <td className="py-1.5 px-2 text-left font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/10">
-                                {row.put?.ltp?.toFixed(2) || '-'}
-                              </td>
-                              <td className="py-1.5 px-2 text-left text-gray-600 dark:text-gray-400">{row.put?.iv?.toFixed(1) || '-'}</td>
-                              <td className="py-1.5 px-2 text-left text-gray-600 dark:text-gray-400">{row.put?.volume?.toLocaleString() || '-'}</td>
-                              <td className={`py-1.5 px-2 text-left ${(row.put?.oiChange || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {row.put?.oiChange?.toLocaleString() || '-'}
-                              </td>
-                              <td className="py-1.5 px-2 text-left text-gray-700 dark:text-gray-300">{row.put?.oi?.toLocaleString() || '-'}</td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* No Data State */}
-              {!optionChainLoading && (!optionChainData || !optionChainData.chain) && (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                  <Grid3X3 className="h-12 w-12 mb-3 opacity-50" />
-                  <p className="text-lg font-medium">No Option Chain Data</p>
-                  <p className="text-sm">Option chain data is not available for this instrument.</p>
-                  <Button
-                    className="mt-4"
-                    variant="outline"
-                    onClick={fetchOptionChainData}
-                    data-testid="button-retry-option-chain"
-                  >
-                    <RefreshCcw className="h-4 w-4 mr-2" />
-                    Try Again
-                  </Button>
+              
+              {!optionChainLoading && selectedOptionExpiryDate && (() => {
+                const { calls, puts } = getOptionSymbols();
+                const maxRows = Math.max(calls.length, puts.length);
+                const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
+                const getOptionStatus = (strike, isCall) => {
+                  const atmThreshold = currentPrice * 0.02;
+                  const diff = Math.abs(strike - currentPrice);
+                  if (diff <= atmThreshold) return 'ATM';
+                  if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
+                  return strike > currentPrice ? 'ITM' : 'OTM';
+                };
+                const handleOptionClick = (instrumentSymbol: string, ltp?: number) => {
+                  // Populate paper trading search bar with selected option
+                  setPaperTradeSymbol(instrumentSymbol);
+                  setPaperTradeSymbolSearch(instrumentSymbol);
+                  setPaperTradeType('OPTIONS');
+                  setPaperTradeLotInput("1");
+                  
+                  // Set the price directly from option chain if available
+                  if (ltp && ltp > 0) {
+                    setPaperTradeCurrentPrice(ltp);
+                    setPaperTradePriceLoading(false);
+                    
+                    // Create instrument object for paper trading
+                    const optionInstrument = {
+                      symbol: instrumentSymbol,
+                      exchange: 'NFO',
+                      token: '',
+                      name: instrumentSymbol
+                    };
+                    setSelectedPaperTradingInstrument(optionInstrument);
+                    
+                    // Start live price streaming for this instrument
+                    fetchPaperTradePrice(optionInstrument);
+                  }
+                  
+                  // Close option chain dialog
+                  setShowOptionChain(false);
+                };
+                const getClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded text-center cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors';
+                  if (status === 'ITM' && isCall) return 'px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors';
+                  if (status === 'ITM') return 'px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors';
+                  return 'px-2 py-1 bg-gray-50 dark:bg-gray-800/40 rounded text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors';
+                };
+                const getTextClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'text-xs font-semibold text-yellow-900 dark:text-yellow-300';
+                  if (status === 'ITM' && isCall) return 'text-xs font-semibold text-blue-900 dark:text-blue-300';
+                  if (status === 'ITM') return 'text-xs font-semibold text-red-900 dark:text-red-300';
+                  return 'text-xs font-semibold text-gray-700 dark:text-gray-400';
+                };
+                const getPriceClasses = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'text-xs text-yellow-700 dark:text-yellow-400 mt-0.5';
+                  if (status === 'ITM' && isCall) return 'text-xs text-blue-700 dark:text-blue-400 mt-0.5';
+                  if (status === 'ITM') return 'text-xs text-red-700 dark:text-red-400 mt-0.5';
+                  return 'text-xs text-gray-600 dark:text-gray-500 mt-0.5';
+                };
+                if (maxRows === 0) {
+                  return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
+                }
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div onClick={() => handleOptionClick(calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`, calls[index].ltp)} className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{calls[index]?.strikePrice || puts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{puts[index] ? <div onClick={() => handleOptionClick(puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`, puts[index].ltp)} className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
+              })()}
+              
+              {!optionChainLoading && !selectedOptionExpiryDate && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
+                  </p>
                 </div>
               )}
             </div>

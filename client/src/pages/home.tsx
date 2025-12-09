@@ -19485,9 +19485,27 @@ ${
                 const maxRows = Math.max(calls.length, puts.length);
                 const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
                 const getOptionStatus = (strike, isCall) => {
-                  const atmThreshold = currentPrice * 0.02;
-                  const diff = Math.abs(strike - currentPrice);
-                  if (diff <= atmThreshold) return 'ATM';
+                  // Find all unique strikes from calls and puts
+                  const allStrikes = new Set();
+                  calls.forEach(c => allStrikes.add(c.strikePrice));
+                  puts.forEach(p => allStrikes.add(p.strikePrice));
+                  
+                  // Find the strike(s) closest to current price
+                  const strikeArray = Array.from(allStrikes);
+                  if (strikeArray.length === 0) return 'OTM';
+                  
+                  const sortedByDistance = strikeArray.sort((a, b) => 
+                    Math.abs(a - currentPrice) - Math.abs(b - currentPrice)
+                  );
+                  
+                  // Mark only the 1-2 nearest strikes as ATM
+                  const nearestStrike = sortedByDistance[0];
+                  const atmStrikes = [nearestStrike];
+                  if (sortedByDistance.length > 1) {
+                    atmStrikes.push(sortedByDistance[1]);
+                  }
+                  
+                  if (atmStrikes.includes(strike)) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
                 };
