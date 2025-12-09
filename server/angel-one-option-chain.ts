@@ -1,5 +1,6 @@
 import { angelOneInstruments, OptionChainData, OptionChainStrike, OptionInstrument } from './angel-one-instruments';
 import { angelOneApi } from './angel-one-api';
+import { angelOneWebSocket } from './angel-one-websocket';
 import axios from 'axios';
 
 interface OptionQuoteData {
@@ -114,6 +115,14 @@ class AngelOneOptionChain {
   private async getSpotPrice(underlying: string): Promise<number> {
     const normalizedUnderlying = underlying.toUpperCase().trim();
     
+    // Index token mappings for both WebSocket and API
+    const indexMappings: { [key: string]: { exchange: string; token: string; symbol: string } } = {
+      'NIFTY': { exchange: 'NSE', token: '99926000', symbol: 'Nifty 50' },
+      'BANKNIFTY': { exchange: 'NSE', token: '99926009', symbol: 'Nifty Bank' },
+      'FINNIFTY': { exchange: 'NSE', token: '99926037', symbol: 'Nifty Fin Service' },
+      'MIDCPNIFTY': { exchange: 'NSE', token: '99926074', symbol: 'NIFTY MID SELECT' }
+    };
+    
     // Default spot prices for indices (fallback)
     const defaultPrices: { [key: string]: number } = {
       'NIFTY': 24500,
@@ -122,29 +131,38 @@ class AngelOneOptionChain {
       'MIDCPNIFTY': 12000
     };
 
-    try {
-      // Try to get live price from Angel One
-      if (angelOneApi.isConnected()) {
-        const indexMappings: { [key: string]: { exchange: string; token: string; symbol: string } } = {
-          'NIFTY': { exchange: 'NSE', token: '99926000', symbol: 'Nifty 50' },
-          'BANKNIFTY': { exchange: 'NSE', token: '99926009', symbol: 'Nifty Bank' },
-          'FINNIFTY': { exchange: 'NSE', token: '99926037', symbol: 'Nifty Fin Service' },
-          'MIDCPNIFTY': { exchange: 'NSE', token: '99926074', symbol: 'NIFTY MID SELECT' }
-        };
+    const indexInfo = indexMappings[normalizedUnderlying];
+    
+    // PRIORITY 1: Try WebSocket live prices (most accurate, real-time streaming data)
+    // WebSocketOHLC uses 'close' for the last traded price
+    if (indexInfo) {
+      try {
+        const wsPrices = angelOneWebSocket.getLatestPrices([indexInfo.token]);
+        const wsPrice = wsPrices.get(indexInfo.token);
+        if (wsPrice && wsPrice.close && wsPrice.close > 0) {
+          console.log(`📊 [OPTION-CHAIN] Got LIVE spot price for ${normalizedUnderlying} from WebSocket: ${wsPrice.close}`);
+          return wsPrice.close;
+        }
+      } catch (error: any) {
+        console.log(`📊 [OPTION-CHAIN] WebSocket price not available for ${normalizedUnderlying}`);
+      }
+    }
 
-        const indexInfo = indexMappings[normalizedUnderlying];
-        if (indexInfo) {
-          const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
-          if (quote && quote.ltp > 0) {
-            console.log(`📊 [OPTION-CHAIN] Got spot price for ${normalizedUnderlying}: ${quote.ltp}`);
-            return quote.ltp;
-          }
+    // PRIORITY 2: Try API call for spot price
+    try {
+      if (angelOneApi.isConnected() && indexInfo) {
+        const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
+        if (quote && quote.ltp > 0) {
+          console.log(`📊 [OPTION-CHAIN] Got spot price for ${normalizedUnderlying} from API: ${quote.ltp}`);
+          return quote.ltp;
         }
       }
     } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] Could not fetch live spot price for ${normalizedUnderlying}, using default`);
+      console.log(`📊 [OPTION-CHAIN] Could not fetch live spot price for ${normalizedUnderlying} from API`);
     }
 
+    // PRIORITY 3: Fallback to default prices
+    console.log(`📊 [OPTION-CHAIN] Using default spot price for ${normalizedUnderlying}: ${defaultPrices[normalizedUnderlying] || 24500}`);
     return defaultPrices[normalizedUnderlying] || 24500;
   }
 
