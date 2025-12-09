@@ -19477,6 +19477,23 @@ ${
               )}
               
               {!optionChainLoading && selectedOptionExpiryDate && (() => {
+                const getOptionSymbols = () => {
+                  if (!optionChainData?.calls || !optionChainData?.puts) {
+                    return { calls: [], puts: [] };
+                  }
+                  
+                  // Filter calls and puts by selected expiry date
+                  const filteredCalls = optionChainData.calls.filter((call: any) => {
+                    return !call.expiry || call.expiry === selectedOptionExpiryDate;
+                  });
+                  
+                  const filteredPuts = optionChainData.puts.filter((put: any) => {
+                    return !put.expiry || put.expiry === selectedOptionExpiryDate;
+                  });
+                  
+                  return { calls: filteredCalls, puts: filteredPuts };
+                };
+
                 const { calls, puts } = getOptionSymbols();
                 const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
                 
