@@ -5350,22 +5350,6 @@ ${
     }));
   };
     
-    // Filter by selected expiry if set
-    const calls = selectedOptionExpiryDate 
-      ? optionChainData.calls?.filter((c: any) => c.expiryDate === selectedOptionExpiryDate) || []
-      : optionChainData.calls || [];
-    
-    const puts = selectedOptionExpiryDate 
-      ? optionChainData.puts?.filter((p: any) => p.expiryDate === selectedOptionExpiryDate) || []
-      : optionChainData.puts || [];
-    
-    // Sort by strike price
-    calls.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-    puts.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-    
-    return { calls, puts };
-  };
-  
   // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
     'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
