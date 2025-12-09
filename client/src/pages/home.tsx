@@ -5358,7 +5358,10 @@ ${
   
   // Get underlying symbol for option chain
   const getUnderlyingSymbol = (): string => {
-    if (!selectedInstrument) return 'NIFTY';
+    if (!selectedInstrument) {
+    const pt = paperTradeSymbol ? paperTradeSymbol.replace(/-..*$/, "").toUpperCase() : "NIFTY";
+    return pt;
+  }
     
     const symbol = selectedInstrument.symbol.replace('-EQ', '').replace('-INDEX', '').toUpperCase();
     
@@ -18853,10 +18856,8 @@ ${
                   {paperTradeType !== "STOCK" && (
                     <Button
                       onClick={() => {
-                        const symbol = paperTradeSymbol ? paperTradeSymbol.replace(/-.*$/, "").toUpperCase() : "NIFTY";
-                        const spotPrice = paperTradeCurrentPrice || 0;
-                        generateOptionChainForPaperTrading(symbol || "NIFTY", spotPrice);
-                        setShowOptionChainModal(true);
+                        fetchOptionChainData();
+                        setShowOptionChain(true);
                       }}
                       size="icon"
                       variant="outline"
@@ -18866,6 +18867,7 @@ ${
                       <Grid3X3 className="h-4 w-4" />
                     </Button>
                   )}
+
 
                   {/* Type */}
                   <Select 
