@@ -63,6 +63,8 @@ import { initializeNeoFeedTables } from './neofeed-dynamodb-migration';
 import { initializeCognitoVerifier, authenticateRequest } from './cognito-auth';
 import { screenerScraper } from './screener-scraper';
 import { getDemoHeatmapData, seedDemoDataToAWS } from './demo-heatmap-data';
+import { tradingNLPAgent } from './nlp-trading-agent';
+import { nlpDataRouter } from './nlp-data-router';
 
 // 🔶 Angel One Stock Token Mappings for historical data
 const ANGEL_ONE_STOCK_TOKENS: { [key: string]: { token: string; exchange: string; tradingSymbol: string } } = {
@@ -5375,6 +5377,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         error: 'Search failed',
         results: []
+      });
+    }
+  });
+
+  // 🤖 FREE NLP Trading Agent - No API Costs (uses NLP.js)
+  app.post('/api/nlp-agent', async (req, res) => {
+    try {
+      const { query } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Query is required'
+        });
+      }
+
+      console.log(`🤖 [NLP-AGENT] Processing query: "${query}"`);
+
+      // Process query through NLP agent
+      const nlpResult = await tradingNLPAgent.process(query);
+      console.log(`🎯 [NLP-AGENT] Intent: ${nlpResult.intent}, Score: ${nlpResult.score.toFixed(2)}`);
+
+      // Route to appropriate data source
+      const response = await nlpDataRouter.route(nlpResult);
+
+      res.json({
+        success: true,
+        message: response.formatted,
+        data: response.data,
+        source: response.source,
+        nlp: {
+          intent: nlpResult.intent,
+          score: nlpResult.score,
+          entities: nlpResult.entities
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('❌ [NLP-AGENT] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'NLP processing failed',
+        message: 'Sorry, I encountered an error processing your request. Please try again.'
       });
     }
   });
