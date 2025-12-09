@@ -12607,7 +12607,8 @@ ${
                                                     const chartData = companyInsights.quarterlyPerformance.map((q: any) => ({
                                                       quarter: q.quarter,
                                                       value: q.value || q.revenue || 0,
-                                                      changePercent: q.changePercent || 0
+                                                      changePercent: q.changePercent || 0,
+                                              pdfUrl: q.pdfUrl || '' // Include PDF URL from scraped BSE/NSE data
                                                     }));
                                                     
                                                     const overallTrend = companyInsights.trend || 
@@ -12866,7 +12867,7 @@ ${
                                           (window as any).companyInsightsData || null;
                                         
                                         // Use structured data from API response - show ACTUAL revenue values
-                                        const chartData: Array<{quarter: string; value: number; revenue: number; trend: string; changePercent: number}> = [];
+                                        const chartData: Array<{quarter: string; value: number; revenue: number; trend: string; changePercent: number; pdfUrl?: string}> = [];
                                         
                                         if (companyInsights && companyInsights.quarterlyPerformance) {
                                           companyInsights.quarterlyPerformance.forEach((q: any) => {
@@ -12877,7 +12878,8 @@ ${
                                               value: actualRevenue, // Actual revenue in Crores
                                               revenue: actualRevenue,
                                               trend: q.changePercent >= 0 ? 'positive' : 'negative',
-                                              changePercent: q.changePercent || 0
+                                              changePercent: q.changePercent || 0,
+                                              pdfUrl: q.pdfUrl || '' // Include PDF URL from scraped BSE/NSE data
                                             });
                                           });
                                         }

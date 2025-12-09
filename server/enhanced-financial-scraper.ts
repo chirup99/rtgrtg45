@@ -506,6 +506,8 @@ export class EnhancedFinancialScraper {
       // This row contains links to actual NSE/BSE quarterly result documents
       // Links are in format: /company/source/quarter/XXXX/M/YYYY/ which redirects to NSE/BSE
       const pdfLinks: string[] = [];
+      const screenerRedirectUrls: string[] = [];
+      
       $tableRows.each((idx, elem) => {
         const $firstCell = $(elem).find('td').first();
         const rowLabel = $firstCell.text().trim().toLowerCase();
@@ -523,34 +525,60 @@ export class EnhancedFinancialScraper {
               if (href) {
                 // Make sure it's an absolute URL - screener.in links are relative
                 const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
-                pdfLinks.push(fullUrl);
+                screenerRedirectUrls.push(fullUrl);
                 console.log(`[ENHANCED-SCRAPER]   📄 Column ${cellIdx}: ${fullUrl}`);
               }
             } else {
               // No link in this cell, push empty string to maintain index alignment
-              pdfLinks.push('');
+              screenerRedirectUrls.push('');
             }
           });
-          console.log(`[ENHANCED-SCRAPER] ✅ Found ${pdfLinks.filter(l => l).length} PDF links from Raw PDF row`);
+          console.log(`[ENHANCED-SCRAPER] ✅ Found ${screenerRedirectUrls.filter(l => l).length} PDF redirect links from Raw PDF row`);
         }
       });
       
       // If Raw PDF row not found in table rows, try searching the entire quarters section
-      if (pdfLinks.length === 0) {
+      if (screenerRedirectUrls.length === 0) {
         console.log(`[ENHANCED-SCRAPER] ⚠️ Raw PDF row not found in table, trying alternate selectors...`);
         $('section#quarters a[href*="source/quarter"]').each((idx, elem) => {
           const href = $(elem).attr('href');
           if (href) {
             const fullUrl = href.startsWith('http') ? href : `https://www.screener.in${href}`;
-            if (!pdfLinks.includes(fullUrl)) {
-              pdfLinks.push(fullUrl);
+            if (!screenerRedirectUrls.includes(fullUrl)) {
+              screenerRedirectUrls.push(fullUrl);
             }
           }
         });
-        console.log(`[ENHANCED-SCRAPER] Found ${pdfLinks.length} PDF links from section search`);
+        console.log(`[ENHANCED-SCRAPER] Found ${screenerRedirectUrls.length} PDF links from section search`);
       }
       
-      console.log(`[ENHANCED-SCRAPER] 📊 Total PDF links extracted: ${pdfLinks.filter(l => l).length}`);
+      // Follow screener.in redirects to get actual BSE/NSE PDF URLs
+      console.log(`[ENHANCED-SCRAPER] 🔄 Following redirects to get actual BSE/NSE PDF URLs...`);
+      for (const redirectUrl of screenerRedirectUrls) {
+        if (redirectUrl && redirectUrl.length > 0) {
+          try {
+            // Make a HEAD request to follow redirects and get the final URL
+            const headResponse = await axios.head(redirectUrl, {
+              headers: { 'User-Agent': this.userAgent },
+              timeout: 5000,
+              maxRedirects: 5,
+              validateStatus: (status) => status < 400
+            });
+            // Get the final URL after all redirects
+            const finalUrl = headResponse.request?.res?.responseUrl || headResponse.config?.url || redirectUrl;
+            pdfLinks.push(finalUrl);
+            console.log(`[ENHANCED-SCRAPER]   ✅ Resolved: ${redirectUrl.substring(0, 50)}... → ${finalUrl.substring(0, 80)}...`);
+          } catch (redirectError: any) {
+            // If redirect fails, use the screener URL as fallback (it will still redirect when clicked)
+            console.log(`[ENHANCED-SCRAPER]   ⚠️ Redirect failed for ${redirectUrl.substring(0, 50)}..., using original`);
+            pdfLinks.push(redirectUrl);
+          }
+        } else {
+          pdfLinks.push('');
+        }
+      }
+      
+      console.log(`[ENHANCED-SCRAPER] 📊 Total actual PDF links resolved: ${pdfLinks.filter(l => l && !l.includes('screener.in')).length}`);
       
       $tableRows.each((idx, elem) => {
         const rowLabel = $(elem).find('td').first().text().trim().toLowerCase();
