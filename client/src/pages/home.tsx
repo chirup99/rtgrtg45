@@ -18972,9 +18972,9 @@ ${
 
         {/* Paper Trading (Demo Trading) Modal - Minimalist Design */}
         <Dialog open={showPaperTradingModal} onOpenChange={setShowPaperTradingModal}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0 cursor-grab active:cursor-grabbing" style={{ position: "fixed", left: `${paperTradingDragPos.x}px`, top: `${paperTradingDragPos.y}px` }} onMouseDown={handlePaperTradingDragStart}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0" style={{ position: "fixed", left: `${paperTradingDragPos.x}px`, top: `${paperTradingDragPos.y}px` }}>
             {/* Compact Header */}
-            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 cursor-grab active:cursor-grabbing" data-dialog-title>
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 cursor-grab active:cursor-grabbing" data-dialog-title onMouseDown={handlePaperTradingDragStart}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Paper Trading</span>
