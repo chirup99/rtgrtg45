@@ -4088,7 +4088,7 @@ ${
       const stored = localStorage.getItem("paperTradingCapital");
       return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
     }
-    return 1000000;
+    return 1800000;
   });
   
   // Paper trading position interface
@@ -4679,19 +4679,19 @@ ${
   
   // Reset paper trading account
   const resetPaperTradingAccount = () => {
-    setPaperTradingCapital(1000000);
+    setPaperTradingCapital(1800000);
     setPaperPositions([]);
     setPaperTradeHistory([]);
     setPaperTradeSymbol("");
     setPaperTradeQuantity("");
     setPaperTradeLotInput("");
     setPaperTradeCurrentPrice(null);
-    localStorage.setItem("paperTradingCapital", "1000000");
+    localStorage.setItem("paperTradingCapital", "1800000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
     toast({
       title: "Account Reset",
-      description: "Paper trading account reset to ₹10,00,000"
+      description: "Paper trading account reset to ₹18,00,000"
     });
   };
   
