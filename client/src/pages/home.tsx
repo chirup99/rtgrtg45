@@ -19503,16 +19503,16 @@ ${
                 
                 // Filter calls: 1 ATM + 10 ITM + 10 OTM
                 const filteredCalls = (() => {
-                  const itm = calls.filter(c => c.strikePrice < currentPrice).reverse().slice(0, 10).reverse();
-                  const oTm = calls.filter(c => c.strikePrice > currentPrice).slice(0, 10);
+                  const itm = calls.filter(c => c.strikePrice < currentPrice && c.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const oTm = calls.filter(c => c.strikePrice > currentPrice && c.strikePrice !== atmStrike).slice(0, 10);
                   const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike).slice(0, 1) : [];
                   return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
                 })();
                 
                 // Filter puts: 1 ATM + 10 ITM + 10 OTM
                 const filteredPuts = (() => {
-                  const itm = puts.filter(p => p.strikePrice > currentPrice).slice(0, 10);
-                  const oTm = puts.filter(p => p.strikePrice < currentPrice).reverse().slice(0, 10).reverse();
+                  const itm = puts.filter(p => p.strikePrice > currentPrice && p.strikePrice !== atmStrike).slice(0, 10);
+                  const oTm = puts.filter(p => p.strikePrice < currentPrice && p.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
                   const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike).slice(0, 1) : [];
                   return [...oTm, ...atm, ...itm].sort((a, b) => a.strikePrice - b.strikePrice);
                 })();
