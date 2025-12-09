@@ -5393,8 +5393,12 @@ ${
   };
   
   // Get underlying symbol for option chain
-  const getUnderlyingSymbol = (): string => {
+  const getUnderlyingSymbol = (indexOverride?: string): string => {
     if (!selectedInstrument) {
+    // If an index is explicitly provided (e.g., from option chain dropdown), use it directly
+    if (indexOverride) {
+      return indexOverride;
+    }
     const pt = paperTradeSymbol ? paperTradeSymbol.replace(/-..*$/, "").toUpperCase() : "NIFTY";
     return pt;
   }
