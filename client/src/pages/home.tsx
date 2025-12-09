@@ -4169,6 +4169,7 @@ ${
   const [paperTradingWsStatus, setPaperTradingWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected');
   const [paperTradingLivePrices, setPaperTradingLivePrices] = useState<Map<string, number>>(new Map());
   const paperTradingEventSourcesRef = useRef<Map<string, EventSource>>(new Map());
+  const watchlistEventSourcesRef = useRef<Map<string, EventSource>>(new Map());
   const paperTradingLastUpdateRef = useRef<number>(Date.now());
   
   // Map paper trade type to exchange segment for filtering
@@ -5540,29 +5541,68 @@ ${
     localStorage.setItem('watchlistSymbols', JSON.stringify(watchlistSymbols));
   }, [watchlistSymbols]);
 
-  // Fetch live WebSocket prices for watchlist stocks every 700ms
+  // Fetch live SSE prices for watchlist stocks (same approach as paper trading)
   useEffect(() => {
-    if (watchlistSymbols.length === 0) return;
-    
-    const fetchLivePrices = async () => {
-      try {
-        const response = await fetch('/api/angelone/live-watchlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ symbols: watchlistSymbols })
-        });
-        const data = await response.json();
-        if (data.success && data.prices) {
-          setWatchlistLivePrices(data.prices);
-        }
-      } catch (error) {
-        console.error('Failed to fetch watchlist live prices:', error);
-      }
+    // Cleanup function to close all SSE connections
+    const cleanup = () => {
+      watchlistEventSourcesRef.current.forEach((es, symbol) => {
+        console.log(`[WATCHLIST] Closing SSE for ${symbol}`);
+        es.close();
+      });
+      watchlistEventSourcesRef.current.clear();
     };
-    
-    fetchLivePrices();
-    const interval = setInterval(fetchLivePrices, 700);
-    return () => clearInterval(interval);
+
+    if (watchlistSymbols.length === 0) {
+      cleanup();
+      setWatchlistLivePrices({});
+      return;
+    }
+
+    // Close connections for symbols no longer in watchlist
+    watchlistEventSourcesRef.current.forEach((es, symbol) => {
+      if (!watchlistSymbols.find(s => s.symbol === symbol)) {
+        es.close();
+        watchlistEventSourcesRef.current.delete(symbol);
+      }
+    });
+
+    // Open SSE connections for new symbols
+    watchlistSymbols.forEach((stock) => {
+      if (watchlistEventSourcesRef.current.has(stock.symbol)) return;
+
+      const token = stock.token || '';
+      const exchange = stock.exchange || 'NSE';
+      const sseUrl = `/api/angelone/live-stream-ws?symbol=${stock.symbol}&symbolToken=${token}&exchange=${exchange}&tradingSymbol=${stock.symbol}&interval=0`;
+      
+      console.log(`[WATCHLIST] Opening SSE for ${stock.symbol}`);
+      const eventSource = new EventSource(sseUrl);
+      watchlistEventSourcesRef.current.set(stock.symbol, eventSource);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const ltp = data.ltp || data.close || 0;
+          const change = data.change || 0;
+          const changePercent = data.changePercent || data.percentChange || 0;
+          
+          if (ltp > 0) {
+            setWatchlistLivePrices(prev => ({
+              ...prev,
+              [stock.symbol]: { ltp, change, changePercent, isLive: true }
+            }));
+          }
+        } catch (err) {
+          console.error(`[WATCHLIST] Parse error for ${stock.symbol}:`, err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        watchlistEventSourcesRef.current.delete(stock.symbol);
+      };
+    });
+
+    return cleanup;
   }, [watchlistSymbols]);
 
   // Fetch quarterly results for ALL watchlist stocks
