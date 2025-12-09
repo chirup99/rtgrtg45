@@ -18889,20 +18889,18 @@ ${
                     )}
                   </div>
                   {/* Option Chain Button */}
-                  {paperTradeType !== "STOCK" && (
-                    <Button
-                      onClick={() => {
-                        fetchOptionChainData();
-                        setShowOptionChain(true);
-                      }}
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8"
-                      data-testid="button-option-chain"
-                    >
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => {
+                      fetchOptionChainData();
+                      setShowOptionChain(true);
+                    }}
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    data-testid="button-option-chain"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </Button>
 
 
                   {/* Type */}
