@@ -4086,7 +4086,7 @@ ${
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
-      return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
+      return stored ? parseFloat(stored) : 1800000; // 18 Lakhs default
     }
     return 1800000;
   });
@@ -5323,41 +5323,33 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
+
+  // Auto-default to latest expiry date when option chain data loads
+  React.useEffect(() => {
+    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
+      setSelectedOptionExpiryDate(optionChainData.expiries[0]);
+    }
+  }, [optionChainData, selectedOptionIndex]);
   const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
   // Get expiry dates from optionChainData (real Angel One NFO data)
-  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
+  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
       return [];
     }
-    return optionChainData.expiries.map((expiry: string) => ({
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const expiryDate = new Date(expiry);
+      expiryDate.setHours(0, 0, 0, 0);
+      return expiryDate >= today;
+    });
+    return futureExpiries.slice(0, 4).map((expiry: string) => ({
       value: expiry,
       label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     }));
   };
-  
-  // Get call and put option symbols (strike prices with CE/PE) from optionChainData
-  const getOptionSymbols = (): { calls: any[], puts: any[] } => {
-    if (!optionChainData) {
-      return { calls: [], puts: [] };
-    }
     
-    // Filter by selected expiry if set
-    const calls = selectedOptionExpiryDate 
-      ? optionChainData.calls?.filter((c: any) => c.expiryDate === selectedOptionExpiryDate) || []
-      : optionChainData.calls || [];
-    
-    const puts = selectedOptionExpiryDate 
-      ? optionChainData.puts?.filter((p: any) => p.expiryDate === selectedOptionExpiryDate) || []
-      : optionChainData.puts || [];
-    
-    // Sort by strike price
-    calls.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-    puts.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-    
-    return { calls, puts };
-  };
-  
   // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
     'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
@@ -5393,8 +5385,12 @@ ${
   };
   
   // Get underlying symbol for option chain
-  const getUnderlyingSymbol = (): string => {
+  const getUnderlyingSymbol = (indexOverride?: string): string => {
     if (!selectedInstrument) {
+    // If an index is explicitly provided (e.g., from option chain dropdown), use it directly
+    if (indexOverride) {
+      return indexOverride;
+    }
     const pt = paperTradeSymbol ? paperTradeSymbol.replace(/-..*$/, "").toUpperCase() : "NIFTY";
     return pt;
   }
@@ -5417,8 +5413,8 @@ ${
   };
   
   // Fetch option chain data
-  const fetchOptionChainData = async () => {
-    const underlying = getUnderlyingSymbol();
+  const fetchOptionChainData = async (indexToFetch?: string) => {
+    const underlying = getUnderlyingSymbol(indexToFetch);
     if (!underlying) return;
     
     setOptionChainLoading(true);
@@ -19424,7 +19420,7 @@ ${
         </Dialog>
 
         {/* Option Chain Modal */}
-        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(); } }}>
+        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
           <DialogContent className="w-full max-w-2xl">
             {/* Top Bar with Index Selection, Price, and Expiry */}
             <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -19433,7 +19429,7 @@ ${
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
                 <select
                   value={selectedOptionIndex}
-                  onChange={(e) => setSelectedOptionIndex(e.target.value)}
+                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                   data-testid="select-option-index"
                 >
@@ -19457,12 +19453,14 @@ ${
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
                 <select
                   value={selectedOptionExpiryDate}
-                  onChange={(e) => setSelectedOptionExpiryDate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedOptionExpiryDate(e.target.value);
+                  }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                   data-testid="select-option-expiry-date"
                 >
                   <option value="">Select Expiry</option>
-                  {getOptionExpiryDates().map((date) => (
+                  {getOptionExpiryDates(selectedOptionIndex).map((date) => (
                     <option key={date.value} value={date.value}>
                       {date.label}
                     </option>
@@ -19481,16 +19479,102 @@ ${
               )}
               
               {!optionChainLoading && selectedOptionExpiryDate && (() => {
+                const getOptionSymbols = () => {
+                  if (!optionChainData?.calls || !optionChainData?.puts) {
+                    return { calls: [], puts: [] };
+                  }
+                  
+                  // Filter calls and puts by selected expiry date
+                  // Filter by expiry date - handle different date formats
+                  const formatExpiryDate = (date: any) => {
+                    if (!date) return null;
+                    if (typeof date === 'string') {
+                      // Try to normalize the date format
+                      const d = new Date(date);
+                      return d.toISOString().split('T')[0];
+                    }
+                    return null;
+                  };
+                  
+                  const selectedExpiryFormatted = formatExpiryDate(selectedOptionExpiryDate);
+                  
+                  const filteredCalls = optionChainData.calls.filter((call: any) => {
+                    // If no expiry field, include it; if has expiry, must match selected
+                    if (!call.expiry) return true;
+                    const callExpiryFormatted = formatExpiryDate(call.expiry);
+                    return callExpiryFormatted === selectedExpiryFormatted;
+                  });
+                  
+                  const filteredPuts = optionChainData.puts.filter((put: any) => {
+                    // If no expiry field, include it; if has expiry, must match selected
+                    if (!put.expiry) return true;
+                    const putExpiryFormatted = formatExpiryDate(put.expiry);
+                    return putExpiryFormatted === selectedExpiryFormatted;
+                  });
+                  
+                  return { calls: filteredCalls, puts: filteredPuts };
+                };
+
                 const { calls, puts } = getOptionSymbols();
-                const maxRows = Math.max(calls.length, puts.length);
                 const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
+                
+                // Find the single nearest ATM strike
+                const allStrikes = new Set();
+                calls.forEach(c => allStrikes.add(c.strikePrice));
+                puts.forEach(p => allStrikes.add(p.strikePrice));
+                
+                const strikeArray = Array.from(allStrikes) as number[];
+                let atmStrike = null;
+                if (strikeArray.length > 0) {
+                  atmStrike = strikeArray.reduce((nearest, strike) => 
+                    Math.abs(strike - currentPrice) < Math.abs(nearest - currentPrice) ? strike : nearest
+                  );
+                }
+                
+                // Filter calls: 1 ATM + 10 ITM + 10 OTM
+                const filteredCalls = (() => {
+                  const itm = calls.filter(c => c.strikePrice < currentPrice && c.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const oTm = calls.filter(c => c.strikePrice > currentPrice && c.strikePrice !== atmStrike).slice(0, 10);
+                  const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike).slice(0, 1) : [];
+                  return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                // Filter puts: 1 ATM + 10 ITM + 10 OTM
+                const filteredPuts = (() => {
+                  const itm = puts.filter(p => p.strikePrice > currentPrice && p.strikePrice !== atmStrike).slice(0, 10);
+                  const oTm = puts.filter(p => p.strikePrice < currentPrice && p.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike).slice(0, 1) : [];
+                  return [...oTm, ...atm, ...itm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                const maxRows = Math.max(filteredCalls.length, filteredPuts.length);
                 const getOptionStatus = (strike, isCall) => {
-                  const atmThreshold = currentPrice * 0.02;
-                  const diff = Math.abs(strike - currentPrice);
-                  if (diff <= atmThreshold) return 'ATM';
+                  // Find all unique strikes from calls and puts
+                  const allStrikes = new Set();
+                  calls.forEach(c => allStrikes.add(c.strikePrice));
+                  puts.forEach(p => allStrikes.add(p.strikePrice));
+                  
+                  // Find the strike(s) closest to current price
+                  const strikeArray = Array.from(allStrikes);
+                  if (strikeArray.length === 0) return 'OTM';
+                  
+                  // This logic is moved to filteredCalls and filteredPuts
+                  // Mark only the single nearest strike as ATM
+                  if (strike === atmStrike) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
                 };
+  const getExchangeForIndex = (index: string): string => {
+    const exchangeMap: Record<string, string> = {
+      'NIFTY': 'NFO',
+      'BANKNIFTY': 'NFO',
+      'FINNIFTY': 'NFO',
+      'SENSEX': 'BFO',
+      'MIDCPNIFTY': 'NFO'
+    };
+    return exchangeMap[index] || 'NFO';
+  };
+
                 const handleOptionClick = (instrumentSymbol: string, ltp?: number) => {
                   // Populate paper trading search bar with selected option
                   setPaperTradeSymbol(instrumentSymbol);
@@ -19506,7 +19590,7 @@ ${
                     // Create instrument object for paper trading
                     const optionInstrument = {
                       symbol: instrumentSymbol,
-                      exchange: 'NFO',
+                      exchange: getExchangeForIndex(selectedOptionIndex),
                       token: '',
                       name: instrumentSymbol
                     };
@@ -19543,7 +19627,7 @@ ${
                 if (maxRows === 0) {
                   return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
-                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div onClick={() => handleOptionClick(calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`, calls[index].ltp)} className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{calls[index]?.strikePrice || puts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{puts[index] ? <div onClick={() => handleOptionClick(puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`, puts[index].ltp)} className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index].symbol || `${selectedOptionIndex}${filteredCalls[index].strikePrice}CE`, filteredCalls[index].ltp)} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index].symbol || `${selectedOptionIndex}${filteredPuts[index].strikePrice}PE`, filteredPuts[index].ltp)} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
               {!optionChainLoading && !selectedOptionExpiryDate && (

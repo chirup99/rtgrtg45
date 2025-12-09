@@ -19421,56 +19421,54 @@ ${
 
         {/* Option Chain Modal */}
         <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
-          <DialogContent className="w-full max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0">
             {/* Top Bar with Index Selection, Price, and Expiry */}
             <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-              {/* Left: Index Dropdown */}
-              <div className="flex items-center gap-3 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
-                <select
-                  value={selectedOptionIndex}
-                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
-                  data-testid="select-option-index"
-                >
-                  <option value="NIFTY">NIFTY</option>
-                  <option value="BANKNIFTY">BANKNIFTY</option>
-                  <option value="FINNIFTY">FINNIFTY</option>
-                  <option value="SENSEX">SENSEX</option>
-                </select>
-              </div>
+            {/* Compact Sticky Header - Matches Paper Trading Dialog */}
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2">
+              <div className="flex items-center justify-between gap-4">
+                {/* Left: Index & Price inline */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Index:</label>
+                  <select
+                    value={selectedOptionIndex}
+                    onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
+                    className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs"
+                    data-testid="select-option-index"
+                  >
+                    <option value="NIFTY">NIFTY</option>
+                    <option value="BANKNIFTY">BANKNIFTY</option>
+                    <option value="FINNIFTY">FINNIFTY</option>
+                    <option value="SENSEX">SENSEX</option>
+                  </select>
+                  <span className="text-gray-300 dark:text-gray-600 mx-1">|</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">₹<span className="font-semibold text-green-600 dark:text-green-400" data-testid="text-option-price">{optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}</span></span>
+                </div>
 
-              {/* Middle: Price Display */}
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Price</span>
-                <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-option-price">
-                  {optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
-                </span>
-              </div>
-
-              {/* Right: Expiry Dropdown */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
-                <select
-                  value={selectedOptionExpiryDate}
-                  onChange={(e) => {
-                    setSelectedOptionExpiryDate(e.target.value);
-                  }}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
-                  data-testid="select-option-expiry-date"
-                >
-                  <option value="">Select Expiry</option>
-                  {getOptionExpiryDates(selectedOptionIndex).map((date) => (
-                    <option key={date.value} value={date.value}>
-                      {date.label}
-                    </option>
-                  ))}
-                </select>
+                {/* Right: Expiry Dropdown */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Expiry:</label>
+                  <select
+                    value={selectedOptionExpiryDate}
+                    onChange={(e) => {
+                      setSelectedOptionExpiryDate(e.target.value);
+                    }}
+                    className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs"
+                    data-testid="select-option-expiry-date"
+                  >
+                    <option value="">Select</option>
+                    {getOptionExpiryDates(selectedOptionIndex).map((date) => (
+                      <option key={date.value} value={date.value}>
+                        {date.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Content Area - Call/Put Options Table */}
-            <div className="py-6 space-y-4 max-h-96 overflow-y-auto">
+            <div className="p-4 max-h-[calc(85vh-60px)] overflow-y-auto custom-thin-scrollbar">
               {optionChainLoading && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
