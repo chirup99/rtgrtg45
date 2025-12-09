@@ -4056,6 +4056,13 @@ ${
   const [showOptionChainModal, setShowOptionChainModal] = useState(false);
   const [optionChainStrikes, setOptionChainStrikes] = useState<string[]>([]);
   const paperTradingStreamSymbolsRef = useRef<Set<string>>(new Set());
+  const [optionChainSymbol, setOptionChainSymbol] = useState("NIFTY");
+  const [optionChainSymbolSearch, setOptionChainSymbolSearch] = useState("");
+  const [optionChainCurrentPrice, setOptionChainCurrentPrice] = useState<number>(25870);
+  const [optionChainSelectedExpiry, setOptionChainSelectedExpiry] = useState("");
+  const [optionChainExpiryDates, setOptionChainExpiryDates] = useState<string[]>([]);
+  const [optionChainStrikesData, setOptionChainStrikesData] = useState<any[]>([]);
+  const [optionChainLoadingModal, setOptionChainLoadingModal] = useState(false);
   
   // Paper trading LIVE WebSocket streaming state (TradingView-style real-time P&L)
   const [paperTradingWsStatus, setPaperTradingWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected');
@@ -5300,6 +5307,96 @@ ${
   const [journalChartTimeframe, setJournalChartTimeframe] = useState('5'); // Default 5 minutes (matches selectedJournalInterval)
   const [showJournalTimeframeDropdown, setShowJournalTimeframeDropdown] = useState(false);
   const [showHeatmapTimeframeDropdown, setShowHeatmapTimeframeDropdown] = useState(false);
+
+  // Fetch real option chain data from Angel One API
+  const generateOptionChainForPaperTrading = async (symbol: string, spotPrice: number, expiry?: string) => {
+    setOptionChainLoadingModal(true);
+    try {
+      const normalizedSymbol = symbol.replace(/-.*$/, "").toUpperCase().trim();
+      const expiryParam = expiry ? `&expiry=${encodeURIComponent(expiry)}` : "";
+      const response = await fetch(`/api/options/chain/${normalizedSymbol}?strikeRange=20${expiryParam}`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        const chainData = data.data;
+        setOptionChainCurrentPrice(chainData.spotPrice || spotPrice);
+        setOptionChainExpiryDates(chainData.expiries || []);
+        if (chainData.expiries && chainData.expiries.length > 0) {
+          if (!expiry || !chainData.expiries.includes(expiry)) {
+            setOptionChainSelectedExpiry(chainData.expiries[0]);
+          }
+        }
+        
+        const callsMap = new Map<number, any>();
+        const putsMap = new Map<number, any>();
+        
+        if (chainData.calls) {
+          for (const call of chainData.calls) {
+            callsMap.set(call.strikePrice, {
+              ltp: call.ltp || 0,
+              oi: call.oi || 0,
+              oiChange: 0,
+              oiChangePercent: 0,
+              iv: call.iv || 0,
+              volume: call.volume || 0,
+              symbol: call.symbol,
+              token: call.token
+            });
+          }
+        }
+        
+        if (chainData.puts) {
+          for (const put of chainData.puts) {
+            putsMap.set(put.strikePrice, {
+              ltp: put.ltp || 0,
+              oi: put.oi || 0,
+              oiChange: 0,
+              oiChangePercent: 0,
+              iv: put.iv || 0,
+              volume: put.volume || 0,
+              symbol: put.symbol,
+              token: put.token
+            });
+          }
+        }
+        
+        const allStrikes = Array.from(new Set([...callsMap.keys(), ...putsMap.keys()])).sort((a, b) => a - b);
+        const atmStrike = chainData.atmStrike || allStrikes[Math.floor(allStrikes.length / 2)];
+        
+        const strikes: any[] = allStrikes.map(strike => {
+          const isATM = strike === atmStrike;
+          const isITMCall = strike < chainData.spotPrice;
+          const isITMPut = strike > chainData.spotPrice;
+          
+          return {
+            strike,
+            isATM,
+            isITMCall,
+            isITMPut,
+            call: callsMap.get(strike) || { ltp: 0, oi: 0, oiChange: 0, oiChangePercent: 0, iv: 0, volume: 0 },
+            put: putsMap.get(strike) || { ltp: 0, oi: 0, oiChange: 0, oiChangePercent: 0, iv: 0, volume: 0 }
+          };
+        });
+        
+        setOptionChainStrikesData(strikes);
+      } else {
+        toast({
+          title: "Option Chain Error",
+          description: data.error?.message || data.message || "Failed to fetch option chain",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching option chain:", error);
+      toast({
+        title: "Option Chain Error",
+        description: error.message || "Failed to fetch option chain data",
+        variant: "destructive"
+      });
+    } finally {
+      setOptionChainLoadingModal(false);
+    }
+  };
   const [showTradeMarkers, setShowTradeMarkers] = useState(true); // Toggle for trade markers visibility
   
   // Watchlist Feature State
@@ -19075,25 +19172,26 @@ ${
                     </SelectContent>
                   </Select>
 
-                  {/* Option Chain Button */}
-                  {paperTradeType === 'OPTIONS' && paperTradeSymbol && (
+                  {/* Option Chain Button - Opens full option chain for easy strike selection */}
+                  {paperTradeType === "OPTIONS" && (
                     <Button
                       onClick={() => {
-                        const baseStrike = Math.floor((paperTradeCurrentPrice || 100) / 100) * 100;
-                        const strikes = Array.from({ length: 11 }, (_, i) => (baseStrike - 250 + (i * 50)).toString());
-                        setOptionChainStrikes(strikes);
+                        const symbol = paperTradeSymbol ? paperTradeSymbol.replace(/-.*$/, "").toUpperCase() : "NIFTY";
+                        const spotPrice = paperTradeCurrentPrice || 25870;
+                        setOptionChainSymbol(symbol.includes("BANK") ? "BANKNIFTY" : symbol.includes("FIN") ? "FINNIFTY" : symbol || "NIFTY");
+                        setOptionChainCurrentPrice(spotPrice);
+                        generateOptionChainForPaperTrading(symbol || "NIFTY", spotPrice);
                         setShowOptionChainModal(true);
                       }}
-                      size="sm"
+                      size="icon"
                       variant="outline"
-                      className="h-8 px-2 text-xs"
-                      title="View Option Chain"
+                      className="h-8 w-8"
+                      title="Open Option Chain"
                       data-testid="button-option-chain"
                     >
-                      Chain
+                      <Grid3X3 className="h-4 w-4" />
                     </Button>
                   )}
-
                   {/* Quantity or Lots Input */}
                   {paperTradeType === 'STOCK' ? (
                     <Input
@@ -19474,36 +19572,230 @@ ${
 
 
         {/* Option Chain Modal */}
+        {/* Professional Option Chain Modal for Paper Trading */}
         <Dialog open={showOptionChainModal} onOpenChange={setShowOptionChainModal}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Option Chain - Select Strike</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <div className="text-xs text-gray-500 mb-3">
-                Available strikes for {paperTradeSymbol || 'selected instrument'}:
-              </div>
-              <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto">
-                {optionChainStrikes.map((strike) => (
-                  <button
-                    key={strike}
-                    onClick={() => {
-                      setPaperTradeSymbol(`${paperTradeSymbol}-${strike}CE`);
-                      setShowOptionChainModal(false);
-                      toast({
-                        title: "Strike Selected",
-                        description: `Selected ${paperTradeSymbol}-${strike}CE`
-                      });
-                    }}
-                    className="p-2 text-xs border border-gray-200 dark:border-gray-700 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-colors text-center font-medium"
-                    data-testid={`option-chain-strike-${strike}`}
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+            {/* Header with Symbol Search and Info */}
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between gap-4 p-4">
+                {/* Symbol and Price */}
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search NIFTY, BANKNIFTY, stocks..."
+                      value={optionChainSymbolSearch}
+                      onChange={(e) => {
+                        setOptionChainSymbolSearch(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && optionChainSymbolSearch) {
+                          const symbol = optionChainSymbolSearch.toUpperCase().replace(/\s/g, "");
+                          setOptionChainSymbol(symbol);
+                          setOptionChainSymbolSearch("");
+                          generateOptionChainForPaperTrading(symbol, optionChainCurrentPrice);
+                        }
+                      }}
+                      className="pl-9 h-9 text-sm"
+                      data-testid="input-option-chain-search"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-lg">{optionChainSymbol}</span>
+                    <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                      {optionChainCurrentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-red-500">-0.35%</span>
+                  </div>
+                </div>
+
+                {/* Expiry Selector */}
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Expiry</span>
+                  <Select value={optionChainSelectedExpiry} onValueChange={(expiry) => {
+                      setOptionChainSelectedExpiry(expiry);
+                      generateOptionChainForPaperTrading(optionChainSymbol, optionChainCurrentPrice, expiry);
+                    }}>
+                    <SelectTrigger className="w-[120px] h-9" data-testid="select-option-chain-expiry">
+                      <SelectValue placeholder="Select Expiry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {optionChainExpiryDates.map((date) => (
+                        <SelectItem key={date} value={date}>{date}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateOptionChainForPaperTrading(optionChainSymbol, optionChainCurrentPrice, optionChainSelectedExpiry)}
+                    disabled={optionChainLoadingModal}
+                    data-testid="button-refresh-option-chain-modal"
                   >
-                    {strike}
-                  </button>
-                ))}
+                    <RefreshCcw className={`h-4 w-4 ${optionChainLoadingModal ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
               </div>
-              <div className="text-[10px] text-gray-500 mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-                Tip: Add CE/PE suffix manually, or click strikes to auto-select with CE
+            </div>
+
+            {/* Option Chain Table */}
+            <div className="flex-1 overflow-auto custom-thin-scrollbar">
+              {optionChainLoadingModal ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-gray-500">Loading option chain...</span>
+                  </div>
+                </div>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                    <tr>
+                      <th colSpan={5} className="py-2 text-center font-bold text-green-600 dark:text-green-400 border-b border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+                        CALLS
+                      </th>
+                      <th className="py-2 px-3 text-center font-bold border-x-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+                        Strike
+                      </th>
+                      <th colSpan={5} className="py-2 text-center font-bold text-red-600 dark:text-red-400 border-b border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+                        PUTS
+                      </th>
+                    </tr>
+                    <tr className="text-gray-500 dark:text-gray-400 text-[10px]">
+                      <th className="py-1.5 px-2 text-right font-medium">OI Chg%</th>
+                      <th className="py-1.5 px-2 text-right font-medium">OI-lakh</th>
+                      <th className="py-1.5 px-2 text-center font-medium">OI Bar</th>
+                      <th className="py-1.5 px-2 text-right font-medium bg-green-50/50 dark:bg-green-900/10">LTP</th>
+                      <th className="py-1.5 px-2 text-right font-medium">IV</th>
+                      <th className="py-1.5 px-3 text-center font-bold bg-gray-100 dark:bg-gray-700">Price</th>
+                      <th className="py-1.5 px-2 text-left font-medium">IV</th>
+                      <th className="py-1.5 px-2 text-left font-medium bg-red-50/50 dark:bg-red-900/10">LTP</th>
+                      <th className="py-1.5 px-2 text-center font-medium">OI Bar</th>
+                      <th className="py-1.5 px-2 text-left font-medium">OI-lakh</th>
+                      <th className="py-1.5 px-2 text-left font-medium">OI Chg%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {optionChainStrikesData.map((row, idx) => {
+                      const callBgClass = row.isATM 
+                        ? "bg-yellow-100 dark:bg-yellow-900/30" 
+                        : row.isITMCall 
+                          ? "bg-green-50/70 dark:bg-green-900/20" 
+                          : "";
+                      const putBgClass = row.isATM 
+                        ? "bg-yellow-100 dark:bg-yellow-900/30" 
+                        : row.isITMPut 
+                          ? "bg-red-50/70 dark:bg-red-900/20" 
+                          : "";
+                      const strikeBgClass = row.isATM 
+                        ? "bg-yellow-200 dark:bg-yellow-800/50" 
+                        : "bg-gray-100 dark:bg-gray-700";
+                      
+                      return (
+                        <tr key={idx} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                          {/* CALLS Side */}
+                          <td className={`py-1.5 px-2 text-right ${callBgClass} ${row.call.oiChangePercent >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {row.call.oiChangePercent >= 0 ? "+" : ""}{row.call.oiChangePercent}%
+                          </td>
+                          <td className={`py-1.5 px-2 text-right text-gray-700 dark:text-gray-300 ${callBgClass}`}>
+                            {(row.call.oi / 100000).toFixed(1)}
+                          </td>
+                          <td className={`py-1.5 px-2 ${callBgClass}`}>
+                            <div className="w-16 h-3 bg-gray-200 dark:bg-gray-600 rounded-sm overflow-hidden">
+                              <div 
+                                className="h-full bg-green-500 rounded-sm" 
+                                style={{ width: `${Math.min(100, (row.call.oi / 200000) * 100)}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td 
+                            className={`py-1.5 px-2 text-right font-medium text-green-600 dark:text-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-800/30 ${callBgClass}`}
+                            onClick={() => {
+                              const symbol = `${optionChainSymbol}${optionChainSelectedExpiry.replace(" ", "")}${row.strike}CE`;
+                              setPaperTradeSymbol(symbol);
+                              setPaperTradeSymbolSearch(symbol);
+                              setShowOptionChainModal(false);
+                              toast({
+                                title: "CE Selected",
+                                description: `${symbol} added to paper trading`
+                              });
+                            }}
+                            data-testid={`option-chain-call-${row.strike}`}
+                          >
+                            {row.call.ltp.toFixed(2)}
+                          </td>
+                          <td className={`py-1.5 px-2 text-right text-gray-500 dark:text-gray-400 ${callBgClass}`}>
+                            {row.call.iv.toFixed(1)}
+                          </td>
+                          
+                          {/* Strike Price */}
+                          <td 
+                            className={`py-1.5 px-3 text-center font-bold border-x-2 border-gray-300 dark:border-gray-600 ${strikeBgClass} ${row.isATM ? "text-yellow-700 dark:text-yellow-300" : "text-gray-800 dark:text-gray-200"}`}
+                          >
+                            {row.strike.toLocaleString()}
+                          </td>
+                          
+                          {/* PUTS Side */}
+                          <td className={`py-1.5 px-2 text-left text-gray-500 dark:text-gray-400 ${putBgClass}`}>
+                            {row.put.iv.toFixed(1)}
+                          </td>
+                          <td 
+                            className={`py-1.5 px-2 text-left font-medium text-red-600 dark:text-red-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-800/30 ${putBgClass}`}
+                            onClick={() => {
+                              const symbol = `${optionChainSymbol}${optionChainSelectedExpiry.replace(" ", "")}${row.strike}PE`;
+                              setPaperTradeSymbol(symbol);
+                              setPaperTradeSymbolSearch(symbol);
+                              setShowOptionChainModal(false);
+                              toast({
+                                title: "PE Selected",
+                                description: `${symbol} added to paper trading`
+                              });
+                            }}
+                            data-testid={`option-chain-put-${row.strike}`}
+                          >
+                            {row.put.ltp.toFixed(2)}
+                          </td>
+                          <td className={`py-1.5 px-2 ${putBgClass}`}>
+                            <div className="w-16 h-3 bg-gray-200 dark:bg-gray-600 rounded-sm overflow-hidden">
+                              <div 
+                                className="h-full bg-red-500 rounded-sm" 
+                                style={{ width: `${Math.min(100, (row.put.oi / 200000) * 100)}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className={`py-1.5 px-2 text-left text-gray-700 dark:text-gray-300 ${putBgClass}`}>
+                            {(row.put.oi / 100000).toFixed(1)}
+                          </td>
+                          <td className={`py-1.5 px-2 text-left ${putBgClass} ${row.put.oiChangePercent >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {row.put.oiChangePercent >= 0 ? "+" : ""}{row.put.oiChangePercent}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Footer with Legend */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2">
+              <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-800/50 rounded-sm" />
+                    <span>ATM</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-green-100 dark:bg-green-900/30 rounded-sm" />
+                    <span>ITM Calls</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-red-100 dark:bg-red-900/30 rounded-sm" />
+                    <span>ITM Puts</span>
+                  </div>
+                </div>
+                <span>Click on LTP to select strike for paper trading</span>
               </div>
             </div>
           </DialogContent>
