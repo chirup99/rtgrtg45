@@ -4019,7 +4019,7 @@ ${
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
-      return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
+      return stored ? parseFloat(stored) : 1800000; // 18 Lakhs
     }
     return 1000000;
   });
