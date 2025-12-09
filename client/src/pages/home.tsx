@@ -5323,20 +5323,22 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
+
+  // Auto-default to latest expiry date when option chain data loads
+  React.useEffect(() => {
+    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
+      setSelectedOptionExpiryDate(optionChainData.expiries[0]);
+    }
+  }, [optionChainData, selectedOptionIndex]);
   const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
   // Get expiry dates from optionChainData (real Angel One NFO data)
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
-      return [];
-    }
-    return optionChainData.expiries.slice(0, 4).map((expiry: string) => ({
-      value: expiry,
+  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
       label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     }));
   };
-  
-  // Get call and put option symbols (strike prices with CE/PE) from optionChainData
   const getOptionSymbols = (): { calls: any[], puts: any[] } => {
     if (!optionChainData) {
       return { calls: [], puts: [] };
