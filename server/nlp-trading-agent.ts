@@ -4,7 +4,7 @@
  * No API costs - runs entirely in Node.js
  */
 
-const { NlpManager } = require('node-nlp');
+import { NlpManager } from 'node-nlp';
 
 export interface NLPResult {
   intent: string;
