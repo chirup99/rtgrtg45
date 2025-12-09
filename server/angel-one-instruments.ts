@@ -102,7 +102,7 @@ class AngelOneInstruments {
     const options = this.instruments
       .filter(inst => {
         const isOption = inst.instrumenttype === 'OPTIDX' || inst.instrumenttype === 'OPTSTK';
-        const isNFO = inst.exch_seg === 'NFO';
+        const isNFO = ["NFO", "BFO"].includes(inst.exch_seg);
         
         // Check if instrument matches the underlying - try multiple fields
         // For NIFTY, BANKNIFTY: name field contains the underlying
@@ -150,7 +150,7 @@ class AngelOneInstruments {
     
     this.instruments.forEach(inst => {
       const isOption = inst.instrumenttype === 'OPTIDX' || inst.instrumenttype === 'OPTSTK';
-      const isNFO = inst.exch_seg === 'NFO';
+      const isNFO = ["NFO", "BFO"].includes(inst.exch_seg);
       const matchesUnderlying = inst.name === normalizedUnderlying;
       
       if (isOption && isNFO && matchesUnderlying && inst.expiry) {

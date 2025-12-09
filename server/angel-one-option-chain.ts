@@ -120,7 +120,8 @@ class AngelOneOptionChain {
       'NIFTY': { exchange: 'NSE', token: '99926000', symbol: 'Nifty 50' },
       'BANKNIFTY': { exchange: 'NSE', token: '99926009', symbol: 'Nifty Bank' },
       'FINNIFTY': { exchange: 'NSE', token: '99926037', symbol: 'Nifty Fin Service' },
-      'MIDCPNIFTY': { exchange: 'NSE', token: '99926074', symbol: 'NIFTY MID SELECT' }
+      'MIDCPNIFTY': { exchange: 'NSE', token: '99926074', symbol: 'NIFTY MID SELECT' },
+      'SENSEX': { exchange: 'BSE', token: '99919000', symbol: 'Sensex' },
     };
     
     // Default spot prices for indices (fallback)
@@ -128,7 +129,8 @@ class AngelOneOptionChain {
       'NIFTY': 24500,
       'BANKNIFTY': 52000,
       'FINNIFTY': 23000,
-      'MIDCPNIFTY': 12000
+      'MIDCPNIFTY': 12000,
+      'SENSEX': 78000,
     };
 
     const indexInfo = indexMappings[normalizedUnderlying];
