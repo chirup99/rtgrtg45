@@ -5325,43 +5325,37 @@ ${
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
   const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
-  // Get expiry dates based on selected index
-  const getOptionExpiryDates = (index: string): Array<{value: string, label: string}> => {
-    // Get today's date
-    const today = new Date(2024, 11, 12); // Dec 12, 2024 for consistency
-    
-    // For SENSEX - monthly expiries (last Thursday of month)
-    if (index === 'SENSEX') {
-      return [
-        { value: '2024-12-26', label: '26 Dec 2024 (Monthly)' },
-        { value: '2025-01-30', label: '30 Jan 2025 (Monthly)' },
-        { value: '2025-02-27', label: '27 Feb 2025 (Monthly)' },
-      ];
+  // Get expiry dates from optionChainData (real Angel One NFO data)
+  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
+    if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
+      return [];
     }
-    
-    // For NIFTY, BANKNIFTY, FINNIFTY - weekly expiries (Wed/Thu/Fri)
-    return [
-      { value: '2024-12-18', label: '18 Dec 2024 (Wed)' },
-      { value: '2024-12-19', label: '19 Dec 2024 (Thu)' },
-      { value: '2024-12-20', label: '20 Dec 2024 (Fri)' },
-      { value: '2024-12-25', label: '25 Dec 2024 (Wed)' },
-      { value: '2024-12-26', label: '26 Dec 2024 (Thu)' },
-      { value: '2024-12-27', label: '27 Dec 2024 (Fri)' },
-      { value: '2025-01-01', label: '01 Jan 2025 (Wed)' },
-      { value: '2025-01-02', label: '02 Jan 2025 (Thu)' },
-      { value: '2025-01-03', label: '03 Jan 2025 (Fri)' },
-    ];
+    return optionChainData.expiries.map((expiry: string) => ({
+      value: expiry,
+      label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    }));
   };
   
-  // Get NFO options symbols based on selected index
-  const getNFOOptionSymbols = (index: string): string[] => {
-    const nfoSymbols: { [key: string]: string[] } = {
-      NIFTY: ['NIFTY', 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI'],
-      BANKNIFTY: ['BANKNIFTY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK', 'INDUSINDBK', 'IDFCBANK'],
-      FINNIFTY: ['FINNIFTY', 'HDFC', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK', 'BAJAJFINSV'],
-      SENSEX: ['SENSEX', 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'KOTAKBANK', 'LTTS', 'POWERGRID']
-    };
-    return nfoSymbols[index] || [];
+  // Get call and put option symbols (strike prices with CE/PE) from optionChainData
+  const getOptionSymbols = (): { calls: any[], puts: any[] } => {
+    if (!optionChainData) {
+      return { calls: [], puts: [] };
+    }
+    
+    // Filter by selected expiry if set
+    const calls = selectedOptionExpiryDate 
+      ? optionChainData.calls?.filter((c: any) => c.expiryDate === selectedOptionExpiryDate) || []
+      : optionChainData.calls || [];
+    
+    const puts = selectedOptionExpiryDate 
+      ? optionChainData.puts?.filter((p: any) => p.expiryDate === selectedOptionExpiryDate) || []
+      : optionChainData.puts || [];
+    
+    // Sort by strike price
+    calls.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
+    puts.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
+    
+    return { calls, puts };
   };
   
   // List of F&O eligible stocks and indices (that have options trading)
@@ -19430,7 +19424,7 @@ ${
         </Dialog>
 
         {/* Option Chain Modal */}
-        <Dialog open={showOptionChain} onOpenChange={setShowOptionChain}>
+        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(); } }}>
           <DialogContent className="w-full max-w-2xl">
             {/* Top Bar with Index Selection, Price, and Expiry */}
             <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -19454,7 +19448,7 @@ ${
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xs text-gray-600 dark:text-gray-400">Price</span>
                 <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-option-price">
-                  {optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
+                  {optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
                 </span>
               </div>
 
@@ -19468,7 +19462,7 @@ ${
                   data-testid="select-option-expiry-date"
                 >
                   <option value="">Select Expiry</option>
-                  {getOptionExpiryDates(selectedOptionIndex).map((date) => (
+                  {getOptionExpiryDates().map((date) => (
                     <option key={date.value} value={date.value}>
                       {date.label}
                     </option>
@@ -19478,65 +19472,82 @@ ${
             </div>
 
             {/* Content Area - Call/Put Options Table */}
-            <div className="py-6 space-y-4">
-              {selectedOptionExpiryDate && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-300 dark:border-gray-600">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Call</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-900 dark:text-white">Put</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const symbols = getNFOOptionSymbols(selectedOptionIndex);
-                        const callSymbols = symbols.slice(0, Math.ceil(symbols.length / 2));
-                        const putSymbols = symbols.slice(Math.ceil(symbols.length / 2));
-                        const maxRows = Math.max(callSymbols.length, putSymbols.length);
-                        
-                        return Array.from({ length: maxRows }).map((_, index) => (
+            <div className="py-6 space-y-4 max-h-96 overflow-y-auto">
+              {optionChainLoading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading {selectedOptionIndex} options...</p>
+                </div>
+              )}
+              
+              {!optionChainLoading && selectedOptionExpiryDate && (() => {
+                const { calls, puts } = getOptionSymbols();
+                const maxRows = Math.max(calls.length, puts.length);
+                
+                if (maxRows === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}
+                      </p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
+                        <tr className="border-b border-gray-300 dark:border-gray-600">
+                          <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Call (CE)</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">Put (PE)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: maxRows }).map((_, index) => (
                           <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td className="py-3 px-4">
-                              {callSymbols[index] ? (
+                            <td className="py-2 px-3">
+                              {calls[index] ? (
                                 <div
-                                  className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                                  data-testid={`option-call-${callSymbols[index]}`}
+                                  className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                  data-testid={`option-call-${calls[index].strikePrice}`}
                                 >
-                                  <span className="text-xs font-medium text-blue-900 dark:text-blue-300">{callSymbols[index]}</span>
+                                  <span className="text-xs font-semibold text-blue-900 dark:text-blue-300">
+                                    {calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`}
+                                  </span>
+                                  <div className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                                    ₹{calls[index].ltp?.toFixed(2) || 0}
+                                  </div>
                                 </div>
                               ) : null}
                             </td>
-                            <td className="py-3 px-4">
-                              {putSymbols[index] ? (
+                            <td className="py-2 px-3">
+                              {puts[index] ? (
                                 <div
-                                  className="px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-md text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                                  data-testid={`option-put-${putSymbols[index]}`}
+                                  className="px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                  data-testid={`option-put-${puts[index].strikePrice}`}
                                 >
-                                  <span className="text-xs font-medium text-red-900 dark:text-red-300">{putSymbols[index]}</span>
+                                  <span className="text-xs font-semibold text-red-900 dark:text-red-300">
+                                    {puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`}
+                                  </span>
+                                  <div className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+                                    ₹{puts[index].ltp?.toFixed(2) || 0}
+                                  </div>
                                 </div>
                               ) : null}
                             </td>
                           </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
               
-              {!selectedOptionExpiryDate && (
+              {!optionChainLoading && !selectedOptionExpiryDate && (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Select an expiry date to view {selectedOptionIndex} options
-                  </p>
-                </div>
-              )}
-              
-              {selectedOptionExpiryDate && getNFOOptionSymbols(selectedOptionIndex).length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No options available for {selectedOptionIndex}
+                    {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
                   </p>
                 </div>
               )}
