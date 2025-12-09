@@ -3973,7 +3973,14 @@ ${
   // PAPER TRADING (DEMO TRADING) STATE - Like TradingView Practice Account
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);
-  const [paperTradingDragPos, setPaperTradingDragPos] = useState({ x: 50, y: 50 });
+  const [paperTradingDragPos, setPaperTradingDragPos] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const centerX = Math.max(0, (window.innerWidth - 560) / 2); // 560px is ~max-w-2xl
+      const centerY = Math.max(0, (window.innerHeight - 400) / 2);
+      return { x: centerX, y: centerY };
+    }
+    return { x: 50, y: 50 };
+  });
   const [paperTradingDragging, setPaperTradingDragging] = useState(false);
   const paperTradingDragRef = useRef<{ startX: number; startY: number; offsetX: number; offsetY: number }>({ startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
 
