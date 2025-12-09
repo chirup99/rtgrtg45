@@ -156,62 +156,6 @@ app.use((req, res, next) => {
     server = http.createServer(app);
   }
 
-  
-// Angel One Live Price Streaming
-app.get('/api/angelone/live-stream-ws', (req: any, res: any) => {
-  const { symbol, symbolToken, exchange, tradingSymbol, interval } = req.query;
-  
-  if (!symbol || !symbolToken || !exchange) {
-    return res.status(400).json({ error: 'Missing required parameters' });
-  }
-  
-  console.log(`📡 Angel One Live Price Stream for ${symbol}`);
-  
-  // Set SSE headers
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  
-  // Send initial connection message
-  res.write('data: {"status":"connected"}\n\n');
-  
-  // Attempt to get price from Angel One WebSocket streamer
-  const priceData = {
-    symbol: symbol,
-    symbolToken: symbolToken,
-    exchange: exchange,
-    lastPrice: Math.floor(Math.random() * 10000 + 1000), // Placeholder - will be replaced by actual Angel One data
-    time: Math.floor(Date.now() / 1000)
-  };
-  
-  // Send price update
-  res.write(`data: ${JSON.stringify(priceData)}\n\n`);
-  
-  // Keep stream alive and send updates
-  const interval_id = setInterval(() => {
-    if (res.writableEnded) {
-      clearInterval(interval_id);
-      return;
-    }
-    
-    // Send periodic price updates (simulated for now)
-    const update = {
-      symbol: symbol,
-      symbolToken: symbolToken,
-      exchange: exchange,
-      lastPrice: Math.floor(Math.random() * 10000 + 1000),
-      time: Math.floor(Date.now() / 1000)
-    };
-    res.write(`data: ${JSON.stringify(update)}\n\n`);
-  }, 1000);
-  
-  // Clean up on disconnect
-  req.on('close', () => {
-    clearInterval(interval_id);
-    res.end();
-  });
-});
-
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

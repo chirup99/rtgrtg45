@@ -3973,53 +3973,10 @@ ${
   // PAPER TRADING (DEMO TRADING) STATE - Like TradingView Practice Account
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);
-  const [paperTradingDragPos, setPaperTradingDragPos] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const centerX = Math.max(0, (window.innerWidth - 560) / 2); // 560px is ~max-w-2xl
-      const centerY = Math.max(0, (window.innerHeight - 400) / 2);
-      return { x: centerX, y: centerY };
-    }
-    return { x: 50, y: 50 };
-  });
-  const [paperTradingDragging, setPaperTradingDragging] = useState(false);
-  const paperTradingDragRef = useRef<{ startX: number; startY: number; offsetX: number; offsetY: number }>({ startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
-
-  const handlePaperTradingDragStart = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('[data-dialog-title]')) {
-      setPaperTradingDragging(true);
-      paperTradingDragRef.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        offsetX: paperTradingDragPos.x,
-        offsetY: paperTradingDragPos.y
-      };
-    }
-  };
-
-  useEffect(() => {
-    if (!paperTradingDragging) return;
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - paperTradingDragRef.current.startX;
-      const deltaY = e.clientY - paperTradingDragRef.current.startY;
-      setPaperTradingDragPos({
-        x: paperTradingDragRef.current.offsetX + deltaX,
-        y: paperTradingDragRef.current.offsetY + deltaY
-      });
-    };
-    const handleMouseUp = () => { setPaperTradingDragging(false); };
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [paperTradingDragging, paperTradingDragPos.x, paperTradingDragPos.y]);
-
-
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
-      return stored ? parseFloat(stored) : 1800000; // 18 Lakhs
+      return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
     }
     return 1000000;
   });
@@ -4613,19 +4570,19 @@ ${
   
   // Reset paper trading account
   const resetPaperTradingAccount = () => {
-    setPaperTradingCapital(1800000);
+    setPaperTradingCapital(1000000);
     setPaperPositions([]);
     setPaperTradeHistory([]);
     setPaperTradeSymbol("");
     setPaperTradeQuantity("");
     setPaperTradeLotInput("");
     setPaperTradeCurrentPrice(null);
-    localStorage.setItem("paperTradingCapital", "1800000");
+    localStorage.setItem("paperTradingCapital", "1000000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
     toast({
       title: "Account Reset",
-      description: "Paper trading account reset to ₹18,00,000"
+      description: "Paper trading account reset to ₹10,00,000"
     });
   };
   
@@ -18972,9 +18929,9 @@ ${
 
         {/* Paper Trading (Demo Trading) Modal - Minimalist Design */}
         <Dialog open={showPaperTradingModal} onOpenChange={setShowPaperTradingModal}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0" style={{ position: "fixed", left: `${paperTradingDragPos.x}px`, top: `${paperTradingDragPos.y}px` }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0">
             {/* Compact Header */}
-            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 cursor-grab active:cursor-grabbing" data-dialog-title onMouseDown={handlePaperTradingDragStart}>
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Paper Trading</span>
@@ -19071,11 +19028,11 @@ ${
                                 }
                                 fetchPaperTradePrice(stock);
                               }}
-                              className="w-full text-left px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs"
+                              className="w-full text-left px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between text-xs"
                               data-testid={`select-stock-${stock.symbol}`}
                             >
-                              <div className="font-medium">{stock.symbol}</div>
-                              <div className="text-[10px] text-gray-400">{stock.exchange}</div>
+                              <span className="font-medium truncate">{stock.symbol}</span>
+                              <span className="text-[10px] text-gray-400 ml-2">{stock.exchange}</span>
                             </button>
                           ))
                         )}
