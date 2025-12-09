@@ -5353,6 +5353,17 @@ ${
     ];
   };
   
+  // Get NFO options symbols based on selected index
+  const getNFOOptionSymbols = (index: string): string[] => {
+    const nfoSymbols: { [key: string]: string[] } = {
+      NIFTY: ['NIFTY', 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI'],
+      BANKNIFTY: ['BANKNIFTY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK', 'INDUSINDBK', 'IDFCBANK'],
+      FINNIFTY: ['FINNIFTY', 'HDFC', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK', 'BAJAJFINSV'],
+      SENSEX: ['SENSEX', 'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'KOTAKBANK', 'LTTS', 'POWERGRID']
+    };
+    return nfoSymbols[index] || [];
+  };
+  
   // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
     'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
@@ -19466,9 +19477,34 @@ ${
               </div>
             </div>
 
-            {/* Content Area */}
-            <div className="py-4 text-center text-gray-500 dark:text-gray-400">
-              <p className="text-sm">Option chain data for {selectedOptionIndex} expiry {selectedOptionExpiryDate || 'not selected'}</p>
+            {/* Content Area - NFO Options Symbols Grid */}
+            <div className="py-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Available Symbols</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedOptionExpiryDate ? `Expiry: ${selectedOptionExpiryDate}` : 'Select expiry date'}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {getNFOOptionSymbols(selectedOptionIndex).map((symbol) => (
+                  <div
+                    key={symbol}
+                    className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    data-testid={`option-symbol-${symbol}`}
+                  >
+                    <span className="text-xs font-medium text-gray-900 dark:text-white">{symbol}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {getNFOOptionSymbols(selectedOptionIndex).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No symbols available for {selectedOptionIndex}
+                  </p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
