@@ -5321,6 +5321,9 @@ ${
   const [optionChainData, setOptionChainData] = useState<any>(null);
   const [optionChainLoading, setOptionChainLoading] = useState(false);
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
+  const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
+  const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
   // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
@@ -19389,10 +19392,54 @@ ${
 
         {/* Option Chain Modal */}
         <Dialog open={showOptionChain} onOpenChange={setShowOptionChain}>
-          <DialogContent className="w-auto min-w-xs">
-            <DialogHeader>
-              <DialogTitle className="text-sm">Option Chain</DialogTitle>
-            </DialogHeader>
+          <DialogContent className="w-full max-w-2xl">
+            {/* Top Bar with Index Selection, Price, and Expiry */}
+            <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+              {/* Left: Index Dropdown */}
+              <div className="flex items-center gap-3 flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
+                <select
+                  value={selectedOptionIndex}
+                  onChange={(e) => setSelectedOptionIndex(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  data-testid="select-option-index"
+                >
+                  <option value="NIFTY">NIFTY</option>
+                  <option value="BANKNIFTY">BANKNIFTY</option>
+                  <option value="FINNIFTY">FINNIFTY</option>
+                  <option value="SENSEX">SENSEX</option>
+                </select>
+              </div>
+
+              {/* Middle: Price Display */}
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Price</span>
+                <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-option-price">
+                  {optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
+                </span>
+              </div>
+
+              {/* Right: Expiry Dropdown */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
+                <select
+                  value={selectedOptionExpiryDate}
+                  onChange={(e) => setSelectedOptionExpiryDate(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  data-testid="select-option-expiry-date"
+                >
+                  <option value="">Select Expiry</option>
+                  <option value="2024-12-19">19 Dec 2024</option>
+                  <option value="2024-12-26">26 Dec 2024</option>
+                  <option value="2025-01-02">02 Jan 2025</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="py-4 text-center text-gray-500 dark:text-gray-400">
+              <p className="text-sm">Option chain data for {selectedOptionIndex} expiry {selectedOptionExpiryDate || 'not selected'}</p>
+            </div>
           </DialogContent>
         </Dialog>
 
