@@ -1890,6 +1890,10 @@ export default function Home() {
   const [searchResultsNews, setSearchResultsNews] = useState<any[]>([]);
   const [searchResultsNewsSymbol, setSearchResultsNewsSymbol] = useState("");
   const [aiChartSelectedTimeframe, setAiChartSelectedTimeframe] = useState('1Y');
+  const [marketGainersLosers, setMarketGainersLosers] = useState<{
+    gainers: any[];
+    losers: any[];
+  } | null>(null);
 
   // Listen for timeframe change events to trigger re-render
   useEffect(() => {
@@ -2866,157 +2870,43 @@ ${
         }
       }
 
-      // Market news requests using existing platform news data
+      // Market news requests - show visual dashboard with gainers/losers
       else if (
         message.includes("news") ||
         message.includes("market") ||
         message.includes("update")
       ) {
         try {
-          // Use the same news API that's already working successfully
+          // Fetch news and gainers/losers in parallel
           const query = mentionedStock
             ? mentionedStock.toUpperCase()
             : "Indian stock market finance news";
-          const response = await fetch(
-            `/api/stock-news?query=${encodeURIComponent(query)}`,
-          );
-          const data = await response.json();
-
-          if (data.success && data.articles && data.articles.length > 0) {
-            // Organize the news data that's already being fetched
-            const newsArticles = data.articles.slice(0, 6);
-
-            // Analyze sentiment from the news
-            const getNewssentiment = (articles: any[]) => {
-              const positiveWords = [
-                "growth",
-                "profit",
-                "gain",
-                "rise",
-                "bullish",
-                "strong",
-                "beat",
-                "up",
-                "higher",
-                "surge",
-              ];
-              const negativeWords = [
-                "loss",
-                "decline",
-                "fall",
-                "bearish",
-                "weak",
-                "miss",
-                "concern",
-                "down",
-                "lower",
-                "crash",
-              ];
-
-              let positiveCount = 0;
-              let negativeCount = 0;
-
-              articles.forEach((article) => {
-                const text = (
-                  article.title +
-                  " " +
-                  (article.description || "")
-                ).toLowerCase();
-                positiveWords.forEach((word) => {
-                  if (text.includes(word)) positiveCount++;
-                });
-                negativeWords.forEach((word) => {
-                  if (text.includes(word)) negativeCount++;
-                });
-              });
-
-              if (positiveCount > negativeCount)
-                return {
-                  sentiment: "Bullish",
-                  score: positiveCount - negativeCount,
-                };
-              if (negativeCount > positiveCount)
-                return {
-                  sentiment: "Bearish",
-                  score: negativeCount - positiveCount,
-                };
-              return { sentiment: "Neutral", score: 0 };
-            };
-
-            const sentimentAnalysis = getNewssentiment(newsArticles);
-            const targetSymbol = mentionedStock
-              ? mentionedStock.toUpperCase()
-              : "Market";
-
-            const newsResult = `## 📰 Latest ${targetSymbol} News & Analysis
-
-**🎯 News Sentiment Analysis:**
-• **Overall Tone:** ${sentimentAnalysis.sentiment} ${
-              sentimentAnalysis.sentiment === "Bullish"
-                ? "🟢"
-                : sentimentAnalysis.sentiment === "Bearish"
-                  ? "🔴"
-                  : "🟡"
-            }
-• **Confidence Score:** ${Math.abs(sentimentAnalysis.score)} signals detected
-• **Market Impact:** ${
-              sentimentAnalysis.sentiment === "Bullish"
-                ? "Positive momentum expected"
-                : sentimentAnalysis.sentiment === "Bearish"
-                  ? "Caution advised"
-                  : "Mixed signals, focus on fundamentals"
-            }
-
-**📈 Trading Implications:**
-${
-  sentimentAnalysis.sentiment === "Bullish"
-    ? `• Positive news flow may support price appreciation\n• Consider gradual position building on dips\n• Monitor for continuation patterns`
-    : sentimentAnalysis.sentiment === "Bearish"
-      ? `• Negative sentiment may create selling pressure\n• Wait for news clarity before fresh positions\n• Look for oversold bounce opportunities`
-      : `• Mixed news requires balanced approach\n• Focus on technical levels over news sentiment\n• Maintain risk management discipline`
-}
-
-**📋 Recent Headlines (${newsArticles.length} articles):**
-${newsArticles
-  .map(
-    (article: any, index: number) =>
-      `${index + 1}. **${article.title}**\n   ${
-        article.description || "Breaking market development"
-      }\n   _Source: ${article.source || "Market News"}_`,
-  )
-  .join("\n\n")}
-
-**💡 Platform Integration:**
-• **Social Feed:** Community discussions about these developments
-• **Trading Master:** Technical analysis with news correlation
-• **Journal:** Track news-driven trading decisions
-
-🚀 **Next Steps:** Use Social Feed for community insights on these news developments.`;
-
-            setSearchResults(newsResult);
-          } else {
-            // Fallback when news API doesn't have data
-            setSearchResults(`📰 **Market News Dashboard**
-
-**🔧 News Sources Available:**
-• **Social Feed:** Real-time community discussions and market insights
-• **Trading Platform:** Live market updates and analysis
-• **Community Posts:** User-generated market commentary
-
-**📱 Platform Features:**
-• **Breaking News:** Check Social Feed for latest developments
-• **Market Analysis:** Community-driven insights and discussions
-• **Technical Updates:** Trading Master for chart-based news correlation
-
-**💡 Alternative Sources:**
-• Switch to Social Feed tab for community market discussions
-• Check Trading Master for technical news impact analysis
-• Monitor Journal for news-driven trading patterns
-
-🚀 **Quick Access:** Social Feed contains the most up-to-date market discussions.`);
+          
+          const [newsResponse, gainersLosersResponse] = await Promise.all([
+            fetch(`/api/stock-news?query=${encodeURIComponent(query)}`),
+            fetch(`/api/market-gainers-losers`)
+          ]);
+          
+          const newsData = await newsResponse.json();
+          const gainersLosersData = await gainersLosersResponse.json();
+          
+          // Store gainers/losers in state
+          if (gainersLosersData.success) {
+            setMarketGainersLosers({
+              gainers: gainersLosersData.gainers || [],
+              losers: gainersLosersData.losers || []
+            });
           }
+          
+          // Store news for rendering
+          if (newsData.success && newsData.articles) {
+            (window as any).marketNewsArticles = newsData.articles.slice(0, 8);
+          }
+          
+          // Use special marker for visual news dashboard
+          setSearchResults("[CHART:MARKET_NEWS]");
         } catch (error) {
-          console.error("News fetch error:", error);
+          console.error("Market news fetch error:", error);
           setSearchResults(
             `📰 **News Center**\n\nAccess the latest market news through our platform features:\n\n• **Social Feed:** Community market discussions\n• **Trading Master:** Technical analysis and market updates\n• **Platform Dashboard:** Real-time market information\n\n💡 Use Social Feed for the most current market insights.`,
           );
@@ -12797,6 +12687,124 @@ ${
                                           </div>
                                         );
                                         
+
+                                      // Handle Market News view
+                                      if (searchResults.includes("[CHART:MARKET_NEWS]")) {
+                                        const newsArticles = (window as any).marketNewsArticles || [];
+                                        
+                                        renderedContent = (
+                                          <div className="flex gap-4 w-full">
+                                            {/* Left Column - News */}
+                                            <div className="flex-1 space-y-3">
+                                              <div className="flex items-center gap-2 pb-2 border-b border-gray-700">
+                                                <Newspaper className="h-4 w-4 text-blue-400" />
+                                                <h3 className="text-sm font-semibold text-gray-200">Today's Market News</h3>
+                                              </div>
+                                              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                                                {newsArticles.length > 0 ? newsArticles.map((article: any, index: number) => (
+                                                  <div 
+                                                    key={index} 
+                                                    className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 cursor-pointer hover-elevate"
+                                                    onClick={() => window.open(article.url || article.link || '#', '_blank')}
+                                                    data-testid={`news-article-${index}`}
+                                                  >
+                                                    <h4 className="text-sm font-medium text-gray-200 line-clamp-2">{article.title}</h4>
+                                                    {article.description && (
+                                                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{article.description}</p>
+                                                    )}
+                                                    <p className="text-xs text-gray-500 mt-1">{article.source || 'Market News'}</p>
+                                                  </div>
+                                                )) : (
+                                                  <div className="text-center py-8 text-gray-500">
+                                                    <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                    <p className="text-sm">Loading news...</p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Right Column - NIFTY Chart + Gainers/Losers */}
+                                            <div className="w-80 space-y-4">
+                                              {/* NIFTY 50 Chart */}
+                                              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                <div className="flex items-center justify-between mb-2">
+                                                  <div className="flex items-center gap-1">
+                                                    <h4 className="text-sm font-semibold text-gray-200">NIFTY 50</h4>
+                                                    <span className="text-xs text-green-400 flex items-center gap-1">
+                                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                                      Live
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-right">
+                                                    <div className="text-sm font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                                    <div className={`text-xs flex items-center justify-end gap-0.5 ${getNifty50Change() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                      {getNifty50Change() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNifty50Change()).toFixed(2)} ({((getNifty50Change() / (getNifty50CurrentPrice() - getNifty50Change())) * 100).toFixed(2)}%)
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div className="h-24">
+                                                  <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={nifty50FormattedData}>
+                                                      <Line 
+                                                        type="linear" 
+                                                        dataKey="price" 
+                                                        stroke={getNifty50Change() >= 0 ? '#22c55e' : '#ef4444'}
+                                                        strokeWidth={2}
+                                                        dot={false}
+                                                      />
+                                                    </LineChart>
+                                                  </ResponsiveContainer>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Top Gainers */}
+                                              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <TrendingUp className="h-4 w-4 text-green-400" />
+                                                  <h4 className="text-sm font-semibold text-green-400">Top Gainers</h4>
+                                                </div>
+                                                <div className="space-y-1">
+                                                  {marketGainersLosers?.gainers?.slice(0, 5).map((stock: any, i: number) => (
+                                                    <div key={i} className="flex justify-between text-xs py-1 border-b border-gray-700/50 last:border-0">
+                                                      <span className="text-gray-200 font-medium">{stock.symbol?.replace('-EQ', '') || stock.symbol}</span>
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-gray-400">₹{stock.lastPrice?.toLocaleString('en-IN') || '--'}</span>
+                                                        <span className="text-green-400 font-medium">+{stock.pChange?.toFixed(2) || stock.change?.toFixed(2)}%</span>
+                                                      </div>
+                                                    </div>
+                                                  )) || (
+                                                    <div className="text-xs text-gray-500 text-center py-2">Loading...</div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Top Losers */}
+                                              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <TrendingDown className="h-4 w-4 text-red-400" />
+                                                  <h4 className="text-sm font-semibold text-red-400">Top Losers</h4>
+                                                </div>
+                                                <div className="space-y-1">
+                                                  {marketGainersLosers?.losers?.slice(0, 5).map((stock: any, i: number) => (
+                                                    <div key={i} className="flex justify-between text-xs py-1 border-b border-gray-700/50 last:border-0">
+                                                      <span className="text-gray-200 font-medium">{stock.symbol?.replace('-EQ', '') || stock.symbol}</span>
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-gray-400">₹{stock.lastPrice?.toLocaleString('en-IN') || '--'}</span>
+                                                        <span className="text-red-400 font-medium">{stock.pChange?.toFixed(2) || stock.change?.toFixed(2)}%</span>
+                                                      </div>
+                                                    </div>
+                                                  )) || (
+                                                    <div className="text-xs text-gray-500 text-center py-2">Loading...</div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                        
+                                        return renderedContent;
+                                      }
+
                                         return renderedContent;
                                       }
 
