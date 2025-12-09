@@ -1890,10 +1890,6 @@ export default function Home() {
   const [searchResultsNews, setSearchResultsNews] = useState<any[]>([]);
   const [searchResultsNewsSymbol, setSearchResultsNewsSymbol] = useState("");
   const [aiChartSelectedTimeframe, setAiChartSelectedTimeframe] = useState('1Y');
-  const [marketGainersLosers, setMarketGainersLosers] = useState<{
-    gainers: any[];
-    losers: any[];
-  } | null>(null);
 
   // Listen for timeframe change events to trigger re-render
   useEffect(() => {
@@ -2870,43 +2866,157 @@ ${
         }
       }
 
-      // Market news requests - show visual dashboard with gainers/losers
+      // Market news requests using existing platform news data
       else if (
         message.includes("news") ||
         message.includes("market") ||
         message.includes("update")
       ) {
         try {
-          // Fetch news and gainers/losers in parallel
+          // Use the same news API that's already working successfully
           const query = mentionedStock
             ? mentionedStock.toUpperCase()
             : "Indian stock market finance news";
-          
-          const [newsResponse, gainersLosersResponse] = await Promise.all([
-            fetch(`/api/stock-news?query=${encodeURIComponent(query)}`),
-            fetch(`/api/market-gainers-losers`)
-          ]);
-          
-          const newsData = await newsResponse.json();
-          const gainersLosersData = await gainersLosersResponse.json();
-          
-          // Store gainers/losers in state
-          if (gainersLosersData.success) {
-            setMarketGainersLosers({
-              gainers: gainersLosersData.gainers || [],
-              losers: gainersLosersData.losers || []
-            });
+          const response = await fetch(
+            `/api/stock-news?query=${encodeURIComponent(query)}`,
+          );
+          const data = await response.json();
+
+          if (data.success && data.articles && data.articles.length > 0) {
+            // Organize the news data that's already being fetched
+            const newsArticles = data.articles.slice(0, 6);
+
+            // Analyze sentiment from the news
+            const getNewssentiment = (articles: any[]) => {
+              const positiveWords = [
+                "growth",
+                "profit",
+                "gain",
+                "rise",
+                "bullish",
+                "strong",
+                "beat",
+                "up",
+                "higher",
+                "surge",
+              ];
+              const negativeWords = [
+                "loss",
+                "decline",
+                "fall",
+                "bearish",
+                "weak",
+                "miss",
+                "concern",
+                "down",
+                "lower",
+                "crash",
+              ];
+
+              let positiveCount = 0;
+              let negativeCount = 0;
+
+              articles.forEach((article) => {
+                const text = (
+                  article.title +
+                  " " +
+                  (article.description || "")
+                ).toLowerCase();
+                positiveWords.forEach((word) => {
+                  if (text.includes(word)) positiveCount++;
+                });
+                negativeWords.forEach((word) => {
+                  if (text.includes(word)) negativeCount++;
+                });
+              });
+
+              if (positiveCount > negativeCount)
+                return {
+                  sentiment: "Bullish",
+                  score: positiveCount - negativeCount,
+                };
+              if (negativeCount > positiveCount)
+                return {
+                  sentiment: "Bearish",
+                  score: negativeCount - positiveCount,
+                };
+              return { sentiment: "Neutral", score: 0 };
+            };
+
+            const sentimentAnalysis = getNewssentiment(newsArticles);
+            const targetSymbol = mentionedStock
+              ? mentionedStock.toUpperCase()
+              : "Market";
+
+            const newsResult = `## 📰 Latest ${targetSymbol} News & Analysis
+
+**🎯 News Sentiment Analysis:**
+• **Overall Tone:** ${sentimentAnalysis.sentiment} ${
+              sentimentAnalysis.sentiment === "Bullish"
+                ? "🟢"
+                : sentimentAnalysis.sentiment === "Bearish"
+                  ? "🔴"
+                  : "🟡"
+            }
+• **Confidence Score:** ${Math.abs(sentimentAnalysis.score)} signals detected
+• **Market Impact:** ${
+              sentimentAnalysis.sentiment === "Bullish"
+                ? "Positive momentum expected"
+                : sentimentAnalysis.sentiment === "Bearish"
+                  ? "Caution advised"
+                  : "Mixed signals, focus on fundamentals"
+            }
+
+**📈 Trading Implications:**
+${
+  sentimentAnalysis.sentiment === "Bullish"
+    ? `• Positive news flow may support price appreciation\n• Consider gradual position building on dips\n• Monitor for continuation patterns`
+    : sentimentAnalysis.sentiment === "Bearish"
+      ? `• Negative sentiment may create selling pressure\n• Wait for news clarity before fresh positions\n• Look for oversold bounce opportunities`
+      : `• Mixed news requires balanced approach\n• Focus on technical levels over news sentiment\n• Maintain risk management discipline`
+}
+
+**📋 Recent Headlines (${newsArticles.length} articles):**
+${newsArticles
+  .map(
+    (article: any, index: number) =>
+      `${index + 1}. **${article.title}**\n   ${
+        article.description || "Breaking market development"
+      }\n   _Source: ${article.source || "Market News"}_`,
+  )
+  .join("\n\n")}
+
+**💡 Platform Integration:**
+• **Social Feed:** Community discussions about these developments
+• **Trading Master:** Technical analysis with news correlation
+• **Journal:** Track news-driven trading decisions
+
+🚀 **Next Steps:** Use Social Feed for community insights on these news developments.`;
+
+            setSearchResults(newsResult);
+          } else {
+            // Fallback when news API doesn't have data
+            setSearchResults(`📰 **Market News Dashboard**
+
+**🔧 News Sources Available:**
+• **Social Feed:** Real-time community discussions and market insights
+• **Trading Platform:** Live market updates and analysis
+• **Community Posts:** User-generated market commentary
+
+**📱 Platform Features:**
+• **Breaking News:** Check Social Feed for latest developments
+• **Market Analysis:** Community-driven insights and discussions
+• **Technical Updates:** Trading Master for chart-based news correlation
+
+**💡 Alternative Sources:**
+• Switch to Social Feed tab for community market discussions
+• Check Trading Master for technical news impact analysis
+• Monitor Journal for news-driven trading patterns
+
+🚀 **Quick Access:** Social Feed contains the most up-to-date market discussions.`);
           }
-          
-          // Store news for rendering
-          if (newsData.success && newsData.articles) {
-            (window as any).marketNewsArticles = newsData.articles.slice(0, 8);
-          }
-          
-          // Use special marker for visual news dashboard
-          setSearchResults("[CHART:MARKET_NEWS]");
         } catch (error) {
-          console.error("Market news fetch error:", error);
+          console.error("News fetch error:", error);
           setSearchResults(
             `📰 **News Center**\n\nAccess the latest market news through our platform features:\n\n• **Social Feed:** Community market discussions\n• **Trading Master:** Technical analysis and market updates\n• **Platform Dashboard:** Real-time market information\n\n💡 Use Social Feed for the most current market insights.`,
           );
@@ -3976,9 +4086,9 @@ ${
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
-      return stored ? parseFloat(stored) : 1800000; // 18 Lakhs default
+      return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
     }
-    return 1800000;
+    return 1000000;
   });
   
   // Paper trading position interface
@@ -4053,22 +4163,12 @@ ${
   const [paperTradeSLTimeframe, setPaperTradeSLTimeframe] = useState("5m");
   const [paperTradeSLDurationUnit, setPaperTradeSLDurationUnit] = useState("min");
   const [paperTradeSLEnabled, setPaperTradeSLEnabled] = useState(false); // SL is enabled when user sets it
-  const [showOptionChainModal, setShowOptionChainModal] = useState(false);
-  const [optionChainStrikes, setOptionChainStrikes] = useState<string[]>([]);
   const paperTradingStreamSymbolsRef = useRef<Set<string>>(new Set());
-  const [optionChainSymbol, setOptionChainSymbol] = useState("NIFTY");
-  const [optionChainSymbolSearch, setOptionChainSymbolSearch] = useState("");
-  const [optionChainCurrentPrice, setOptionChainCurrentPrice] = useState<number>(25870);
-  const [optionChainSelectedExpiry, setOptionChainSelectedExpiry] = useState("");
-  const [optionChainExpiryDates, setOptionChainExpiryDates] = useState<string[]>([]);
-  const [optionChainStrikesData, setOptionChainStrikesData] = useState<any[]>([]);
-  const [optionChainLoadingModal, setOptionChainLoadingModal] = useState(false);
   
   // Paper trading LIVE WebSocket streaming state (TradingView-style real-time P&L)
   const [paperTradingWsStatus, setPaperTradingWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected');
   const [paperTradingLivePrices, setPaperTradingLivePrices] = useState<Map<string, number>>(new Map());
   const paperTradingEventSourcesRef = useRef<Map<string, EventSource>>(new Map());
-  const watchlistEventSourcesRef = useRef<Map<string, EventSource>>(new Map());
   const paperTradingLastUpdateRef = useRef<number>(Date.now());
   
   // Map paper trade type to exchange segment for filtering
@@ -4579,19 +4679,19 @@ ${
   
   // Reset paper trading account
   const resetPaperTradingAccount = () => {
-    setPaperTradingCapital(1800000);
+    setPaperTradingCapital(1000000);
     setPaperPositions([]);
     setPaperTradeHistory([]);
     setPaperTradeSymbol("");
     setPaperTradeQuantity("");
     setPaperTradeLotInput("");
     setPaperTradeCurrentPrice(null);
-    localStorage.setItem("paperTradingCapital", "1800000");
+    localStorage.setItem("paperTradingCapital", "1000000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
     toast({
       title: "Account Reset",
-      description: "Paper trading account reset to ₹18,00,000"
+      description: "Paper trading account reset to ₹10,00,000"
     });
   };
   
@@ -5307,96 +5407,6 @@ ${
   const [journalChartTimeframe, setJournalChartTimeframe] = useState('5'); // Default 5 minutes (matches selectedJournalInterval)
   const [showJournalTimeframeDropdown, setShowJournalTimeframeDropdown] = useState(false);
   const [showHeatmapTimeframeDropdown, setShowHeatmapTimeframeDropdown] = useState(false);
-
-  // Fetch real option chain data from Angel One API
-  const generateOptionChainForPaperTrading = async (symbol: string, spotPrice: number, expiry?: string) => {
-    setOptionChainLoadingModal(true);
-    try {
-      const normalizedSymbol = symbol.replace(/-.*$/, "").toUpperCase().trim();
-      const expiryParam = expiry ? `&expiry=${encodeURIComponent(expiry)}` : "";
-      const response = await fetch(`/api/options/chain/${normalizedSymbol}?strikeRange=20${expiryParam}`);
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        const chainData = data.data;
-        setOptionChainCurrentPrice(chainData.spotPrice || spotPrice);
-        setOptionChainExpiryDates(chainData.expiries || []);
-        if (chainData.expiries && chainData.expiries.length > 0) {
-          if (!expiry || !chainData.expiries.includes(expiry)) {
-            setOptionChainSelectedExpiry(chainData.expiries[0]);
-          }
-        }
-        
-        const callsMap = new Map<number, any>();
-        const putsMap = new Map<number, any>();
-        
-        if (chainData.calls) {
-          for (const call of chainData.calls) {
-            callsMap.set(call.strikePrice, {
-              ltp: call.ltp || 0,
-              oi: call.oi || 0,
-              oiChange: 0,
-              oiChangePercent: 0,
-              iv: call.iv || 0,
-              volume: call.volume || 0,
-              symbol: call.symbol,
-              token: call.token
-            });
-          }
-        }
-        
-        if (chainData.puts) {
-          for (const put of chainData.puts) {
-            putsMap.set(put.strikePrice, {
-              ltp: put.ltp || 0,
-              oi: put.oi || 0,
-              oiChange: 0,
-              oiChangePercent: 0,
-              iv: put.iv || 0,
-              volume: put.volume || 0,
-              symbol: put.symbol,
-              token: put.token
-            });
-          }
-        }
-        
-        const allStrikes = Array.from(new Set([...callsMap.keys(), ...putsMap.keys()])).sort((a, b) => a - b);
-        const atmStrike = chainData.atmStrike || allStrikes[Math.floor(allStrikes.length / 2)];
-        
-        const strikes: any[] = allStrikes.map(strike => {
-          const isATM = strike === atmStrike;
-          const isITMCall = strike < chainData.spotPrice;
-          const isITMPut = strike > chainData.spotPrice;
-          
-          return {
-            strike,
-            isATM,
-            isITMCall,
-            isITMPut,
-            call: callsMap.get(strike) || { ltp: 0, oi: 0, oiChange: 0, oiChangePercent: 0, iv: 0, volume: 0 },
-            put: putsMap.get(strike) || { ltp: 0, oi: 0, oiChange: 0, oiChangePercent: 0, iv: 0, volume: 0 }
-          };
-        });
-        
-        setOptionChainStrikesData(strikes);
-      } else {
-        toast({
-          title: "Option Chain Error",
-          description: data.error?.message || data.message || "Failed to fetch option chain",
-          variant: "destructive"
-        });
-      }
-    } catch (error: any) {
-      console.error("Error fetching option chain:", error);
-      toast({
-        title: "Option Chain Error",
-        description: error.message || "Failed to fetch option chain data",
-        variant: "destructive"
-      });
-    } finally {
-      setOptionChainLoadingModal(false);
-    }
-  };
   const [showTradeMarkers, setShowTradeMarkers] = useState(true); // Toggle for trade markers visibility
   
   // Watchlist Feature State
@@ -5442,7 +5452,6 @@ ${
     eps: string;
     change_percent: string;
   }>}>({});
-  const [watchlistLivePrices, setWatchlistLivePrices] = useState<{[symbol: string]: { ltp: number; change: number; changePercent: number; isLive: boolean }}>({});
   const [isWatchlistQuarterlyLoading, setIsWatchlistQuarterlyLoading] = useState(false);
   const [nifty50Timeframe, setNifty50Timeframe] = useState('1D');
   const [niftyBankTimeframe, setNiftyBankTimeframe] = useState('1D');
@@ -5528,70 +5537,6 @@ ${
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('watchlistSymbols', JSON.stringify(watchlistSymbols));
-  }, [watchlistSymbols]);
-
-  // Fetch live SSE prices for watchlist stocks (same approach as paper trading)
-  useEffect(() => {
-    // Cleanup function to close all SSE connections
-    const cleanup = () => {
-      watchlistEventSourcesRef.current.forEach((es, symbol) => {
-        console.log(`[WATCHLIST] Closing SSE for ${symbol}`);
-        es.close();
-      });
-      watchlistEventSourcesRef.current.clear();
-    };
-
-    if (watchlistSymbols.length === 0) {
-      cleanup();
-      setWatchlistLivePrices({});
-      return;
-    }
-
-    // Close connections for symbols no longer in watchlist
-    watchlistEventSourcesRef.current.forEach((es, symbol) => {
-      if (!watchlistSymbols.find(s => s.symbol === symbol)) {
-        es.close();
-        watchlistEventSourcesRef.current.delete(symbol);
-      }
-    });
-
-    // Open SSE connections for new symbols
-    watchlistSymbols.forEach((stock) => {
-      if (watchlistEventSourcesRef.current.has(stock.symbol)) return;
-
-      const token = stock.token || '';
-      const exchange = stock.exchange || 'NSE';
-      const sseUrl = `/api/angelone/live-stream-ws?symbol=${stock.symbol}&symbolToken=${token}&exchange=${exchange}&tradingSymbol=${stock.symbol}&interval=0`;
-      
-      console.log(`[WATCHLIST] Opening SSE for ${stock.symbol}`);
-      const eventSource = new EventSource(sseUrl);
-      watchlistEventSourcesRef.current.set(stock.symbol, eventSource);
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const ltp = data.ltp || data.close || 0;
-          const change = data.change || 0;
-          const changePercent = data.changePercent || data.percentChange || 0;
-          
-          if (ltp > 0) {
-            setWatchlistLivePrices(prev => ({
-              ...prev,
-              [stock.symbol]: { ltp, change, changePercent, isLive: true }
-            }));
-          }
-        } catch (err) {
-          console.error(`[WATCHLIST] Parse error for ${stock.symbol}:`, err);
-        }
-      };
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        watchlistEventSourcesRef.current.delete(stock.symbol);
-      };
-    });
-
-    return cleanup;
   }, [watchlistSymbols]);
 
   // Fetch quarterly results for ALL watchlist stocks
@@ -5689,62 +5634,29 @@ ${
       fetchWatchlistNews();
     }
   }, [selectedWatchlistSymbol, isWatchlistOpen, searchResults]);
-
-  // Fetch company insights when watchlist stock is selected (same logic as main search)
-  useEffect(() => {
-    if (selectedWatchlistSymbol) {
-      const fetchWatchlistCompanyInsights = async () => {
-        try {
-          const cleanSymbol = selectedWatchlistSymbol.replace('-EQ', '').replace('-BE', '');
-          const response = await fetch(`/api/trading-agent?q=${encodeURIComponent(cleanSymbol)}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.companyInsights) {
-              (window as any).companyInsightsData = data.companyInsights;
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching watchlist company insights:', error);
-        }
-      };
-      fetchWatchlistCompanyInsights();
-    }
-  }, [selectedWatchlistSymbol]);
   
   // Search stocks for watchlist
-  // Search stocks for watchlist (using same approach as paper trading)
   const searchWatchlistStocks = async (query: string) => {
-    if (!query.trim() || query.length < 1) {
+    if (!query.trim() || query.length < 2) {
       setWatchlistSearchResults([]);
       return;
     }
     setIsWatchlistSearching(true);
     try {
-      // Use same API as paper trading with larger limit
-      const url = `/api/angelone/search-instruments?query=${encodeURIComponent(query)}&exchange=NSE&limit=50`;
-      console.log(`[WATCHLIST] Searching: ${url}`);
-      
-      const response = await fetch(url);
+      const response = await fetch(`/api/angelone/search-instruments?query=${encodeURIComponent(query)}&exchange=NSE,BSE,MCX&limit=10`);
       if (response.ok) {
         const data = await response.json();
-        const instruments = data.instruments || data.results || data || [];
-        console.log(`[WATCHLIST] Found ${instruments.length} instruments`);
-        
-        // Map to display format with all required fields (same as paper trading)
-        const formatted = instruments.map((inst: any) => ({
-          symbol: inst.symbol || inst.tradingSymbol || inst.trading_symbol || '',
-          displayName: (inst.symbol || inst.tradingSymbol || '').replace('-EQ', ''),
-          name: inst.name || inst.company_name || inst.instrument_name || inst.symbol || '',
-          token: inst.token || inst.symbolToken || inst.exch_instrument_token || '',
-          exchange: inst.exchange || inst.exch_seg || 'NSE',
-          tradingSymbol: inst.symbol || inst.tradingSymbol || inst.trading_symbol || ''
-        })).filter((item: any) => item.symbol && item.token);
-        
-        console.log(`[WATCHLIST] Formatted ${formatted.length} results`);
-        setWatchlistSearchResults(formatted.slice(0, 20)); // Show top 20 for watchlist
-      } else {
-        console.error(`[WATCHLIST] API error: ${response.status}`);
-        setWatchlistSearchResults([]);
+        const instruments = data.instruments || data || [];
+        // Map to display format with symbol and name
+        const formatted = instruments.slice(0, 10).map((inst: any) => ({
+          symbol: inst.symbol || inst.trading_symbol || '',
+          displayName: inst.symbol || inst.trading_symbol || '',
+          name: inst.name || inst.company_name || inst.instrument_name || '',
+          token: inst.token || inst.exch_instrument_token || '',
+          exchange: inst.exch_seg || 'NSE',
+          tradingSymbol: inst.symbol || inst.trading_symbol || ''
+        })).filter((item: any) => item.symbol);
+        setWatchlistSearchResults(formatted);
       }
     } catch (error) {
       console.error('Error searching stocks:', error);
@@ -5767,6 +5679,26 @@ ${
     return () => clearTimeout(debounceTimer);
   }, [watchlistSearchQuery]);
   
+
+  // Fetch company insights when watchlist stock is selected (same logic as main search)
+  useEffect(() => {
+    if (selectedWatchlistSymbol) {
+      const fetchWatchlistCompanyInsights = async () => {
+        try {
+          const response = await fetch(`/api/trading-agent?symbol=${encodeURIComponent(selectedWatchlistSymbol)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.companyInsights) {
+              (window as any).companyInsightsData = data.companyInsights;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching watchlist company insights:', error);
+        }
+      };
+      fetchWatchlistCompanyInsights();
+    }
+  }, [selectedWatchlistSymbol]);
   // Add stock to watchlist
   const addToWatchlist = (stock: { symbol: string; name: string; token: string; exchange: string; displayName: string; tradingSymbol: string }) => {
     if (!watchlistSymbols.find(s => s.symbol === stock.symbol)) {
@@ -12552,25 +12484,16 @@ ${
                                                           <div className="text-xs text-gray-500 truncate max-w-[150px]">{stock.name}</div>
                                                         </div>
                                                       </div>
-                                                      {/* Live Price Display */}
-                                                      <div className="text-right">
-                                                        {(() => {
-                                                          const price = watchlistLivePrices[stock.symbol];
-                                                          if (!price || price.ltp === 0) {
-                                                            return <span className="text-xs text-gray-500">--</span>;
-                                                          }
-                                                          return (
-                                                            <div className="flex flex-col items-end">
-                                                              <span className="text-xs font-semibold text-gray-200">
-                                                                {price.ltp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                                              </span>
-                                                              {price.isLive && (
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Live" />
-                                                              )}
-                                                            </div>
-                                                          );
-                                                        })()}
-                                                      </div>
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          removeFromWatchlist(stock.symbol);
+                                                        }}
+                                                        className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                                                        data-testid={`button-remove-watchlist-${idx}`}
+                                                      >
+                                                        <X className="h-3 w-3" />
+                                                      </button>
                                                     </div>
                                                   ))}
                                                 </div>
@@ -12651,77 +12574,70 @@ ${
                                                     </h3>
                                                   </div>
                                                   {(() => {
-                                                    const companyInsights = (window as any).companyInsightsData || null;
-                                                    if (!companyInsights?.quarterlyPerformance?.length) return null;
-                                                    const overallTrend = companyInsights.trend || 
-                                                      (companyInsights.quarterlyPerformance.length > 1 
-                                                        ? companyInsights.quarterlyPerformance[companyInsights.quarterlyPerformance.length - 1].value > companyInsights.quarterlyPerformance[0].value 
-                                                          ? 'positive' 
-                                                          : 'negative'
-                                                        : 'neutral');
+                                                    const selectedStock = watchlistSymbols.find(s => s.symbol === searchResultsNewsSymbol);
+                                                    if (!selectedStock) return null;
+                                                    const quarterlyData = allWatchlistQuarterlyData[selectedStock.symbol] || [];
+                                                    const hasTrendingUp = quarterlyData.length > 1 && 
+                                                      parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
                                                     return (
-                                                      <span className={`text-xs px-2 py-1 rounded ${overallTrend === 'positive' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                        {overallTrend === 'positive' ? '↑ Uptrend' : '↓ Downtrend'}
+                                                      <span className={`text-xs px-2 py-1 rounded ${hasTrendingUp ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                        {hasTrendingUp ? '↑ Uptrend' : '↓ Downtrend'}
                                                       </span>
                                                     );
                                                   })()}
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                  {(() => {
-                                                    const companyInsights = (window as any).companyInsightsData || null;
-                                                    
-                                                    if (!companyInsights?.quarterlyPerformance?.length) {
+                                                  {isWatchlistQuarterlyLoading ? (
+                                                    <div className="flex items-center justify-center py-8">
+                                                      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                                                    </div>
+                                                  ) : searchResultsNewsSymbol ? (() => {
+                                                    const selectedStock = watchlistSymbols.find(s => s.symbol === searchResultsNewsSymbol);
+                                                    if (!selectedStock) {
                                                       return (
                                                         <div className="text-center py-8 text-gray-500">
-                                                          <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
                                                           <p className="text-xs">Search for a stock to see quarterly results</p>
                                                         </div>
                                                       );
                                                     }
+                                                    const quarterlyData = allWatchlistQuarterlyData[selectedStock.symbol] || [];
+                                                    const hasTrendingUp = quarterlyData.length > 1 && 
+                                                      parseFloat(quarterlyData[quarterlyData.length - 1]?.change_percent || '0') >= 0;
                                                     
-                                                    const chartData = companyInsights.quarterlyPerformance.map((q: any) => ({
+                                                    const chartData = quarterlyData.map((q: any) => ({
                                                       quarter: q.quarter,
-                                                      value: q.value || q.revenue || 0,
-                                                      changePercent: q.changePercent || 0,
-                                              pdfUrl: q.pdfUrl || '' // Include PDF URL from scraped BSE/NSE data
+                                                      value: parseFloat(q.revenue.replace(/,/g, '')) || 0,
+                                                      changePercent: parseFloat(q.change_percent) || 0
                                                     }));
                                                     
-                                                    const overallTrend = companyInsights.trend || 
-                                                      (chartData.length > 1 
-                                                        ? chartData[chartData.length - 1].value > chartData[0].value 
-                                                          ? 'positive' 
-                                                          : 'negative'
-                                                        : 'neutral');
+                                                    const trendColor = hasTrendingUp ? '#22c55e' : '#ef4444';
                                                     
-                                                    const trendColor = overallTrend === 'positive' ? '#22c55e' : '#ef4444';
-                                                    
-                                                    return (
+                                                    return quarterlyData.length > 0 ? (
                                                       <>
                                                         <div className="h-40 w-full mb-3">
                                                           <ResponsiveContainer width="100%" height="100%">
                                                             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                                                               <defs>
-                                                                <linearGradient id="watchlistQuarterlyGrad" x1="0" y1="0" x2="0" y2="1">
+                                                                <linearGradient id={`grad-${selectedStock.symbol}`} x1="0" y1="0" x2="0" y2="1">
                                                                   <stop offset="0%" stopColor={trendColor} stopOpacity={0.4} />
                                                                   <stop offset="100%" stopColor={trendColor} stopOpacity={0.05} />
                                                                 </linearGradient>
                                                               </defs>
                                                               <XAxis dataKey="quarter" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                                                              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K Cr`} axisLine={false} tickLine={false} domain={['dataMin - 1000', 'dataMax + 1000']} />
+                                                              <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K Cr`} axisLine={false} tickLine={false} />
                                                               <Tooltip 
-                                                                contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '8px', color: '#f3f4f6', fontSize: '12px', padding: '8px 12px' }}
-                                                                formatter={(value: any, name: any, props: any) => [`₹${Number(value).toLocaleString()} Cr (${props.payload.changePercent >= 0 ? '+' : ''}${props.payload.changePercent.toFixed(2)}%)`, 'Revenue']}
-                                                                labelFormatter={(label) => `${label}`}
+                                                                contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', fontSize: '11px' }}
+                                                                formatter={(value: any, name: any, props: any) => [`₹${Number(value).toLocaleString()} Cr`, 'Revenue']}
                                                               />
                                                               <Area 
                                                                 type="monotone" 
                                                                 dataKey="value" 
                                                                 stroke={trendColor} 
                                                                 strokeWidth={2} 
-                                                                fill="url(#watchlistQuarterlyGrad)"
-                                                                dot={{ r: 4, stroke: trendColor, strokeWidth: 2, fill: '#1f2937' }}
-                                                                activeDot={{ r: 6, stroke: trendColor, strokeWidth: 2, fill: '#ffffff' }}
+                                                                fill={`url(#grad-${selectedStock.symbol})`}
+                                                                dot={{ r: 5, stroke: trendColor, strokeWidth: 2, fill: '#1f2937' }}
+                                                                activeDot={{ r: 7, stroke: trendColor, strokeWidth: 2, fill: '#ffffff' }}
                                                               />
                                                             </AreaChart>
                                                           </ResponsiveContainer>
@@ -12734,166 +12650,17 @@ ${
                                                             <span className="w-2 h-2 rounded-full bg-red-500"></span> Negative Quarter
                                                           </span>
                                                         </div>
-                                                        
-                                                        {/* Quarterly Results PDF Links Bar */}
-                                                        <div className="mt-3 pt-3 border-t border-gray-700">
-                                                          <div className="flex justify-between items-center px-2">
-                                                            {chartData.map((q: any, idx: number) => {
-                                                              const fyQuarterToDate = (quarter: string): string => {
-                                                                const match = quarter.match(/Q(\d)\s*FY(\d{2})/i);
-                                                                if (!match) return quarter;
-                                                                const qNum = parseInt(match[1]);
-                                                                const fyYear = parseInt(match[2]);
-                                                                const fullYear = fyYear >= 50 ? 1900 + fyYear : 2000 + fyYear;
-                                                                const monthMap: { [key: number]: { month: string; yearOffset: number } } = {
-                                                                  1: { month: 'Jun', yearOffset: -1 },
-                                                                  2: { month: 'Sep', yearOffset: -1 },
-                                                                  3: { month: 'Dec', yearOffset: -1 },
-                                                                  4: { month: 'Mar', yearOffset: 0 }
-                                                                };
-                                                                const { month, yearOffset } = monthMap[qNum] || { month: 'Mar', yearOffset: 0 };
-                                                                return `${month} ${fullYear + yearOffset}`;
-                                                              };
-                                                              const displayDate = fyQuarterToDate(q.quarter);
-                                                              const searchedSymbol = (window as any).searchedStockSymbol || 'RELIANCE';
-                                                              // Use real PDF URL from scraped data, fallback to screener.in page
-                                                              const pdfUrl = q.pdfUrl || `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
-                                                              
-                                                              return (
-                                                                <div key={idx} className="flex flex-col items-center gap-1">
-                                                                  <span className="text-[10px] text-gray-400">{displayDate}</span>
-                                                                  <a
-                                                                    href={pdfUrl}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-gray-400 hover:text-blue-400 transition-colors"
-                                                                    title={q.pdfUrl ? `View ${displayDate} quarterly results (NSE/BSE)` : `View ${displayDate} quarterly results on Screener`}
-                                                                    data-testid={`pdf-link-${idx}`}
-                                                                  >
-                                                                    <FileText className="h-4 w-4" />
-                                                                  </a>
-                                                                </div>
-                                                              );
-                                                            })}
-                                                          </div>
-                                                        </div>
                                                       </>
+                                                    ) : (
+                                                      <div className="text-center py-4 text-gray-500 text-xs">
+                                                        No quarterly data available
+                                                      </div>
                                                     );
-                                                  })()}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
-                                        
-
-                                      // Handle Market News view
-                                      if (searchResults.includes("[CHART:MARKET_NEWS]")) {
-                                        const newsArticles = (window as any).marketNewsArticles || [];
-                                        
-                                        renderedContent = (
-                                          <div className="flex gap-4 w-full">
-                                            {/* Left Column - News */}
-                                            <div className="flex-1 space-y-3">
-                                              <div className="flex items-center gap-2 pb-2 border-b border-gray-700">
-                                                <Newspaper className="h-4 w-4 text-blue-400" />
-                                                <h3 className="text-sm font-semibold text-gray-200">Today's Market News</h3>
-                                              </div>
-                                              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                                                {newsArticles.length > 0 ? newsArticles.map((article: any, index: number) => (
-                                                  <div 
-                                                    key={index} 
-                                                    className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 cursor-pointer hover-elevate"
-                                                    onClick={() => window.open(article.url || article.link || '#', '_blank')}
-                                                    data-testid={`news-article-${index}`}
-                                                  >
-                                                    <h4 className="text-sm font-medium text-gray-200 line-clamp-2">{article.title}</h4>
-                                                    {article.description && (
-                                                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{article.description}</p>
-                                                    )}
-                                                    <p className="text-xs text-gray-500 mt-1">{article.source || 'Market News'}</p>
-                                                  </div>
-                                                )) : (
-                                                  <div className="text-center py-8 text-gray-500">
-                                                    <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                    <p className="text-sm">Loading news...</p>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </div>
-                                            
-                                            {/* Right Column - NIFTY Chart + Gainers/Losers */}
-                                            <div className="w-80 space-y-4">
-                                              {/* NIFTY 50 Chart */}
-                                              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                <div className="flex items-center justify-between mb-2">
-                                                  <div className="flex items-center gap-1">
-                                                    <h4 className="text-sm font-semibold text-gray-200">NIFTY 50</h4>
-                                                    <span className="text-xs text-green-400 flex items-center gap-1">
-                                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                                                      Live
-                                                    </span>
-                                                  </div>
-                                                  <div className="text-right">
-                                                    <div className="text-sm font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                                    <div className={`text-xs flex items-center justify-end gap-0.5 ${getNifty50Change() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                      {getNifty50Change() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNifty50Change()).toFixed(2)} ({((getNifty50Change() / (getNifty50CurrentPrice() - getNifty50Change())) * 100).toFixed(2)}%)
+                                                  })() : (
+                                                    <div className="text-center py-8 text-gray-500">
+                                                      <TrendingUp className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                                      <p className="text-xs">Search for a stock to see quarterly results</p>
                                                     </div>
-                                                  </div>
-                                                </div>
-                                                <div className="h-24">
-                                                  <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={nifty50FormattedData}>
-                                                      <Line 
-                                                        type="linear" 
-                                                        dataKey="price" 
-                                                        stroke={getNifty50Change() >= 0 ? '#22c55e' : '#ef4444'}
-                                                        strokeWidth={2}
-                                                        dot={false}
-                                                      />
-                                                    </LineChart>
-                                                  </ResponsiveContainer>
-                                                </div>
-                                              </div>
-                                              
-                                              {/* Top Gainers */}
-                                              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                  <TrendingUp className="h-4 w-4 text-green-400" />
-                                                  <h4 className="text-sm font-semibold text-green-400">Top Gainers</h4>
-                                                </div>
-                                                <div className="space-y-1">
-                                                  {marketGainersLosers?.gainers?.slice(0, 5).map((stock: any, i: number) => (
-                                                    <div key={i} className="flex justify-between text-xs py-1 border-b border-gray-700/50 last:border-0">
-                                                      <span className="text-gray-200 font-medium">{stock.symbol?.replace('-EQ', '') || stock.symbol}</span>
-                                                      <div className="flex items-center gap-2">
-                                                        <span className="text-gray-400">₹{stock.lastPrice?.toLocaleString('en-IN') || '--'}</span>
-                                                        <span className="text-green-400 font-medium">+{stock.pChange?.toFixed(2) || stock.change?.toFixed(2)}%</span>
-                                                      </div>
-                                                    </div>
-                                                  )) || (
-                                                    <div className="text-xs text-gray-500 text-center py-2">Loading...</div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                              
-                                              {/* Top Losers */}
-                                              <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                  <TrendingDown className="h-4 w-4 text-red-400" />
-                                                  <h4 className="text-sm font-semibold text-red-400">Top Losers</h4>
-                                                </div>
-                                                <div className="space-y-1">
-                                                  {marketGainersLosers?.losers?.slice(0, 5).map((stock: any, i: number) => (
-                                                    <div key={i} className="flex justify-between text-xs py-1 border-b border-gray-700/50 last:border-0">
-                                                      <span className="text-gray-200 font-medium">{stock.symbol?.replace('-EQ', '') || stock.symbol}</span>
-                                                      <div className="flex items-center gap-2">
-                                                        <span className="text-gray-400">₹{stock.lastPrice?.toLocaleString('en-IN') || '--'}</span>
-                                                        <span className="text-red-400 font-medium">{stock.pChange?.toFixed(2) || stock.change?.toFixed(2)}%</span>
-                                                      </div>
-                                                    </div>
-                                                  )) || (
-                                                    <div className="text-xs text-gray-500 text-center py-2">Loading...</div>
                                                   )}
                                                 </div>
                                               </div>
@@ -12901,9 +12668,6 @@ ${
                                           </div>
                                         );
                                         
-                                        return renderedContent;
-                                      }
-
                                         return renderedContent;
                                       }
 
@@ -13061,7 +12825,7 @@ ${
                                           (window as any).companyInsightsData || null;
                                         
                                         // Use structured data from API response - show ACTUAL revenue values
-                                        const chartData: Array<{quarter: string; value: number; revenue: number; trend: string; changePercent: number; pdfUrl?: string}> = [];
+                                        const chartData: Array<{quarter: string; value: number; revenue: number; trend: string; changePercent: number}> = [];
                                         
                                         if (companyInsights && companyInsights.quarterlyPerformance) {
                                           companyInsights.quarterlyPerformance.forEach((q: any) => {
@@ -13072,8 +12836,7 @@ ${
                                               value: actualRevenue, // Actual revenue in Crores
                                               revenue: actualRevenue,
                                               trend: q.changePercent >= 0 ? 'positive' : 'negative',
-                                              changePercent: q.changePercent || 0,
-                                              pdfUrl: q.pdfUrl || '' // Include PDF URL from scraped BSE/NSE data
+                                              changePercent: q.changePercent || 0
                                             });
                                           });
                                         }
@@ -13196,49 +12959,6 @@ ${
                                                   <span className="flex items-center gap-1">
                                                     <span className="w-2 h-2 rounded-full bg-red-500"></span> Negative Quarter
                                                   </span>
-                                                </div>
-                                                
-                                                {/* Quarterly Results PDF Links Bar */}
-                                                <div className="mt-3 pt-3 border-t border-gray-700">
-                                                  <div className="flex justify-between items-center px-2">
-                                                    {chartData.map((q: any, idx: number) => {
-                                                      const fyQuarterToDate = (quarter: string): string => {
-                                                        const match = quarter.match(/Q(\d)\s*FY(\d{2})/i);
-                                                        if (!match) return quarter;
-                                                        const qNum = parseInt(match[1]);
-                                                        const fyYear = parseInt(match[2]);
-                                                        const fullYear = fyYear >= 50 ? 1900 + fyYear : 2000 + fyYear;
-                                                        const monthMap: { [key: number]: { month: string; yearOffset: number } } = {
-                                                          1: { month: 'Jun', yearOffset: -1 },
-                                                          2: { month: 'Sep', yearOffset: -1 },
-                                                          3: { month: 'Dec', yearOffset: -1 },
-                                                          4: { month: 'Mar', yearOffset: 0 }
-                                                        };
-                                                        const { month, yearOffset } = monthMap[qNum] || { month: 'Mar', yearOffset: 0 };
-                                                        return `${month} ${fullYear + yearOffset}`;
-                                                      };
-                                                      const displayDate = fyQuarterToDate(q.quarter);
-                                                      const searchedSymbol = (window as any).searchedStockSymbol || companyInsights?.symbol || 'RELIANCE';
-                                                      // Use real PDF URL from scraped data, fallback to screener.in page
-                                                      const pdfUrl = q.pdfUrl || `https://www.screener.in/company/${searchedSymbol}/consolidated/#quarters`;
-                                                      
-                                                      return (
-                                                        <div key={idx} className="flex flex-col items-center gap-1">
-                                                          <span className="text-[10px] text-gray-400">{displayDate}</span>
-                                                          <a
-                                                            href={pdfUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-gray-400 hover:text-blue-400 transition-colors"
-                                                            title={q.pdfUrl ? `View ${displayDate} quarterly results (NSE/BSE)` : `View ${displayDate} quarterly results on Screener`}
-                                                            data-testid={`pdf-link-insights-${idx}`}
-                                                          >
-                                                            <FileText className="h-4 w-4" />
-                                                          </a>
-                                                        </div>
-                                                      );
-                                                    })}
-                                                  </div>
                                                 </div>
                                               </div>
                                             )}
@@ -13771,25 +13491,16 @@ ${
                                                     <div className="text-xs text-gray-500 truncate max-w-[140px]">{stock.name}</div>
                                                   </div>
                                                 </div>
-                                                {/* Live Price Display */}
-                                                <div className="text-right">
-                                                  {(() => {
-                                                    const price = watchlistLivePrices[stock.symbol];
-                                                    if (!price || price.ltp === 0) {
-                                                      return <span className="text-xs text-gray-500">--</span>;
-                                                    }
-                                                    return (
-                                                      <div className="flex items-center gap-1">
-                                                        <span className="text-xs font-semibold text-gray-200">
-                                                          {price.ltp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                                        </span>
-                                                        {price.isLive && (
-                                                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Live" />
-                                                        )}
-                                                      </div>
-                                                    );
-                                                  })()}
-                                                </div>
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    removeFromWatchlist(stock.symbol);
+                                                  }}
+                                                  className="text-gray-500 hover:text-red-400 transition-colors p-0.5"
+                                                  data-testid={`mobile-button-remove-watchlist-${idx}`}
+                                                >
+                                                  <X className="h-3 w-3" />
+                                                </button>
                                               </div>
                                             ))}
                                           </div>
@@ -19172,26 +18883,6 @@ ${
                     </SelectContent>
                   </Select>
 
-                  {/* Option Chain Button - Opens full option chain for easy strike selection */}
-                  {paperTradeType === "OPTIONS" && (
-                    <Button
-                      onClick={() => {
-                        const symbol = paperTradeSymbol ? paperTradeSymbol.replace(/-.*$/, "").toUpperCase() : "NIFTY";
-                        const spotPrice = paperTradeCurrentPrice || 25870;
-                        setOptionChainSymbol(symbol.includes("BANK") ? "BANKNIFTY" : symbol.includes("FIN") ? "FINNIFTY" : symbol || "NIFTY");
-                        setOptionChainCurrentPrice(spotPrice);
-                        generateOptionChainForPaperTrading(symbol || "NIFTY", spotPrice);
-                        setShowOptionChainModal(true);
-                      }}
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8"
-                      title="Open Option Chain"
-                      data-testid="button-option-chain"
-                    >
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                  )}
                   {/* Quantity or Lots Input */}
                   {paperTradeType === 'STOCK' ? (
                     <Input
@@ -19565,237 +19256,6 @@ ${
                   Reset Account
                 </button>
                 <span className="text-[10px] text-gray-400">Demo mode - no real trades</span>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-
-        {/* Option Chain Modal */}
-        {/* Professional Option Chain Modal for Paper Trading */}
-        <Dialog open={showOptionChainModal} onOpenChange={setShowOptionChainModal}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-            {/* Header with Symbol Search and Info */}
-            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between gap-4 p-4">
-                {/* Symbol and Price */}
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search NIFTY, BANKNIFTY, stocks..."
-                      value={optionChainSymbolSearch}
-                      onChange={(e) => {
-                        setOptionChainSymbolSearch(e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && optionChainSymbolSearch) {
-                          const symbol = optionChainSymbolSearch.toUpperCase().replace(/\s/g, "");
-                          setOptionChainSymbol(symbol);
-                          setOptionChainSymbolSearch("");
-                          generateOptionChainForPaperTrading(symbol, optionChainCurrentPrice);
-                        }
-                      }}
-                      className="pl-9 h-9 text-sm"
-                      data-testid="input-option-chain-search"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-lg">{optionChainSymbol}</span>
-                    <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                      {optionChainCurrentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-xs text-red-500">-0.35%</span>
-                  </div>
-                </div>
-
-                {/* Expiry Selector */}
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Expiry</span>
-                  <Select value={optionChainSelectedExpiry} onValueChange={(expiry) => {
-                      setOptionChainSelectedExpiry(expiry);
-                      generateOptionChainForPaperTrading(optionChainSymbol, optionChainCurrentPrice, expiry);
-                    }}>
-                    <SelectTrigger className="w-[120px] h-9" data-testid="select-option-chain-expiry">
-                      <SelectValue placeholder="Select Expiry" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {optionChainExpiryDates.map((date) => (
-                        <SelectItem key={date} value={date}>{date}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => generateOptionChainForPaperTrading(optionChainSymbol, optionChainCurrentPrice, optionChainSelectedExpiry)}
-                    disabled={optionChainLoadingModal}
-                    data-testid="button-refresh-option-chain-modal"
-                  >
-                    <RefreshCcw className={`h-4 w-4 ${optionChainLoadingModal ? "animate-spin" : ""}`} />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Option Chain Table */}
-            <div className="flex-1 overflow-auto custom-thin-scrollbar">
-              {optionChainLoadingModal ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-gray-500">Loading option chain...</span>
-                  </div>
-                </div>
-              ) : (
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
-                    <tr>
-                      <th colSpan={5} className="py-2 text-center font-bold text-green-600 dark:text-green-400 border-b border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-                        CALLS
-                      </th>
-                      <th className="py-2 px-3 text-center font-bold border-x-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
-                        Strike
-                      </th>
-                      <th colSpan={5} className="py-2 text-center font-bold text-red-600 dark:text-red-400 border-b border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-                        PUTS
-                      </th>
-                    </tr>
-                    <tr className="text-gray-500 dark:text-gray-400 text-[10px]">
-                      <th className="py-1.5 px-2 text-right font-medium">OI Chg%</th>
-                      <th className="py-1.5 px-2 text-right font-medium">OI-lakh</th>
-                      <th className="py-1.5 px-2 text-center font-medium">OI Bar</th>
-                      <th className="py-1.5 px-2 text-right font-medium bg-green-50/50 dark:bg-green-900/10">LTP</th>
-                      <th className="py-1.5 px-2 text-right font-medium">IV</th>
-                      <th className="py-1.5 px-3 text-center font-bold bg-gray-100 dark:bg-gray-700">Price</th>
-                      <th className="py-1.5 px-2 text-left font-medium">IV</th>
-                      <th className="py-1.5 px-2 text-left font-medium bg-red-50/50 dark:bg-red-900/10">LTP</th>
-                      <th className="py-1.5 px-2 text-center font-medium">OI Bar</th>
-                      <th className="py-1.5 px-2 text-left font-medium">OI-lakh</th>
-                      <th className="py-1.5 px-2 text-left font-medium">OI Chg%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {optionChainStrikesData.map((row, idx) => {
-                      const callBgClass = row.isATM 
-                        ? "bg-yellow-100 dark:bg-yellow-900/30" 
-                        : row.isITMCall 
-                          ? "bg-green-50/70 dark:bg-green-900/20" 
-                          : "";
-                      const putBgClass = row.isATM 
-                        ? "bg-yellow-100 dark:bg-yellow-900/30" 
-                        : row.isITMPut 
-                          ? "bg-red-50/70 dark:bg-red-900/20" 
-                          : "";
-                      const strikeBgClass = row.isATM 
-                        ? "bg-yellow-200 dark:bg-yellow-800/50" 
-                        : "bg-gray-100 dark:bg-gray-700";
-                      
-                      return (
-                        <tr key={idx} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                          {/* CALLS Side */}
-                          <td className={`py-1.5 px-2 text-right ${callBgClass} ${row.call.oiChangePercent >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {row.call.oiChangePercent >= 0 ? "+" : ""}{row.call.oiChangePercent}%
-                          </td>
-                          <td className={`py-1.5 px-2 text-right text-gray-700 dark:text-gray-300 ${callBgClass}`}>
-                            {(row.call.oi / 100000).toFixed(1)}
-                          </td>
-                          <td className={`py-1.5 px-2 ${callBgClass}`}>
-                            <div className="w-16 h-3 bg-gray-200 dark:bg-gray-600 rounded-sm overflow-hidden">
-                              <div 
-                                className="h-full bg-green-500 rounded-sm" 
-                                style={{ width: `${Math.min(100, (row.call.oi / 200000) * 100)}%` }}
-                              />
-                            </div>
-                          </td>
-                          <td 
-                            className={`py-1.5 px-2 text-right font-medium text-green-600 dark:text-green-400 cursor-pointer hover:bg-green-100 dark:hover:bg-green-800/30 ${callBgClass}`}
-                            onClick={() => {
-                              const symbol = `${optionChainSymbol}${optionChainSelectedExpiry.replace(" ", "")}${row.strike}CE`;
-                              setPaperTradeSymbol(symbol);
-                              setPaperTradeSymbolSearch(symbol);
-                              setShowOptionChainModal(false);
-                              toast({
-                                title: "CE Selected",
-                                description: `${symbol} added to paper trading`
-                              });
-                            }}
-                            data-testid={`option-chain-call-${row.strike}`}
-                          >
-                            {row.call.ltp.toFixed(2)}
-                          </td>
-                          <td className={`py-1.5 px-2 text-right text-gray-500 dark:text-gray-400 ${callBgClass}`}>
-                            {row.call.iv.toFixed(1)}
-                          </td>
-                          
-                          {/* Strike Price */}
-                          <td 
-                            className={`py-1.5 px-3 text-center font-bold border-x-2 border-gray-300 dark:border-gray-600 ${strikeBgClass} ${row.isATM ? "text-yellow-700 dark:text-yellow-300" : "text-gray-800 dark:text-gray-200"}`}
-                          >
-                            {row.strike.toLocaleString()}
-                          </td>
-                          
-                          {/* PUTS Side */}
-                          <td className={`py-1.5 px-2 text-left text-gray-500 dark:text-gray-400 ${putBgClass}`}>
-                            {row.put.iv.toFixed(1)}
-                          </td>
-                          <td 
-                            className={`py-1.5 px-2 text-left font-medium text-red-600 dark:text-red-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-800/30 ${putBgClass}`}
-                            onClick={() => {
-                              const symbol = `${optionChainSymbol}${optionChainSelectedExpiry.replace(" ", "")}${row.strike}PE`;
-                              setPaperTradeSymbol(symbol);
-                              setPaperTradeSymbolSearch(symbol);
-                              setShowOptionChainModal(false);
-                              toast({
-                                title: "PE Selected",
-                                description: `${symbol} added to paper trading`
-                              });
-                            }}
-                            data-testid={`option-chain-put-${row.strike}`}
-                          >
-                            {row.put.ltp.toFixed(2)}
-                          </td>
-                          <td className={`py-1.5 px-2 ${putBgClass}`}>
-                            <div className="w-16 h-3 bg-gray-200 dark:bg-gray-600 rounded-sm overflow-hidden">
-                              <div 
-                                className="h-full bg-red-500 rounded-sm" 
-                                style={{ width: `${Math.min(100, (row.put.oi / 200000) * 100)}%` }}
-                              />
-                            </div>
-                          </td>
-                          <td className={`py-1.5 px-2 text-left text-gray-700 dark:text-gray-300 ${putBgClass}`}>
-                            {(row.put.oi / 100000).toFixed(1)}
-                          </td>
-                          <td className={`py-1.5 px-2 text-left ${putBgClass} ${row.put.oiChangePercent >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {row.put.oiChangePercent >= 0 ? "+" : ""}{row.put.oiChangePercent}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {/* Footer with Legend */}
-            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2">
-              <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-800/50 rounded-sm" />
-                    <span>ATM</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-green-100 dark:bg-green-900/30 rounded-sm" />
-                    <span>ITM Calls</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-red-100 dark:bg-red-900/30 rounded-sm" />
-                    <span>ITM Puts</span>
-                  </div>
-                </div>
-                <span>Click on LTP to select strike for paper trading</span>
               </div>
             </div>
           </DialogContent>
