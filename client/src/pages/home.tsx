@@ -19453,7 +19453,9 @@ ${
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
                 <select
                   value={selectedOptionExpiryDate}
-                  onChange={(e) => setSelectedOptionExpiryDate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedOptionExpiryDate(e.target.value);
+                  }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                   data-testid="select-option-expiry-date"
                 >
@@ -19483,12 +19485,31 @@ ${
                   }
                   
                   // Filter calls and puts by selected expiry date
+                  // Filter by expiry date - handle different date formats
+                  const formatExpiryDate = (date: any) => {
+                    if (!date) return null;
+                    if (typeof date === 'string') {
+                      // Try to normalize the date format
+                      const d = new Date(date);
+                      return d.toISOString().split('T')[0];
+                    }
+                    return null;
+                  };
+                  
+                  const selectedExpiryFormatted = formatExpiryDate(selectedOptionExpiryDate);
+                  
                   const filteredCalls = optionChainData.calls.filter((call: any) => {
-                    return !call.expiry || call.expiry === selectedOptionExpiryDate;
+                    // If no expiry field, include it; if has expiry, must match selected
+                    if (!call.expiry) return true;
+                    const callExpiryFormatted = formatExpiryDate(call.expiry);
+                    return callExpiryFormatted === selectedExpiryFormatted;
                   });
                   
                   const filteredPuts = optionChainData.puts.filter((put: any) => {
-                    return !put.expiry || put.expiry === selectedOptionExpiryDate;
+                    // If no expiry field, include it; if has expiry, must match selected
+                    if (!put.expiry) return true;
+                    const putExpiryFormatted = formatExpiryDate(put.expiry);
+                    return putExpiryFormatted === selectedExpiryFormatted;
                   });
                   
                   return { calls: filteredCalls, puts: filteredPuts };
