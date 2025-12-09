@@ -19423,8 +19423,8 @@ ${
         <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
           <DialogContent className="w-full max-w-2xl" showCloseButton={false}>
             {/* Title - Option Chain */}
-            <div className="text-center mb-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Option Chain</h2>
+            <div className="text-center mb-2">
+              <h2 className="text-sm font-medium text-gray-900 dark:text-white">Option Chain</h2>
             </div>
             {/* Compact Header */}
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
