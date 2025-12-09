@@ -4242,7 +4242,7 @@ ${
       case 'FUTURES':
         return futuresLotSizes[baseSymbol] || 1;
       case 'OPTIONS':
-        return 1; // Options are typically 1 per contract
+        return futuresLotSizes[baseSymbol] || 1; // Options use same lot size as underlying futures
       case 'MCX':
         return mcxLotSizes[baseSymbol] || 1;
       case 'STOCK':
