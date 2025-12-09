@@ -119,12 +119,15 @@ class AngelOneInstruments {
       })
       .map(inst => {
         const optionType = inst.symbol.endsWith('CE') ? 'CE' : 'PE';
+        // Angel One stores strike prices multiplied by 100 (e.g., 2400000 instead of 24000)
+        // Normalize by dividing by 100 to get actual strike price
+        const normalizedStrike = inst.strike / 100;
         return {
           token: inst.token,
           symbol: inst.symbol,
           name: inst.name,
           expiry: inst.expiry,
-          strike: inst.strike,
+          strike: normalizedStrike,
           optionType: optionType as 'CE' | 'PE',
           lotSize: inst.lotsize
         };
