@@ -5335,14 +5335,20 @@ ${
   // Get expiry dates from optionChainData (real Angel One NFO data)
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
-  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
+      return [];
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const expiryDate = new Date(expiry);
+      expiryDate.setHours(0, 0, 0, 0);
+      return expiryDate >= today;
+    });
+    return futureExpiries.slice(0, 4).map((expiry: string) => ({
+      value: expiry,
       label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     }));
   };
-  const getOptionSymbols = (): { calls: any[], puts: any[] } => {
-    if (!optionChainData) {
-      return { calls: [], puts: [] };
-    }
     
     // Filter by selected expiry if set
     const calls = selectedOptionExpiryDate 
