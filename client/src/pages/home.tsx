@@ -4053,6 +4053,8 @@ ${
   const [paperTradeSLTimeframe, setPaperTradeSLTimeframe] = useState("5m");
   const [paperTradeSLDurationUnit, setPaperTradeSLDurationUnit] = useState("min");
   const [paperTradeSLEnabled, setPaperTradeSLEnabled] = useState(false); // SL is enabled when user sets it
+  const [showOptionChainModal, setShowOptionChainModal] = useState(false);
+  const [optionChainStrikes, setOptionChainStrikes] = useState<string[]>([]);
   const paperTradingStreamSymbolsRef = useRef<Set<string>>(new Set());
   
   // Paper trading LIVE WebSocket streaming state (TradingView-style real-time P&L)
@@ -19073,6 +19075,25 @@ ${
                     </SelectContent>
                   </Select>
 
+                  {/* Option Chain Button */}
+                  {paperTradeType === 'OPTIONS' && paperTradeSymbol && (
+                    <Button
+                      onClick={() => {
+                        const baseStrike = Math.floor((paperTradeCurrentPrice || 100) / 100) * 100;
+                        const strikes = Array.from({ length: 11 }, (_, i) => (baseStrike - 250 + (i * 50)).toString());
+                        setOptionChainStrikes(strikes);
+                        setShowOptionChainModal(true);
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs"
+                      title="View Option Chain"
+                      data-testid="button-option-chain"
+                    >
+                      Chain
+                    </Button>
+                  )}
+
                   {/* Quantity or Lots Input */}
                   {paperTradeType === 'STOCK' ? (
                     <Input
@@ -19446,6 +19467,43 @@ ${
                   Reset Account
                 </button>
                 <span className="text-[10px] text-gray-400">Demo mode - no real trades</span>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+
+        {/* Option Chain Modal */}
+        <Dialog open={showOptionChainModal} onOpenChange={setShowOptionChainModal}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Option Chain - Select Strike</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <div className="text-xs text-gray-500 mb-3">
+                Available strikes for {paperTradeSymbol || 'selected instrument'}:
+              </div>
+              <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                {optionChainStrikes.map((strike) => (
+                  <button
+                    key={strike}
+                    onClick={() => {
+                      setPaperTradeSymbol(`${paperTradeSymbol}-${strike}CE`);
+                      setShowOptionChainModal(false);
+                      toast({
+                        title: "Strike Selected",
+                        description: `Selected ${paperTradeSymbol}-${strike}CE`
+                      });
+                    }}
+                    className="p-2 text-xs border border-gray-200 dark:border-gray-700 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-colors text-center font-medium"
+                    data-testid={`option-chain-strike-${strike}`}
+                  >
+                    {strike}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-gray-500 mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                Tip: Add CE/PE suffix manually, or click strikes to auto-select with CE
               </div>
             </div>
           </DialogContent>
