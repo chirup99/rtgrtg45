@@ -19482,8 +19482,38 @@ ${
               
               {!optionChainLoading && selectedOptionExpiryDate && (() => {
                 const { calls, puts } = getOptionSymbols();
-                const maxRows = Math.max(calls.length, puts.length);
                 const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
+                
+                // Find the single nearest ATM strike
+                const allStrikes = new Set();
+                calls.forEach(c => allStrikes.add(c.strikePrice));
+                puts.forEach(p => allStrikes.add(p.strikePrice));
+                
+                const strikeArray = Array.from(allStrikes) as number[];
+                let atmStrike = null;
+                if (strikeArray.length > 0) {
+                  atmStrike = strikeArray.reduce((nearest, strike) => 
+                    Math.abs(strike - currentPrice) < Math.abs(nearest - currentPrice) ? strike : nearest
+                  );
+                }
+                
+                // Filter calls: 1 ATM + 10 ITM + 10 OTM
+                const filteredCalls = (() => {
+                  const itm = calls.filter(c => c.strikePrice < currentPrice).reverse().slice(0, 10).reverse();
+                  const oTm = calls.filter(c => c.strikePrice > currentPrice).slice(0, 10);
+                  const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike) : [];
+                  return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                // Filter puts: 1 ATM + 10 ITM + 10 OTM
+                const filteredPuts = (() => {
+                  const itm = puts.filter(p => p.strikePrice > currentPrice).slice(0, 10);
+                  const oTm = puts.filter(p => p.strikePrice < currentPrice).reverse().slice(0, 10).reverse();
+                  const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike) : [];
+                  return [...oTm, ...atm, ...itm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                const maxRows = Math.max(filteredCalls.length, filteredPuts.length);
                 const getOptionStatus = (strike, isCall) => {
                   // Find all unique strikes from calls and puts
                   const allStrikes = new Set();
@@ -19494,18 +19524,9 @@ ${
                   const strikeArray = Array.from(allStrikes);
                   if (strikeArray.length === 0) return 'OTM';
                   
-                  const sortedByDistance = strikeArray.sort((a, b) => 
-                    Math.abs(a - currentPrice) - Math.abs(b - currentPrice)
-                  );
-                  
-                  // Mark only the 1-2 nearest strikes as ATM
-                  const nearestStrike = sortedByDistance[0];
-                  const atmStrikes = [nearestStrike];
-                  if (sortedByDistance.length > 1) {
-                    atmStrikes.push(sortedByDistance[1]);
-                  }
-                  
-                  if (atmStrikes.includes(strike)) return 'ATM';
+                  // This logic is moved to filteredCalls and filteredPuts
+                  // Mark only the single nearest strike as ATM
+                  if (strike === atmStrike) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
                 };
@@ -19561,7 +19582,7 @@ ${
                 if (maxRows === 0) {
                   return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
-                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div onClick={() => handleOptionClick(calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`, calls[index].ltp)} className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{calls[index]?.strikePrice || puts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{puts[index] ? <div onClick={() => handleOptionClick(puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`, puts[index].ltp)} className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index].symbol || `${selectedOptionIndex}${filteredCalls[index].strikePrice}CE`, filteredCalls[index].ltp)} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index].symbol || `${selectedOptionIndex}${filteredPuts[index].strikePrice}PE`, filteredPuts[index].ltp)} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
               {!optionChainLoading && !selectedOptionExpiryDate && (
