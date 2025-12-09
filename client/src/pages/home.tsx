@@ -19433,7 +19433,7 @@ ${
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
                 <select
                   value={selectedOptionIndex}
-                  onChange={(e) => setSelectedOptionIndex(e.target.value)}
+                  onChange={(e) => { setSelectedOptionIndex(e.target.value); setSelectedOptionExpiryDate(""); }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
                   data-testid="select-option-index"
                 >
