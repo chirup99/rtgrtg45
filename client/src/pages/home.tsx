@@ -19422,15 +19422,14 @@ ${
         {/* Option Chain Modal */}
         <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
           <DialogContent className="w-full max-w-2xl">
-            {/* Top Bar with Index Selection, Price, and Expiry */}
-            <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-              {/* Left: Index Dropdown */}
-              <div className="flex items-center gap-3 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
+            {/* Compact Header */}
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
+              {/* Index */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <select
                   value={selectedOptionIndex}
                   onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
                   data-testid="select-option-index"
                 >
                   <option value="NIFTY">NIFTY</option>
@@ -19440,26 +19439,24 @@ ${
                 </select>
               </div>
 
-              {/* Middle: Price Display */}
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Price</span>
-                <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-option-price">
+              {/* Price */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-price">
                   {optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
                 </span>
               </div>
 
-              {/* Right: Expiry Dropdown */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
+              {/* Expiry */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <select
                   value={selectedOptionExpiryDate}
                   onChange={(e) => {
                     setSelectedOptionExpiryDate(e.target.value);
                   }}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
                   data-testid="select-option-expiry-date"
                 >
-                  <option value="">Select Expiry</option>
+                  <option value="">Expiry</option>
                   {getOptionExpiryDates(selectedOptionIndex).map((date) => (
                     <option key={date.value} value={date.value}>
                       {date.label}
@@ -19468,7 +19465,6 @@ ${
                 </select>
               </div>
             </div>
-
             {/* Content Area - Call/Put Options Table */}
             <div className="py-6 space-y-4 max-h-96 overflow-y-auto">
               {optionChainLoading && (
