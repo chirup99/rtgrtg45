@@ -19440,14 +19440,13 @@ ${
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <select
-                  value={selectedOptionExpiryDate}
+                  value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                   onChange={(e) => {
                     setSelectedOptionExpiryDate(e.target.value);
                   }}
                   className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
                   data-testid="select-option-expiry-date"
                 >
-                  <option value="">Expiry</option>
                   {getOptionExpiryDates(selectedOptionIndex).map((date) => (
                     <option key={date.value} value={date.value}>
                       {date.label}
