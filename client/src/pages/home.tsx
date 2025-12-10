@@ -5339,6 +5339,16 @@ ${
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
+
+  // Auto-select first expiry date when option chain data loads
+  useEffect(() => {
+    if (optionChainData && !selectedOptionExpiryDate) {
+      const firstExpiry = getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+      if (firstExpiry) {
+        setSelectedOptionExpiryDate(firstExpiry);
+      }
+    }
+  }, [optionChainData, selectedOptionIndex]);
   };
   const foEligibleSymbols = [
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
