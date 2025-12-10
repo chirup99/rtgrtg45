@@ -38,34 +38,39 @@ function calculatePnL(data: any): number {
     return data.performanceMetrics.netPnL;
   }
 
+  // ✅ NEW: Check profitLossAmount (what recordAllPaperTrades saves)
+  if (data.profitLossAmount !== undefined && typeof data.profitLossAmount === 'number') {
+    return data.profitLossAmount;
+  }
+
   // Try calculating from wrapped tradeHistory (Firebase format)
   if (data.tradingData?.tradeHistory && Array.isArray(data.tradingData.tradeHistory)) {
     let totalPnL = 0;
     data.tradingData.tradeHistory.forEach((trade: any) => {
-      if (trade.pnl && typeof trade.pnl === 'string') {
+      if (trade.pnl && trade.pnl !== '-' && typeof trade.pnl === 'string') {
         // Remove ₹ symbol and commas, parse as number
-        const pnlValue = parseFloat(trade.pnl.replace(/[₹,]/g, ''));
+        const pnlValue = parseFloat(trade.pnl.replace(/[₹,+]/g, ''));
         if (!isNaN(pnlValue)) {
           totalPnL += pnlValue;
         }
       }
     });
-    return totalPnL;
+    if (totalPnL !== 0) return totalPnL;
   }
 
   // Try calculating from direct tradeHistory (unwrapped format)
   if (data.tradeHistory && Array.isArray(data.tradeHistory)) {
     let totalPnL = 0;
     data.tradeHistory.forEach((trade: any) => {
-      if (trade.pnl && typeof trade.pnl === 'string') {
+      if (trade.pnl && trade.pnl !== '-' && typeof trade.pnl === 'string') {
         // Remove ₹ symbol and commas, parse as number
-        const pnlValue = parseFloat(trade.pnl.replace(/[₹,]/g, ''));
+        const pnlValue = parseFloat(trade.pnl.replace(/[₹,+]/g, ''));
         if (!isNaN(pnlValue)) {
           totalPnL += pnlValue;
         }
       }
     });
-    return totalPnL;
+    if (totalPnL !== 0) return totalPnL;
   }
 
   return 0;
