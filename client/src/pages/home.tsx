@@ -5323,54 +5323,11 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
-  const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
-
-  // Fetch futures price from Angel One (NFO/BFO) when index changes
-  React.useEffect(() => {
-    if (!selectedOptionIndex) return;
-
-    const fetchFuturesPrice = async () => {
-      try {
-        const futuresSymbols: { [key: string]: string } = {
-          "NIFTY": "NIFTY30DEC25FUT",
-          "BANKNIFTY": "BANKNIFTY30DEC25FUT",
-          "FINNIFTY": "FINNIFTY30DEC25FUT",
-          "SENSEX": "SENSEX30DEC25FUT"
-        };
-
-        const exchanges: { [key: string]: string } = {
-          "NIFTY": "NFO",
-          "BANKNIFTY": "NFO",
-          "FINNIFTY": "NFO",
-          "SENSEX": "BFO"
-        };
-
-        const futuresSymbol = futuresSymbols[selectedOptionIndex];
-        const exchange = exchanges[selectedOptionIndex] || "NFO";
-        if (!futuresSymbol) return;
-
-        const response = await fetch(`/api/live-price?symbol=${futuresSymbol}&exchange=${exchange}`);
-        if (response.ok) {
-          const data = await response.json();
-          const price = data?.ltp || data?.price || data?.lastPrice || data?.close;
-          if (price && price > 100) {
-            setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
-            console.log(`✅ Futures ${selectedOptionIndex} (${exchange}): ${price}`);
-          }
-        }
-      } catch (error) {
-        console.log(`Error fetching futures price for ${selectedOptionIndex}`);
-      }
-    };
-
-    fetchFuturesPrice();
-  }, [selectedOptionIndex]);
-
+      return [];
+    }
   // Get expiry dates from optionChainData
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
-      return [];
-    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
@@ -19482,15 +19439,6 @@ ${
                 </span>
               </div>
 
-              {/* Futures Price from Angel One NFO/BFO */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-xs text-blue-500 dark:text-blue-400">Fut:</span>
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400" data-testid="text-option-futures-price">
-                  {futuresPrices[selectedOptionIndex] ? futuresPrices[selectedOptionIndex].toLocaleString() : "-"}
-                </span>
-              </div>
-
-              {/* Expiry */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <select
                   value={selectedOptionExpiryDate}
@@ -19556,7 +19504,7 @@ ${
                 };
 
                 const { calls, puts } = getOptionSymbols();
-                const currentPrice = futuresPrices[selectedOptionIndex] || optionChainData?.spotPrice || 0;
+                const currentPrice = optionChainData?.spotPrice || 0;
                 
                 // Find the single nearest ATM strike
                 const allStrikes = new Set();

@@ -77,3 +77,18 @@ DECEMBER 10, 2025 - CLEAN IMPLEMENTATION DEPLOYED
 - [x] 4. Inform user the import is completed and they can start building
 - [x] 5. Added Fut: label showing futures price from Angel One NFO/BFO
 - [x] 6. Migration completed successfully - December 10, 2025
+- [x] 7. REMOVED Futures Price display - User requested spot price only
+
+## December 10, 2025 - Option Chain Update: SPOT PRICE ONLY
+
+**Changes Made:**
+- Removed the `futuresPrices` state completely
+- Removed the futures price fetch useEffect
+- Removed the "Fut:" display section from Option Chain dialog
+- Updated ATM calculation to use ONLY spot price: `const currentPrice = optionChainData?.spotPrice || 0;`
+
+**Result:**
+- Option Chain now shows ONLY Spot price (index value)
+- ATM/ITM/OTM calculations based on spot price only
+- Cleaner, simpler UI without futures price display
+- All strike filtering and coloring working correctly
