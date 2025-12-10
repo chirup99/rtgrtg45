@@ -4784,6 +4784,7 @@ ${
     
     // 5️⃣ Close paper trading dialog and show summary
     setShowPaperTradingModal(false);
+    setIsDemoMode(false);
     
     toast({
       title: "Trades Recorded",

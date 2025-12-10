@@ -1,36 +1,39 @@
-# Paper Trading Record - Single Tap Import Fix
+# Paper Trading Record - Toggle Switch Fix
 
 ## Status: ✅ FIXED
 
 ### Issue Fixed
-Removed double-tap requirement for Record button. Now imports on single tap without toggling Personal/Preview view.
+Toggle switch now works properly after importing trades. Previously it was stuck and couldn't switch between Personal and Preview modes.
 
 ### Problem
-- First tap: Toggled Personal/Preview view
-- Second tap: Imported trades
-- Toggle was locked after import
+- User tapped Record button to import trades
+- Trades imported to personal tradebook
+- Toggle switch for Personal/Preview mode became unresponsive
+- User couldn't toggle back to Preview (Demo) heatmap
 
 ### Solution
-Removed `setJournalChartMode('heatmap')` from `recordAllPaperTrades()` function.
+Added `setIsDemoMode(false)` in `recordAllPaperTrades()` function to explicitly set Personal mode after import.
 
 ### Current Behavior (FIXED)
-When user clicks **"Record"** button on paper trading history:
+When user clicks **"Record"** button:
 1. ✅ Single tap imports all paper trades to today's date
-2. ✅ Heatmap shows trades data
-3. ✅ Toast notification "Trades Recorded" appears
-4. ✅ Paper trading dialog closes
-5. ✅ Personal/Preview toggle remains functional
+2. ✅ Automatically switches to Personal mode
+3. ✅ Shows imported trades in personal heatmap
+4. ✅ Toast notification "Trades Recorded" appears
+5. ✅ **Toggle switch is now fully functional** - can switch between Personal ↔ Preview
+6. ✅ Paper trading dialog closes
 
 ### Code Changed
 **File:** `client/src/pages/home.tsx` (Line 4787)
 
-**Removed:** `setJournalChartMode('heatmap');`
+**Added:** `setIsDemoMode(false);` after closing paper trading modal
 
-Now it simply imports and closes without mode switching that interfered with toggle functionality.
+This ensures the heatmap shows Personal mode with the newly imported trades, and the toggle becomes responsive again.
 
 ### Deployment Status
 - ✅ Fixed and deployed
 - ✅ Server running
+- ✅ Toggle switch fully functional
 
 ---
 **Completed:** December 10, 2025
