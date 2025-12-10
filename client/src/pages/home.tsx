@@ -4046,40 +4046,7 @@ ${
   const [saveConfirmationData, setSaveConfirmationData] = useState<any>(null);
 
   // Trade History Data State
-  const [tradeHistoryData, setTradeHistoryData] = useState([
-    {
-      time: "12:41:57 PM",
-      order: "BUY",
-      symbol: "SENSEX NOV 81300 CE BFO",
-      type: "MIS",
-      qty: 40,
-      price: 488.2,
-      pnl: "+₹946",
-      duration: "6m 27s",
-    },
-    {
-      time: "12:48:24 PM",
-      order: "SELL",
-      symbol: "SENSEX NOV 81300 CE BFO",
-      type: "MIS",
-      qty: 40,
-      price: 511.85,
-      pnl: "+₹946",
-      duration: "6m 27s",
-    },
-    {
-      time: "10:15:30 AM",
-      order: "BUY",
-      symbol: "NIFTY 50",
-      type: "LIM",
-      qty: 25,
-      price: 18500.5,
-      pnl: "-",
-      duration: "-",
-    },
-  ]);
-
-  // ============================================
+  const [tradeHistoryData, setTradeHistoryData] = useState([]);
   // PAPER TRADING (DEMO TRADING) STATE - Like TradingView Practice Account
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);

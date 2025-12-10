@@ -10,18 +10,27 @@
 ---
 **Import Completed:** December 10, 2025
 
-### Previous Issue Fixed (Toggle Switch)
+### Previous Issues Fixed
+
+#### Toggle Switch Issue - FIXED
 Toggle switch now works properly after importing trades. Previously it was stuck and couldn't switch between Personal and Preview modes.
 
-### Critical Fix Applied (Record Button - Single Tap Import)
-[x] Fixed the Record button to import trades immediately in a single tap
+#### Record Button - Single Tap Import - FIXED
+Fixed the Record button to import trades immediately in a single tap without requiring a second tap.
 - **Issue:** Tapping Record toggled to Personal mode first, then required a second tap to actually import trades
 - **Root Cause:** Recursive setTimeout call in recordAllPaperTrades() function
-- **Solution:** Removed setTimeout and recursive call pattern; now mode switches and trades import immediately in one tap
+- **Solution:** Removed setTimeout and recursive call pattern
 - **File Modified:** client/src/pages/home.tsx (lines 4708-4715)
+
+#### Trade History Summary - Hardcoded Trades Removed - FIXED
+Removed hardcoded sample trades from Trade History Summary
+- **Issue:** When user opens Trade History Summary, 3 hardcoded demo trades were showing (SENSEX trades + NIFTY trade)
+- **Solution:** Changed tradeHistoryData initial state from array with 3 hardcoded trades to empty array
+- **File Modified:** client/src/pages/home.tsx (line 4049)
 - **Changes Made:**
-  - Removed: setTimeout(() => { recordAllPaperTrades(); }, 100); and return statement
-  - Result: When user taps Record, it immediately switches to Personal mode AND imports all trades in single action
+  - Before: `const [tradeHistoryData, setTradeHistoryData] = useState([{hardcoded trades...}])`
+  - After: `const [tradeHistoryData, setTradeHistoryData] = useState([])`
+- **Result:** Trade History Summary now opens empty until user imports trades or records trades
 
 ---
-**Fix Applied:** December 10, 2025
+**All Fixes Applied:** December 10, 2025
