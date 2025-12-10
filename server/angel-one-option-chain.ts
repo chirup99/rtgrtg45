@@ -132,27 +132,35 @@ class AngelOneOptionChain {
 
     // Try LTP first (same as paper trading)
     try {
-      console.log(`📊 [OPTION-CHAIN] Fetching live spot price for ${normalizedUnderlying}...`);
+      console.log(`📊 [OPTION-CHAIN] Fetching LTP for ${normalizedUnderlying} (exchange: ${indexInfo.exchange}, symbol: ${indexInfo.symbol}, token: ${indexInfo.token})...`);
       const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
+      
+      console.log(`📊 [OPTION-CHAIN] LTP Response for ${normalizedUnderlying}:`, JSON.stringify(quote));
       
       if (quote && quote.ltp && quote.ltp > 0) {
         console.log(`📊 [OPTION-CHAIN] ✅ Real spot price for ${normalizedUnderlying}: ₹${quote.ltp}`);
         return quote.ltp;
+      } else {
+        console.log(`⚠️ [OPTION-CHAIN] LTP returned invalid data for ${normalizedUnderlying}: quote=${JSON.stringify(quote)}`);
       }
     } catch (error: any) {
-      console.log(`⚠️ [OPTION-CHAIN] LTP fetch failed for ${normalizedUnderlying}, trying WebSocket...`);
+      console.log(`⚠️ [OPTION-CHAIN] LTP API error for ${normalizedUnderlying}: ${error.message}`);
     }
 
     // Fallback to WebSocket prices
     try {
       const wsPrices = angelOneWebSocket.getLatestPrices([indexInfo.token]);
+      console.log(`📊 [OPTION-CHAIN] WebSocket map for ${normalizedUnderlying} (token: ${indexInfo.token}): Available tokens = [${Array.from(wsPrices.keys()).join(', ')}]`);
+      
       const wsPrice = wsPrices.get(indexInfo.token);
+      console.log(`📊 [OPTION-CHAIN] WebSocket price for ${normalizedUnderlying}: ${JSON.stringify(wsPrice)}`);
+      
       if (wsPrice && wsPrice.close && wsPrice.close > 0) {
         console.log(`📊 [OPTION-CHAIN] ✅ Got WebSocket price for ${normalizedUnderlying}: ₹${wsPrice.close}`);
         return wsPrice.close;
       }
     } catch (error: any) {
-      console.log(`⚠️ [OPTION-CHAIN] WebSocket price not available for ${normalizedUnderlying}`);
+      console.log(`⚠️ [OPTION-CHAIN] WebSocket error for ${normalizedUnderlying}: ${error.message}`);
     }
 
     // Both failed - return 0 and let UI handle it gracefully
