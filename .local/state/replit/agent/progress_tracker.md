@@ -10,15 +10,16 @@ DECEMBER 10, 2025 - CLEAN IMPLEMENTATION DEPLOYED
 - Implemented clean, direct Angel One NFO futures price fetching
 - Simple mapping of indices to futures contract symbols
 - Automatic price fetch when user selects index
+- Added separate Spot and Fut labels in Option Chain header
 
 **How It Works:**
 
 1. **Index to Futures Symbol Mapping:**
    ```
-   NIFTY → NIFTY30DEC25FUT
-   BANKNIFTY → BANKNIFTY30DEC25FUT
-   FINNIFTY → FINNIFTY30DEC25FUT (27722.90)
-   SENSEX → SENSEX30DEC25FUT
+   NIFTY → NIFTY30DEC25FUT (NFO)
+   BANKNIFTY → BANKNIFTY30DEC25FUT (NFO)
+   FINNIFTY → FINNIFTY30DEC25FUT (NFO)
+   SENSEX → SENSEX30DEC25FUT (BFO)
    ```
 
 2. **Auto Price Fetch on Index Change:**
@@ -29,38 +30,11 @@ DECEMBER 10, 2025 - CLEAN IMPLEMENTATION DEPLOYED
    - Updates futuresPrices state
 
 3. **Display & Calculation:**
-   - Price displayed at top of option chain dialog
+   - Spot price displayed in green (from spotPrice)
+   - Fut price displayed in blue (from Angel One NFO/BFO)
    - Used for ATM strike calculation
    - Color-codes: Yellow (ATM), Blue (ITM Calls), Red (ITM Puts), Gray (OTM)
    - Filters: 1 ATM + 10 ITM + 10 OTM strikes
-
-**Code Structure:**
-```typescript
-// Clean futures price fetch from Angel One NFO
-React.useEffect(() => {
-  if (!selectedOptionIndex) return;
-
-  const fetchFuturesPrice = async () => {
-    const futuresSymbol = {
-      'NIFTY': 'NIFTY30DEC25FUT',
-      'BANKNIFTY': 'BANKNIFTY30DEC25FUT',
-      'FINNIFTY': 'FINNIFTY30DEC25FUT',
-      'SENSEX': 'SENSEX30DEC25FUT'
-    }[selectedOptionIndex];
-
-    const response = await fetch(`/api/live-price?symbol=${futuresSymbol}&exchange=NFO`);
-    if (response.ok) {
-      const data = await response.json();
-      const price = data?.ltp || data?.price || data?.lastPrice;
-      if (price && price > 100) {
-        setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
-      }
-    }
-  };
-
-  fetchFuturesPrice();
-}, [selectedOptionIndex]);
-```
 
 =========================================================
 
@@ -69,13 +43,14 @@ React.useEffect(() => {
 **Server:**
 - ✅ Running on port 5000
 - ✅ All Angel One services initialized
-- ✅ NFO API routes ready
+- ✅ NFO/BFO API routes ready
 - ✅ No compilation errors
 - ✅ BABEL optimizations working
 
 **Frontend:**
 - ✅ Clean, maintainable code
 - ✅ Automatic futures price fetching
+- ✅ Spot and Fut labels displayed separately
 - ✅ Dynamic ATM/ITM/OTM color coding
 - ✅ Expiry date selection working
 - ✅ Single-click option selection to paper trading
@@ -83,24 +58,14 @@ React.useEffect(() => {
 **Features Completed:**
 - [x] Index dropdown (NIFTY, BANKNIFTY, FINNIFTY, SENSEX)
 - [x] Automatic futures price fetch on index change
-- [x] Angel One NFO integration
+- [x] Angel One NFO/BFO integration
 - [x] Real futures contract prices displayed
+- [x] Spot price and Fut price shown separately
 - [x] Strike filtering (1 ATM + 10 ITM + 10 OTM)
 - [x] Color-coded options
 - [x] Expiry date filtering
 - [x] Direct option selection to paper trading
-- [x] Removed old complex code
 - [x] Console logging for debugging
-
-=========================================================
-
-## Key Improvements:
-
-1. **Simplified Logic:** Removed multiple fallback attempts, now uses direct Angel One NFO
-2. **Cleaner Code:** ~30 lines instead of ~60 lines
-3. **Better Performance:** Single fetch per index change
-4. **Proper Integration:** Uses existing Angel One API service
-5. **Maintainability:** Easy to add new indices or adjust symbols
 
 =========================================================
 
@@ -110,3 +75,4 @@ React.useEffect(() => {
 - [x] 2. Restart the workflow to see if the project is working
 - [x] 3. Verify the project is working using the feedback tool
 - [x] 4. Inform user the import is completed and they can start building
+- [x] 5. Added Fut: label showing futures price from Angel One NFO/BFO

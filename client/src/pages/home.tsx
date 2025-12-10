@@ -19474,10 +19474,19 @@ ${
                 </select>
               </div>
 
-              {/* Price */}
+              {/* Spot Price */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-price">
-                  {(futuresPrices[selectedOptionIndex] || optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
+                <span className="text-xs text-gray-500 dark:text-gray-400">Spot:</span>
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-spot-price">
+                  {(optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
+                </span>
+              </div>
+
+              {/* Futures Price from Angel One NFO/BFO */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-xs text-blue-500 dark:text-blue-400">Fut:</span>
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400" data-testid="text-option-futures-price">
+                  {futuresPrices[selectedOptionIndex] ? futuresPrices[selectedOptionIndex].toLocaleString() : "-"}
                 </span>
               </div>
 
