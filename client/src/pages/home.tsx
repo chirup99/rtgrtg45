@@ -5324,44 +5324,48 @@ ${
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
 
-  // Fetch futures price from Angel One NFO when index changes
+  // Fetch futures price from Angel One (NFO/BFO) when index changes
   React.useEffect(() => {
     if (!selectedOptionIndex) return;
 
     const fetchFuturesPrice = async () => {
       try {
-        // Map indices to their futures contract symbols
         const futuresSymbols: { [key: string]: string } = {
-          'NIFTY': 'NIFTY30DEC25FUT',
-          'BANKNIFTY': 'BANKNIFTY30DEC25FUT',
-          'FINNIFTY': 'FINNIFTY30DEC25FUT',
-          'SENSEX': 'SENSEX30DEC25FUT'
+          "NIFTY": "NIFTY30DEC25FUT",
+          "BANKNIFTY": "BANKNIFTY30DEC25FUT",
+          "FINNIFTY": "FINNIFTY30DEC25FUT",
+          "SENSEX": "SENSEX30DEC25FUT"
+        };
+
+        const exchanges: { [key: string]: string } = {
+          "NIFTY": "NFO",
+          "BANKNIFTY": "NFO",
+          "FINNIFTY": "NFO",
+          "SENSEX": "BFO"
         };
 
         const futuresSymbol = futuresSymbols[selectedOptionIndex];
+        const exchange = exchanges[selectedOptionIndex] || "NFO";
         if (!futuresSymbol) return;
 
-        // Fetch futures price from Angel One live service
-        const response = await fetch(`/api/live-price?symbol=${futuresSymbol}&exchange=NFO`);
+        const response = await fetch(`/api/live-price?symbol=${futuresSymbol}&exchange=${exchange}`);
         if (response.ok) {
           const data = await response.json();
           const price = data?.ltp || data?.price || data?.lastPrice || data?.close;
-          
           if (price && price > 100) {
             setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
-            console.log(`✅ Futures ${selectedOptionIndex}: ${price}`);
-            return;
+            console.log(`✅ Futures ${selectedOptionIndex} (${exchange}): ${price}`);
           }
         }
       } catch (error) {
-        console.log(`Fetching futures price for ${selectedOptionIndex}`);
+        console.log(`Error fetching futures price for ${selectedOptionIndex}`);
       }
     };
 
     fetchFuturesPrice();
   }, [selectedOptionIndex]);
-  
-  // Get expiry dates from optionChainData (real Angel One NFO data)
+
+  // Get expiry dates from optionChainData
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
       return [];
@@ -5375,13 +5379,9 @@ ${
     });
     return futureExpiries.slice(0, 4).map((expiry: string) => ({
       value: expiry,
-      label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
-  };
-    
-  // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
-    'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'ASIANPAINT', 'TITAN', 'TATAMOTORS', 'SUNPHARMA', 'WIPRO', 'ULTRACEMCO',
     'TECHM', 'HCLTECH', 'NTPC', 'POWERGRID', 'ONGC', 'COALINDIA', 'M&M',
