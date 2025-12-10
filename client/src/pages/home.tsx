@@ -4706,15 +4706,13 @@ ${
       return;
     }
     
-    // 🔴 AUTO-SWITCH to personal mode if in demo
+    
+    // 🔴 AUTO-SWITCH to personal mode if in demo - record trades immediately in single tap
     if (isDemoMode) {
       console.log("🔄 Auto-switching to personal mode to record trades...");
       setIsDemoMode(false);
-      setTimeout(() => {
-        recordAllPaperTrades();
-      }, 100);
-      return;
     }
+    
     
     console.log("📊 Converting paper trades to journal format...");
     
