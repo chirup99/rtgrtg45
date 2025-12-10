@@ -4699,12 +4699,12 @@ ${
     const processedData = calculateSimplePnL(convertedTrades);
     
     // 2️⃣ Add to trade history summary (opens the summary window)
-    setTradeHistoryData((prev) => [...processedData, ...prev]);
+    setTradeHistoryData(processedData); // Reset history with new trades only
     
     // 3️⃣ Also record to today's personal heatmap for tracking
-    const today = new Date();
-    const todayKey = formatDateKey(today);
-    const existingData = tradingDataByDate[todayKey] || {};
+    const dateToRecord = heatmapSelectedDate ? new Date(heatmapSelectedDate) : new Date();
+    const dateKey = heatmapSelectedDate || formatDateKey(new Date());
+    const existingData = tradingDataByDate[dateKey] || {};
     const existingTrades = existingData.tradeHistory || [];
     
     // Convert for heatmap storage (different format)
@@ -4735,17 +4735,17 @@ ${
     
     setPersonalTradingDataByDate((prev: any) => ({
       ...prev,
-      [todayKey]: updatedData
+      [dateKey]: updatedData
     }));
     
     localStorage.setItem("personalTradingDataByDate", JSON.stringify({
       ...personalTradingDataByDate,
-      [todayKey]: updatedData
+      [dateKey]: updatedData
     }));
     
     // 4️⃣ Auto-select today's date on both heatmap AND journal calendar
-    setHeatmapSelectedDate(todayKey);
-    setSelectedDate(today);
+    setHeatmapSelectedDate(dateKey);
+    setSelectedDate(dateToRecord);
     
     // 5️⃣ Close paper trading dialog and show summary
     setShowPaperTradingModal(false);

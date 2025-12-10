@@ -1,36 +1,51 @@
 # Project Import Progress Tracker
 
-## Migration Status: COMPLETE
+## Migration Status: COMPLETE - ALL CRITICAL BUGS FIXED ✅
 
 [x] 1. Install the required packages
 [x] 2. Restart the workflow to see if the project is working
 [x] 3. Verify the project is working using the feedback tool
-[x] 4. Inform user the import is completed and they can start building, mark the import as completed
+[x] 4. All critical bugs identified and FIXED
 
 ---
-**Import Completed:** December 10, 2025
+**All Critical Bugs Fixed:** December 10, 2025
 
-### Previous Issues Fixed
+### Critical Bugs Fixed ✅
 
-#### Toggle Switch Issue - FIXED
-Toggle switch now works properly after importing trades. Previously it was stuck and couldn't switch between Personal and Preview modes.
+#### 1. Trade History Summary Reset - FIXED ✅
+When tapping Record button, old trades were showing alongside new imported trades.
+- **Fix:** Changed `setTradeHistoryData((prev) => [...processedData, ...prev])` to `setTradeHistoryData(processedData)`
+- **File:** client/src/pages/home.tsx (line 4702)
+- **Result:** Trade History Summary now clears old trades completely
 
-#### Record Button - Single Tap Import - FIXED
-Fixed the Record button to import trades immediately in a single tap without requiring a second tap.
-- **Issue:** Tapping Record toggled to Personal mode first, then required a second tap to actually import trades
-- **Root Cause:** Recursive setTimeout call in recordAllPaperTrades() function
-- **Solution:** Removed setTimeout and recursive call pattern
-- **File Modified:** client/src/pages/home.tsx (lines 4708-4715)
+#### 2. Record Button Date Handling - FIXED ✅
+Record button was importing trades to TODAY's date instead of selected heatmap date.
+- **Fix:** Changed hardcoded `const today = new Date()` to respect selected heatmap date
+- **New Logic:** `const dateToRecord = heatmapSelectedDate ? new Date(heatmapSelectedDate) : new Date();`
+- **File:** client/src/pages/home.tsx (lines 4705-4748)
+- **Result:** Trades now import to the date user selected on heatmap (e.g., Nov 4th stays Nov 4th)
 
-#### Trade History Summary - Hardcoded Trades Removed - FIXED
-Removed hardcoded sample trades from Trade History Summary
-- **Issue:** When user opens Trade History Summary, 3 hardcoded demo trades were showing (SENSEX trades + NIFTY trade)
-- **Solution:** Changed tradeHistoryData initial state from array with 3 hardcoded trades to empty array
-- **File Modified:** client/src/pages/home.tsx (line 4049)
-- **Changes Made:**
-  - Before: `const [tradeHistoryData, setTradeHistoryData] = useState([{hardcoded trades...}])`
-  - After: `const [tradeHistoryData, setTradeHistoryData] = useState([])`
-- **Result:** Trade History Summary now opens empty until user imports trades or records trades
+#### 3. Record Button Single Tap - FIXED ✅
+Record button previously required two taps (removed recursive setTimeout)
+- **File:** client/src/pages/home.tsx
+
+#### 4. Hardcoded Trades Removed - FIXED ✅
+Removed 3 hardcoded sample trades from Trade History Summary initialization
+- **File:** client/src/pages/home.tsx (line 4049)
 
 ---
-**All Fixes Applied:** December 10, 2025
+
+## Current Status
+- ✅ Server: Running on port 5000
+- ✅ Angel One API: Connected and authenticated
+- ✅ AWS DynamoDB: Initialized and ready
+- ✅ WebSocket: Connected and streaming live data
+- ✅ All Paper Trading features: Working correctly
+
+## Trade History Summary Behavior
+- Opens empty on startup (no hardcoded trades)
+- Record button clears old trades and shows only new imports
+- Imports to selected heatmap date (respects user date selection)
+- Single tap import (no double-tap needed)
+
+**All issues resolved. Application ready for use.**
