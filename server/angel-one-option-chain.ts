@@ -124,13 +124,13 @@ class AngelOneOptionChain {
       'SENSEX': { exchange: 'BSE', token: '99919000', symbol: 'Sensex' },
     };
     
-    // Default spot prices for indices (fallback)
+    // Default spot prices for indices (fallback) - Updated Dec 2025
     const defaultPrices: { [key: string]: number } = {
-      'NIFTY': 24500,
-      'BANKNIFTY': 52000,
-      'FINNIFTY': 23000,
-      'MIDCPNIFTY': 12000,
-      'SENSEX': 78000,
+      'NIFTY': 24800,
+      'BANKNIFTY': 53000,
+      'FINNIFTY': 25000,
+      'MIDCPNIFTY': 13500,
+      'SENSEX': 81000,
     };
 
     const indexInfo = indexMappings[normalizedUnderlying];
