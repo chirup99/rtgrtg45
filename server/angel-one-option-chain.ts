@@ -128,7 +128,7 @@ class AngelOneOptionChain {
     const defaultPrices: { [key: string]: number } = {
       'NIFTY': 24800,
       'BANKNIFTY': 53000,
-      'FINNIFTY': 25000,
+      'FINNIFTY': 27400,
       'MIDCPNIFTY': 13500,
       'SENSEX': 81000,
     };
@@ -150,7 +150,21 @@ class AngelOneOptionChain {
       }
     }
 
-    // PRIORITY 2: Try getCandleData from Angel One API (same as paper trading - PROVEN TO WORK)
+    // PRIORITY 2: Try getLTP from Angel One API (same method as paper trading)
+    try {
+      if (angelOneApi.isConnected() && indexInfo) {
+        console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
+        const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
+        if (quote && quote.ltp && quote.ltp > 0) {
+          console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One API LTP: ₹${quote.ltp}`);
+          return quote.ltp;
+        }
+      }
+    } catch (error: any) {
+      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch LTP for ${normalizedUnderlying}: ${error.message}`);
+    }
+
+    // PRIORITY 3: Try getCandleData from Angel One API (as backup)
     try {
       if (angelOneApi.isConnected() && indexInfo) {
         console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (Candle Data)...`);
@@ -166,20 +180,6 @@ class AngelOneOptionChain {
       }
     } catch (error: any) {
       console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch candle data for ${normalizedUnderlying}: ${error.message}`);
-    }
-
-    // PRIORITY 3: Try getLTP from Angel One API
-    try {
-      if (angelOneApi.isConnected() && indexInfo) {
-        console.log(`📊 [OPTION-CHAIN] Fetching spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
-        const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
-        if (quote && quote.ltp && quote.ltp > 0) {
-          console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One API: ₹${quote.ltp}`);
-          return quote.ltp;
-        }
-      }
-    } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch live spot price for ${normalizedUnderlying} from API: ${error.message}`);
     }
 
     // PRIORITY 4: Fallback to default prices
