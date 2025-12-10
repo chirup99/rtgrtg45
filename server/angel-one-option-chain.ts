@@ -150,56 +150,18 @@ class AngelOneOptionChain {
       }
     }
 
-    // PRIORITY 2: Try fetching latest candle data (like paper trading does)
+    // PRIORITY 2: Try getLTP from Angel One API (same as paper trading - PROVEN TO WORK)
     try {
       if (angelOneApi.isConnected() && indexInfo) {
-        const now = new Date();
-        const fromTime = new Date(now.getTime() - 60 * 60 * 1000); // Last 1 hour
-        const toTime = now;
-        
-        // Format dates as strings (YYYY-MM-DD HH:MM:SS)
-        const formatDate = (date: Date) => {
-          const y = date.getFullYear();
-          const m = String(date.getMonth() + 1).padStart(2, '0');
-          const d = String(date.getDate()).padStart(2, '0');
-          const h = String(date.getHours()).padStart(2, '0');
-          const min = String(date.getMinutes()).padStart(2, '0');
-          const s = String(date.getSeconds()).padStart(2, '0');
-          return `${y}-${m}-${d} ${h}:${min}:${s}`;
-        };
-        
-        // Fetch latest candle data
-        const candleData = await angelOneApi.getCandleData(
-          indexInfo.exchange,
-          indexInfo.token,
-          'FIVE_MINUTE',
-          formatDate(fromTime),
-          formatDate(toTime)
-        );
-        
-        if (candleData && candleData.length > 0) {
-          const latestCandle = candleData[candleData.length - 1];
-          if (latestCandle && latestCandle.close && latestCandle.close > 0) {
-            console.log(`📊 [OPTION-CHAIN] Got REAL spot price for ${normalizedUnderlying} from Angel One candle: ${latestCandle.close}`);
-            return latestCandle.close;
-          }
-        }
-      }
-    } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] Could not fetch candle data for ${normalizedUnderlying}: ${error.message}`);
-    }
-
-    // PRIORITY 3: Try getLTP as fallback
-    try {
-      if (angelOneApi.isConnected() && indexInfo) {
+        console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
         const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
-        if (quote && quote.ltp > 0) {
-          console.log(`📊 [OPTION-CHAIN] Got spot price for ${normalizedUnderlying} from getLTP: ${quote.ltp}`);
+        if (quote && quote.ltp && quote.ltp > 0) {
+          console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One API: ₹${quote.ltp}`);
           return quote.ltp;
         }
       }
     } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] Could not fetch live spot price for ${normalizedUnderlying} from API`);
+      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch live spot price for ${normalizedUnderlying} from API: ${error.message}`);
     }
 
     // PRIORITY 3: Fallback to default prices
