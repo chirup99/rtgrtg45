@@ -15916,8 +15916,22 @@ ${
                                   setIsDemoMode(checked);
                                   localStorage.setItem("tradingJournalDemoMode", String(checked));
                                   
-                                  // Clear current selection - heatmap will handle its own data loading
-                                  setSelectedDate(null);
+                                  // When switching to Preview, auto-select the last date with data for better UX
+                                  let autoSelectedDate = null;
+                                  if (checked) {
+                                    const datesWithData = Object.keys(tradingDataByDate).filter(dateKey => {
+                                      const data = tradingDataByDate[dateKey];
+                                      return data && (data.tradeHistory?.length > 0 || data.tradingData?.tradeHistory?.length > 0);
+                                    }).sort();
+                                    if (datesWithData.length > 0) {
+                                      const lastDateKey = datesWithData[datesWithData.length - 1];
+                                      autoSelectedDate = new Date(lastDateKey);
+                                      console.log(`📅 Auto-selecting last date with data: ${lastDateKey}`);
+                                    }
+                                  }
+                                  
+                                  // Clear current selection or use auto-selected date
+                                  setSelectedDate(autoSelectedDate);
                                   setNotesContent("");
                                   setTempNotesContent("");
                                   setSelectedTags([]);
@@ -15938,7 +15952,6 @@ ${
                             >
                               Save
                             </Button>
-                          </div>
                         </div>
 
                         {/* ✅ NEW CLEAN HEATMAP IMPLEMENTATION - Separate components for Demo & Personal */}
