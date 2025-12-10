@@ -19426,7 +19426,6 @@ ${
                 >
                   <option value="NIFTY">NIFTY</option>
                   <option value="BANKNIFTY">BANKNIFTY</option>
-                  <option value="FINNIFTY">FINNIFTY</option>
                   <option value="SENSEX">SENSEX</option>
                 </select>
               </div>
@@ -19556,7 +19555,6 @@ ${
     const exchangeMap: Record<string, string> = {
       'NIFTY': 'NFO',
       'BANKNIFTY': 'NFO',
-      'FINNIFTY': 'NFO',
       'SENSEX': 'BFO',
       'MIDCPNIFTY': 'NFO'
     };

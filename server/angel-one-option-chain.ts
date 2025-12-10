@@ -119,7 +119,6 @@ class AngelOneOptionChain {
     const indexMappings: { [key: string]: { exchange: string; token: string; symbol: string } } = {
       'NIFTY': { exchange: 'NSE', token: '99926000', symbol: 'Nifty 50' },
       'BANKNIFTY': { exchange: 'NSE', token: '99926009', symbol: 'Nifty Bank' },
-      'FINNIFTY': { exchange: 'NSE', token: '99926037', symbol: 'Nifty Fin Service' },
       'MIDCPNIFTY': { exchange: 'NSE', token: '99926074', symbol: 'NIFTY MID SELECT' },
       'SENSEX': { exchange: 'BSE', token: '99919000', symbol: 'Sensex' },
     };
