@@ -5330,51 +5330,44 @@ ${
     
     const fetchFuturesPrice = async () => {
       try {
-        // Try to get the nearest futures contract for this index
-        const futuresSymbols: { [key: string]: string[] } = {
-          'NIFTY': ['NIFTY', 'NIFTY-NEXT'],
+        // Try multiple ways to get futures price
+        const futuresSymbols = {
+          'NIFTY': ['NIFTY', 'NIFTY-NEXT', 'NIFTYIT', 'NIFTYFIN'],
           'BANKNIFTY': ['BANKNIFTY', 'BANKNIFTY-NEXT'],
           'FINNIFTY': ['FINNIFTY', 'FINNIFTY-NEXT'],
           'SENSEX': ['SENSEX', 'SENSEX-NEXT']
         };
         
-        const symbols = futuresSymbols[selectedOptionIndex] || [selectedOptionIndex];
-        let found = false;
+        const symbols = futuresSymbols[selectedOptionIndex as keyof typeof futuresSymbols] || [selectedOptionIndex];
+        let futuresPrice = null;
         
+        // Try each symbol variant
         for (const symbol of symbols) {
           try {
-            const response = await fetch(`/api/search-instruments?query=${symbol}`);
-            const data = await response.json();
-            
-            if (data.instruments && data.instruments.length > 0) {
-              // Filter for futures/near contracts (exclude options and spot)
-              const futuresInst = data.instruments.find((inst: any) => 
-                inst.instrumentType === 'FUTCOM' || 
-                inst.instrumentType === 'FUTSTK' ||
-                (inst.symbol && (inst.symbol.includes('-NEXT') || inst.symbol.includes('FUT')))
-              ) || data.instruments[0];
+            // Try fetching from API
+            const response = await fetch(`/api/live-price?symbol=${symbol}`);
+            if (response.ok) {
+              const data = await response.json();
+              futuresPrice = data?.price || data?.ltp || data?.lastPrice || data?.close;
               
-              const price = futuresInst?.lastPrice || futuresInst?.closePrice || futuresInst?.ltp;
-              
-              if (price && price > 100) { // Validate it's a realistic price
-                setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
-                console.log(`✅ Fetched futures price for ${selectedOptionIndex}: ${price}`);
-                found = true;
-                break;
+              if (futuresPrice && futuresPrice > 100) {
+                setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: futuresPrice }));
+                console.log(`✅ Fetched ${symbol} futures: ${futuresPrice}`);
+                return;
               }
             }
-          } catch (error) {
-            console.log(`Error fetching ${symbol} for futures:`, error);
+          } catch (e) {
+            console.log(`Trying next symbol for ${selectedOptionIndex}...`);
           }
         }
         
-        // If no valid futures price found, try getting from optionChainData which should have spotPrice
-        if (!found && optionChainData?.spotPrice && optionChainData.spotPrice > 100) {
+        // Fallback: If available, calculate from optionChainData or use spot price
+        if (optionChainData?.spotPrice && optionChainData.spotPrice > 100) {
           setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
-          console.log(`✅ Using fallback spot price for ${selectedOptionIndex}: ${optionChainData.spotPrice}`);
+          console.log(`✅ Using spotPrice for ${selectedOptionIndex}: ${optionChainData.spotPrice}`);
         }
       } catch (error) {
-        console.error('Error in futures price fetch:', error);
+        console.error(`Error fetching futures price for ${selectedOptionIndex}:`, error);
       }
     };
     
