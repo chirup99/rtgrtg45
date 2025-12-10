@@ -88,7 +88,7 @@ class AngelOneOptionChain {
       const effectiveStrikeRange = strikeRange !== undefined ? strikeRange : this.defaultStrikeRange;
       
       // Fetch live prices for options
-      const enrichedStrikes = await this.enrichStrikesWithPrices(strikes, spotPrice, atmStrike, effectiveStrikeRange);
+      const enrichedStrikes = await this.enrichStrikesWithPrices(underlying, strikes, spotPrice, atmStrike, effectiveStrikeRange);
 
       const optionChainData: OptionChainData = {
         underlying: underlying.toUpperCase(),
@@ -177,6 +177,7 @@ class AngelOneOptionChain {
   }
 
   private async enrichStrikesWithPrices(
+    underlying: string,
     strikes: OptionChainStrike[], 
     spotPrice: number,
     atmStrike: number,
@@ -210,8 +211,8 @@ class AngelOneOptionChain {
       }
     }
 
-    // Fetch prices in batches using Angel One API
-    const priceMap = await this.fetchOptionPrices(optionTokens);
+    // Fetch prices in batches using Angel One API (pass underlying to determine exchange)
+    const priceMap = await this.fetchOptionPrices(underlying, optionTokens);
 
     // Enrich strikes with price data
     const enrichedStrikes = filteredStrikes.map(strike => {
@@ -246,6 +247,7 @@ class AngelOneOptionChain {
   }
 
   private async fetchOptionPrices(
+    underlying: string,
     tokens: { token: string; strike: number; type: 'CE' | 'PE' }[]
   ): Promise<Map<string, OptionQuoteData>> {
     const priceMap = new Map<string, OptionQuoteData>();
@@ -256,6 +258,11 @@ class AngelOneOptionChain {
     }
 
     try {
+      // Determine exchange based on underlying
+      // SENSEX uses BFO (Bombay Futures & Options), others use NFO
+      const exchange = underlying.toUpperCase() === 'SENSEX' ? 'BFO' : 'NFO';
+      console.log(`📊 [OPTION-CHAIN] Using ${exchange} exchange for ${underlying}`);
+
       // Batch tokens for API call (Angel One allows up to 50 tokens per request)
       const batchSize = 50;
       const batches = [];
@@ -280,7 +287,7 @@ class AngelOneOptionChain {
             {
               mode: 'FULL',
               exchangeTokens: {
-                'NFO': tokenList
+                [exchange]: tokenList
               }
             },
             {
@@ -312,17 +319,20 @@ class AngelOneOptionChain {
                 change: (parseFloat(quote.ltp) || 0) - (parseFloat(quote.close) || 0)
               });
             }
+            console.log(`📊 [OPTION-CHAIN] Fetched ${response.data.data.fetched.length} prices from ${exchange}`);
+          } else {
+            console.log(`📊 [OPTION-CHAIN] No fetched data in response for ${exchange}:`, response.data?.data);
           }
           
           // Small delay between batches to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 100));
           
         } catch (error: any) {
-          console.log(`📊 [OPTION-CHAIN] Batch fetch error:`, error.message);
+          console.log(`📊 [OPTION-CHAIN] Batch fetch error for ${exchange}:`, error.message);
         }
       }
 
-      console.log(`📊 [OPTION-CHAIN] Fetched prices for ${priceMap.size} options`);
+      console.log(`📊 [OPTION-CHAIN] Fetched prices for ${priceMap.size} options from ${exchange}`);
       
     } catch (error: any) {
       console.error('📊 [OPTION-CHAIN] Error fetching option prices:', error.message);
