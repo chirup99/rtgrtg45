@@ -115,7 +115,7 @@ class AngelOneOptionChain {
   private async getSpotPrice(underlying: string): Promise<number> {
     const normalizedUnderlying = underlying.toUpperCase().trim();
     
-    // Index token mappings for both WebSocket and API
+    // Simple index token mappings (same as paper trading uses)
     const indexMappings: { [key: string]: { exchange: string; token: string; symbol: string } } = {
       'NIFTY': { exchange: 'NSE', token: '99926000', symbol: 'Nifty 50' },
       'BANKNIFTY': { exchange: 'NSE', token: '99926009', symbol: 'Nifty Bank' },
@@ -125,58 +125,26 @@ class AngelOneOptionChain {
     };
 
     const indexInfo = indexMappings[normalizedUnderlying];
-    
-    // PRIORITY 1: Try WebSocket live prices (real-time streaming data from paper trading)
-    // WebSocketOHLC uses 'close' for the last traded price
-    if (indexInfo) {
-      try {
-        const wsPrices = angelOneWebSocket.getLatestPrices([indexInfo.token]);
-        const wsPrice = wsPrices.get(indexInfo.token);
-        if (wsPrice && wsPrice.close && wsPrice.close > 0) {
-          console.log(`📊 [OPTION-CHAIN] ✅ Got LIVE spot price for ${normalizedUnderlying} from WebSocket: ₹${wsPrice.close}`);
-          return wsPrice.close;
-        }
-      } catch (error: any) {
-        console.log(`📊 [OPTION-CHAIN] WebSocket price not available for ${normalizedUnderlying}, trying API...`);
-      }
+    if (!indexInfo) {
+      throw new Error(`❌ [OPTION-CHAIN] Unknown index: ${normalizedUnderlying}`);
     }
 
-    // PRIORITY 2: Try getLTP from Angel One API (same method as paper trading uses)
+    // Simple real-time LTP fetch (same as paper trading)
     try {
-      if (angelOneApi.isConnected() && indexInfo) {
-        console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
-        const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
-        if (quote && quote.ltp && quote.ltp > 0) {
-          console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One API LTP: ₹${quote.ltp}`);
-          return quote.ltp;
-        }
+      console.log(`📊 [OPTION-CHAIN] Fetching live spot price for ${normalizedUnderlying}...`);
+      const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
+      
+      if (!quote || !quote.ltp || quote.ltp <= 0) {
+        throw new Error(`No valid LTP received for ${normalizedUnderlying}`);
       }
+      
+      console.log(`📊 [OPTION-CHAIN] ✅ Real spot price for ${normalizedUnderlying}: ₹${quote.ltp}`);
+      return quote.ltp;
     } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch LTP for ${normalizedUnderlying}, trying candle data...`);
+      const errorMsg = `❌ [OPTION-CHAIN] Failed to fetch live spot price for ${normalizedUnderlying}: ${error.message}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
-
-    // PRIORITY 3: Try getCandleData from Angel One API (as backup)
-    try {
-      if (angelOneApi.isConnected() && indexInfo) {
-        console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (Candle Data)...`);
-        const candleData = await angelOneApi.getCandleData(indexInfo.token, indexInfo.exchange, '5');
-        if (candleData && candleData.length > 0) {
-          const latestCandle = candleData[candleData.length - 1];
-          const closePrice = latestCandle.close;
-          if (closePrice && closePrice > 0) {
-            console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One Candle Data: ₹${closePrice}`);
-            return closePrice;
-          }
-        }
-      }
-    } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch candle data for ${normalizedUnderlying}: ${error.message}`);
-    }
-
-    // No default fallback - all sources failed
-    const errorMsg = `❌ [OPTION-CHAIN] Could not fetch any real spot price for ${normalizedUnderlying}. WebSocket and API sources all failed.`;
-    console.error(errorMsg);
-    throw new Error(errorMsg);
   }
 
   private findATMStrike(strikes: number[], spotPrice: number): number {
