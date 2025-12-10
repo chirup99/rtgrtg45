@@ -126,25 +126,38 @@ class AngelOneOptionChain {
 
     const indexInfo = indexMappings[normalizedUnderlying];
     if (!indexInfo) {
-      throw new Error(`❌ [OPTION-CHAIN] Unknown index: ${normalizedUnderlying}`);
+      console.warn(`⚠️ [OPTION-CHAIN] Unknown index: ${normalizedUnderlying}, returning 0`);
+      return 0;
     }
 
-    // Simple real-time LTP fetch (same as paper trading)
+    // Try LTP first (same as paper trading)
     try {
       console.log(`📊 [OPTION-CHAIN] Fetching live spot price for ${normalizedUnderlying}...`);
       const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
       
-      if (!quote || !quote.ltp || quote.ltp <= 0) {
-        throw new Error(`No valid LTP received for ${normalizedUnderlying}`);
+      if (quote && quote.ltp && quote.ltp > 0) {
+        console.log(`📊 [OPTION-CHAIN] ✅ Real spot price for ${normalizedUnderlying}: ₹${quote.ltp}`);
+        return quote.ltp;
       }
-      
-      console.log(`📊 [OPTION-CHAIN] ✅ Real spot price for ${normalizedUnderlying}: ₹${quote.ltp}`);
-      return quote.ltp;
     } catch (error: any) {
-      const errorMsg = `❌ [OPTION-CHAIN] Failed to fetch live spot price for ${normalizedUnderlying}: ${error.message}`;
-      console.error(errorMsg);
-      throw new Error(errorMsg);
+      console.log(`⚠️ [OPTION-CHAIN] LTP fetch failed for ${normalizedUnderlying}, trying WebSocket...`);
     }
+
+    // Fallback to WebSocket prices
+    try {
+      const wsPrices = angelOneWebSocket.getLatestPrices([indexInfo.token]);
+      const wsPrice = wsPrices.get(indexInfo.token);
+      if (wsPrice && wsPrice.close && wsPrice.close > 0) {
+        console.log(`📊 [OPTION-CHAIN] ✅ Got WebSocket price for ${normalizedUnderlying}: ₹${wsPrice.close}`);
+        return wsPrice.close;
+      }
+    } catch (error: any) {
+      console.log(`⚠️ [OPTION-CHAIN] WebSocket price not available for ${normalizedUnderlying}`);
+    }
+
+    // Both failed - return 0 and let UI handle it gracefully
+    console.warn(`⚠️ [OPTION-CHAIN] Could not fetch spot price for ${normalizedUnderlying}, returning 0 (UI will show loading state)`);
+    return 0;
   }
 
   private findATMStrike(strikes: number[], spotPrice: number): number {
