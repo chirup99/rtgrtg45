@@ -19575,7 +19575,7 @@ ${
                 };
 
                 const { calls, puts } = getOptionSymbols();
-                const currentPrice = optionChainData?.spotPrice || futuresPrices[selectedOptionIndex] || 0 || 0;
+                const currentPrice = futuresPrices[selectedOptionIndex] || optionChainData?.spotPrice || 0;
                 
                 // Find the single nearest ATM strike
                 const allStrikes = new Set();
