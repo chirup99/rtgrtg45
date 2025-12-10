@@ -5322,6 +5322,7 @@ ${
   const [optionChainLoading, setOptionChainLoading] = useState(false);
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
+  const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
   const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
 
   // Fetch futures price from Angel One (NFO/BFO) when index changes
@@ -5381,6 +5382,7 @@ ${
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
+  };
   const foEligibleSymbols = [
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'ASIANPAINT', 'TITAN', 'TATAMOTORS', 'SUNPHARMA', 'WIPRO', 'ULTRACEMCO',
