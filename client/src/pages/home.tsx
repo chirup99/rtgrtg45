@@ -4785,7 +4785,6 @@ ${
     // 5️⃣ Close paper trading dialog and show summary
     setShowPaperTradingModal(false);
     setJournalChartMode('heatmap');
-    setShowShareDialog(true); // Open tradebook to add images & notes
     
     toast({
       title: "Trades Recorded",
