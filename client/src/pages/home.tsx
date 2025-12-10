@@ -5323,11 +5323,11 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
-      return [];
-    }
   // Get expiry dates from optionChainData
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
+      return [];
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
