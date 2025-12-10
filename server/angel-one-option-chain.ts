@@ -115,7 +115,7 @@ class AngelOneOptionChain {
   private async getSpotPrice(underlying: string): Promise<number> {
     const normalizedUnderlying = underlying.toUpperCase().trim();
     
-    // Simple index token mappings (same as paper trading uses)
+    // Same mappings as paper trading uses
     const indexMappings: { [key: string]: { exchange: string; token: string; symbol: string } } = {
       'NIFTY': { exchange: 'NSE', token: '99926000', symbol: 'Nifty 50' },
       'BANKNIFTY': { exchange: 'NSE', token: '99926009', symbol: 'Nifty Bank' },
@@ -126,45 +126,50 @@ class AngelOneOptionChain {
 
     const indexInfo = indexMappings[normalizedUnderlying];
     if (!indexInfo) {
-      console.warn(`⚠️ [OPTION-CHAIN] Unknown index: ${normalizedUnderlying}, returning 0`);
       return 0;
     }
 
-    // Try LTP first (same as paper trading)
+    // Try paper trading's approach: get quotes (which uses getLTP internally)
     try {
-      console.log(`📊 [OPTION-CHAIN] Fetching LTP for ${normalizedUnderlying} (exchange: ${indexInfo.exchange}, symbol: ${indexInfo.symbol}, token: ${indexInfo.token})...`);
-      const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
+      console.log(`📊 [OPTION-CHAIN] Getting spot price for ${normalizedUnderlying} via getQuotes...`);
+      const quotes = await angelOneApi.getQuotes([{
+        exchange: indexInfo.exchange,
+        tradingSymbol: indexInfo.symbol,
+        symbolToken: indexInfo.token
+      }]);
       
-      console.log(`📊 [OPTION-CHAIN] LTP Response for ${normalizedUnderlying}:`, JSON.stringify(quote));
-      
-      if (quote && quote.ltp && quote.ltp > 0) {
-        console.log(`📊 [OPTION-CHAIN] ✅ Real spot price for ${normalizedUnderlying}: ₹${quote.ltp}`);
-        return quote.ltp;
-      } else {
-        console.log(`⚠️ [OPTION-CHAIN] LTP returned invalid data for ${normalizedUnderlying}: quote=${JSON.stringify(quote)}`);
+      if (quotes && quotes.length > 0 && quotes[0].ltp > 0) {
+        console.log(`📊 [OPTION-CHAIN] ✅ Got price via getQuotes for ${normalizedUnderlying}: ₹${quotes[0].ltp}`);
+        return quotes[0].ltp;
       }
     } catch (error: any) {
-      console.log(`⚠️ [OPTION-CHAIN] LTP API error for ${normalizedUnderlying}: ${error.message}`);
+      console.log(`⚠️ [OPTION-CHAIN] getQuotes failed for ${normalizedUnderlying}: ${error.message}`);
     }
 
-    // Fallback to WebSocket prices
+    // Direct LTP call
+    try {
+      const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
+      if (quote && quote.ltp > 0) {
+        console.log(`📊 [OPTION-CHAIN] ✅ Got price via getLTP for ${normalizedUnderlying}: ₹${quote.ltp}`);
+        return quote.ltp;
+      }
+    } catch (error: any) {
+      console.log(`⚠️ [OPTION-CHAIN] getLTP failed for ${normalizedUnderlying}: ${error.message}`);
+    }
+
+    // Fallback to WebSocket
     try {
       const wsPrices = angelOneWebSocket.getLatestPrices([indexInfo.token]);
-      console.log(`📊 [OPTION-CHAIN] WebSocket map for ${normalizedUnderlying} (token: ${indexInfo.token}): Available tokens = [${Array.from(wsPrices.keys()).join(', ')}]`);
-      
       const wsPrice = wsPrices.get(indexInfo.token);
-      console.log(`📊 [OPTION-CHAIN] WebSocket price for ${normalizedUnderlying}: ${JSON.stringify(wsPrice)}`);
-      
       if (wsPrice && wsPrice.close && wsPrice.close > 0) {
         console.log(`📊 [OPTION-CHAIN] ✅ Got WebSocket price for ${normalizedUnderlying}: ₹${wsPrice.close}`);
         return wsPrice.close;
       }
     } catch (error: any) {
-      console.log(`⚠️ [OPTION-CHAIN] WebSocket error for ${normalizedUnderlying}: ${error.message}`);
+      // Silent fallback
     }
 
-    // Both failed - return 0 and let UI handle it gracefully
-    console.warn(`⚠️ [OPTION-CHAIN] Could not fetch spot price for ${normalizedUnderlying}, returning 0 (UI will show loading state)`);
+    // Return 0 - UI will show gracefully
     return 0;
   }
 
