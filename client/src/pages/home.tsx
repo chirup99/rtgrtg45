@@ -4914,8 +4914,8 @@ ${
       const symbolToken = (position as any).symbolToken || "0";
       const exchange = (position as any).exchange || "NSE";
       
-      // 🔶 Use 1-minute interval for live price stream (aggregation happens on display)
-      const sseUrl = `/api/angelone/live-stream-ws?symbol=${position.symbol}&symbolToken=${symbolToken}&exchange=${exchange}&tradingSymbol=${position.symbol}&interval=60`; // 60 seconds = 1 minute
+      // 🔴 Use 700ms live tick stream for instant P&L updates (same as initial price fetch)
+      const sseUrl = `/api/angelone/live-stream-ws?symbol=${position.symbol}&symbolToken=${symbolToken}&exchange=${exchange}&tradingSymbol=${position.symbol}&interval=0`; // 0 = 700ms live tick data
       
       console.log(`📡 [PAPER-TRADING] Subscribing to ${position.symbol} live stream`);
       
