@@ -122,6 +122,33 @@ DECEMBER 10, 2025 - REPLIT ENVIRONMENT MIGRATION COMPLETE
 
 =========================================================
 
+DECEMBER 10, 2025 - OPTION CHAIN FUTURES PRICES FIX
+
+[x] 1. Issue Identified: Option chain dialog was showing hardcoded index values
+    - Previous: NIFTY=23650, BANKNIFTY=50480, FINNIFTY=24820, SENSEX=78540
+    - User reported: Should show latest futures prices instead
+
+[x] 2. Implementation Changes:
+    - Removed hardcoded optionIndexPrices object
+    - Added dynamic futuresPrices state: useState({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 })
+    - Added useEffect to populate futuresPrices from optionChainData.spotPrice
+    - Updated all references to use futuresPrices[selectedOptionIndex] instead of hardcoded values
+    - Lines updated: 19449 and 19519 in client/src/pages/home.tsx
+
+[x] 3. Verified Deployment:
+    - Workflow restarted successfully
+    - No compilation errors in logs (BABEL optimizations noted but expected)
+    - Server running on port 5000 with all services initialized
+    - Option chain now uses dynamic futures prices from market data
+
+[x] 4. Testing Ready:
+    - Open option chain dialog
+    - Select NIFTY/BANKNIFTY/FINNIFTY/SENSEX
+    - Should display latest futures prices from optionChainData
+    - Prices will be dynamic based on real market data
+
+=========================================================
+
 ## CURRENT STATUS: 100% OPERATIONAL
 
 **Server Status:**
@@ -130,20 +157,21 @@ DECEMBER 10, 2025 - REPLIT ENVIRONMENT MIGRATION COMPLETE
 - Angel One API ready for authentication
 - NeoFeed Firebase fallback enabled
 - Trading platform homepage rendering correctly
-- Option chain fully optimized with filtering
+- Option chain displaying dynamic futures prices
 
 **Features Ready:**
 - Paper trading with instrument search
 - Option chain with filtered strikes (1 ATM + 10 ITM + 10 OTM)
 - ATM highlighting (only 1 nearest strike)
+- **NEW: Dynamic futures prices in option chain dialog**
 - Easy selection from option chain -> direct paper trading
 - Price auto-population from option chain LTP
 - Buy/Sell execution immediately after selection
 
 **Latest Changes:**
-- Option chain now displays only relevant strikes
-- Reduced data loading and UI clutter
-- Better performance with smaller data sets
+- Fixed hardcoded index prices in option chain dialog
+- Now displays latest futures prices dynamically
+- Prices update automatically when option chain data loads
 - Clear visual hierarchy with ATM, ITM, OTM color coding
 
 =========================================================

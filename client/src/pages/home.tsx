@@ -5322,6 +5322,14 @@ ${
   const [optionChainLoading, setOptionChainLoading] = useState(false);
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
+  const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
+
+  // Update futures prices when option chain data loads
+  React.useEffect(() => {
+    if (optionChainData?.spotPrice && selectedOptionIndex) {
+      setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
+    }
+  }, [optionChainData?.spotPrice, selectedOptionIndex]);
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
 
   // Auto-default to latest expiry date when option chain data loads
@@ -5330,7 +5338,6 @@ ${
       setSelectedOptionExpiryDate(optionChainData.expiries[0]);
     }
   }, [optionChainData, selectedOptionIndex]);
-  const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
   
   // Get expiry dates from optionChainData (real Angel One NFO data)
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
@@ -19446,7 +19453,7 @@ ${
               {/* Price */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-price">
-                  {optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
+                  {optionChainData?.spotPrice?.toLocaleString() || futuresPrices[selectedOptionIndex] || 0?.toLocaleString() || '-'}
                 </span>
               </div>
 
@@ -19516,7 +19523,7 @@ ${
                 };
 
                 const { calls, puts } = getOptionSymbols();
-                const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
+                const currentPrice = optionChainData?.spotPrice || futuresPrices[selectedOptionIndex] || 0 || 0;
                 
                 // Find the single nearest ATM strike
                 const allStrikes = new Set();
