@@ -150,10 +150,28 @@ class AngelOneOptionChain {
       }
     }
 
-    // PRIORITY 2: Try getLTP from Angel One API (same as paper trading - PROVEN TO WORK)
+    // PRIORITY 2: Try getCandleData from Angel One API (same as paper trading - PROVEN TO WORK)
     try {
       if (angelOneApi.isConnected() && indexInfo) {
-        console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
+        console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (Candle Data)...`);
+        const candleData = await angelOneApi.getCandleData(indexInfo.token, indexInfo.exchange, '5');
+        if (candleData && candleData.length > 0) {
+          const latestCandle = candleData[candleData.length - 1];
+          const closePrice = latestCandle.close;
+          if (closePrice && closePrice > 0) {
+            console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One Candle Data: ₹${closePrice}`);
+            return closePrice;
+          }
+        }
+      }
+    } catch (error: any) {
+      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch candle data for ${normalizedUnderlying}: ${error.message}`);
+    }
+
+    // PRIORITY 3: Try getLTP from Angel One API
+    try {
+      if (angelOneApi.isConnected() && indexInfo) {
+        console.log(`📊 [OPTION-CHAIN] Fetching spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
         const quote = await angelOneApi.getLTP(indexInfo.exchange, indexInfo.symbol, indexInfo.token);
         if (quote && quote.ltp && quote.ltp > 0) {
           console.log(`📊 [OPTION-CHAIN] ✅ Got REAL spot price for ${normalizedUnderlying} from Angel One API: ₹${quote.ltp}`);
@@ -164,7 +182,7 @@ class AngelOneOptionChain {
       console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch live spot price for ${normalizedUnderlying} from API: ${error.message}`);
     }
 
-    // PRIORITY 3: Fallback to default prices
+    // PRIORITY 4: Fallback to default prices
     console.log(`📊 [OPTION-CHAIN] Using default spot price for ${normalizedUnderlying}: ${defaultPrices[normalizedUnderlying] || 24500}`);
     return defaultPrices[normalizedUnderlying] || 24500;
   }
