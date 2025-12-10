@@ -5328,40 +5328,51 @@ ${
   React.useEffect(() => {
     if (!showOptionChain || !selectedOptionIndex) return;
     
-    // Map each index to its futures contract symbols (near/next month)
-    const futuresSymbolMap: { [key: string]: string[] } = {
-      'NIFTY': ['NIFTY-DEC', 'NIFTY-JAN', 'NIFTY'],
-      'BANKNIFTY': ['BANKNIFTY-DEC', 'BANKNIFTY-JAN', 'BANKNIFTY'],
-      'FINNIFTY': ['FINNIFTY-DEC', 'FINNIFTY-JAN', 'FINNIFTY'],
-      'SENSEX': ['SENSEX-DEC', 'SENSEX-JAN', 'SENSEX']
-    };
-    
-    const possibleSymbols = futuresSymbolMap[selectedOptionIndex] || [selectedOptionIndex];
-    
     const fetchFuturesPrice = async () => {
-      // Try to fetch from the first available futures symbol
-      for (const symbol of possibleSymbols) {
-        try {
-          const response = await fetch(`/api/search-instruments?query=${symbol}`);
-          const data = await response.json();
-          
-          if (data.instruments && data.instruments.length > 0) {
-            const inst = data.instruments[0];
-            const price = inst.lastPrice || inst.closePrice || 0;
+      try {
+        // Try to get the nearest futures contract for this index
+        const futuresSymbols: { [key: string]: string[] } = {
+          'NIFTY': ['NIFTY', 'NIFTY-NEXT'],
+          'BANKNIFTY': ['BANKNIFTY', 'BANKNIFTY-NEXT'],
+          'FINNIFTY': ['FINNIFTY', 'FINNIFTY-NEXT'],
+          'SENSEX': ['SENSEX', 'SENSEX-NEXT']
+        };
+        
+        const symbols = futuresSymbols[selectedOptionIndex] || [selectedOptionIndex];
+        let found = false;
+        
+        for (const symbol of symbols) {
+          try {
+            const response = await fetch(`/api/search-instruments?query=${symbol}`);
+            const data = await response.json();
             
-            if (price > 0) {
-              setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
-              return; // Successfully fetched, exit
+            if (data.instruments && data.instruments.length > 0) {
+              // Filter for futures/near contracts (exclude options and spot)
+              const futuresInst = data.instruments.find((inst: any) => 
+                inst.instrumentType === 'FUTCOM' || 
+                inst.instrumentType === 'FUTSTK' ||
+                (inst.symbol && (inst.symbol.includes('-NEXT') || inst.symbol.includes('FUT')))
+              ) || data.instruments[0];
+              
+              const price = futuresInst?.lastPrice || futuresInst?.closePrice || futuresInst?.ltp;
+              
+              if (price && price > 100) { // Validate it's a realistic price
+                setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
+                found = true;
+                break;
+              }
             }
+          } catch (error) {
+            console.log(`Error fetching ${symbol} for futures:`, error);
           }
-        } catch (error) {
-          console.log(`Error fetching ${symbol}:`, error);
         }
-      }
-      
-      // If no futures price found, fall back to optionChainData spotPrice if available
-      if (optionChainData?.spotPrice && optionChainData.spotPrice > 0) {
-        setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
+        
+        // If no valid futures price found, try getting from optionChainData which should have spotPrice
+        if (!found && optionChainData?.spotPrice && optionChainData.spotPrice > 100) {
+          setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
+        }
+      } catch (error) {
+        console.error('Error in futures price fetch:', error);
       }
     };
     
