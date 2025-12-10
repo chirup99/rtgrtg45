@@ -5324,12 +5324,49 @@ ${
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
 
-  // Update futures prices when option chain data loads
+  // Update futures prices - fetch the actual near/next month futures contract
   React.useEffect(() => {
-    if (optionChainData?.spotPrice && selectedOptionIndex) {
-      setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
-    }
-  }, [optionChainData?.spotPrice, selectedOptionIndex]);
+    if (!showOptionChain || !selectedOptionIndex) return;
+    
+    // Map each index to its futures contract symbols (near/next month)
+    const futuresSymbolMap: { [key: string]: string[] } = {
+      'NIFTY': ['NIFTY-DEC', 'NIFTY-JAN', 'NIFTY'],
+      'BANKNIFTY': ['BANKNIFTY-DEC', 'BANKNIFTY-JAN', 'BANKNIFTY'],
+      'FINNIFTY': ['FINNIFTY-DEC', 'FINNIFTY-JAN', 'FINNIFTY'],
+      'SENSEX': ['SENSEX-DEC', 'SENSEX-JAN', 'SENSEX']
+    };
+    
+    const possibleSymbols = futuresSymbolMap[selectedOptionIndex] || [selectedOptionIndex];
+    
+    const fetchFuturesPrice = async () => {
+      // Try to fetch from the first available futures symbol
+      for (const symbol of possibleSymbols) {
+        try {
+          const response = await fetch(`/api/search-instruments?query=${symbol}`);
+          const data = await response.json();
+          
+          if (data.instruments && data.instruments.length > 0) {
+            const inst = data.instruments[0];
+            const price = inst.lastPrice || inst.closePrice || 0;
+            
+            if (price > 0) {
+              setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
+              return; // Successfully fetched, exit
+            }
+          }
+        } catch (error) {
+          console.log(`Error fetching ${symbol}:`, error);
+        }
+      }
+      
+      // If no futures price found, fall back to optionChainData spotPrice if available
+      if (optionChainData?.spotPrice && optionChainData.spotPrice > 0) {
+        setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
+      }
+    };
+    
+    fetchFuturesPrice();
+  }, [showOptionChain, selectedOptionIndex, optionChainData?.spotPrice]);
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
 
   // Auto-default to latest expiry date when option chain data loads
@@ -19453,7 +19490,7 @@ ${
               {/* Price */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-price">
-                  {optionChainData?.spotPrice?.toLocaleString() || futuresPrices[selectedOptionIndex] || 0?.toLocaleString() || '-'}
+                  {(futuresPrices[selectedOptionIndex] || optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
                 </span>
               </div>
 
