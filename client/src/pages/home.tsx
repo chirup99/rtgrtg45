@@ -19474,7 +19474,7 @@ ${
                 </div>
               )}
               
-              {!optionChainLoading && selectedOptionExpiryDate && (() => {
+              {!optionChainLoading && (selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (() => {
                 const getOptionSymbols = () => {
                   if (!optionChainData?.calls || !optionChainData?.puts) {
                     return { calls: [], puts: [] };
@@ -19492,7 +19492,8 @@ ${
                     return null;
                   };
                   
-                  const selectedExpiryFormatted = formatExpiryDate(selectedOptionExpiryDate);
+                    const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+                  const selectedExpiryFormatted = formatExpiryDate(effectiveExpiryDate);
                   
                   const filteredCalls = optionChainData.calls.filter((call: any) => {
                     // If no expiry field, include it; if has expiry, must match selected
@@ -19625,7 +19626,7 @@ ${
                 return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index].symbol || `${selectedOptionIndex}${filteredCalls[index].strikePrice}CE`, filteredCalls[index].ltp)} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index].symbol || `${selectedOptionIndex}${filteredPuts[index].strikePrice}PE`, filteredPuts[index].ltp)} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
-              {!optionChainLoading && !selectedOptionExpiryDate && (
+              {!optionChainLoading && !(selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
