@@ -5324,9 +5324,9 @@ ${
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
 
-  // Update futures prices - fetch the actual near/next month futures contract
+  // Update futures prices - fetch the actual near/next month futures contract when index changes
   React.useEffect(() => {
-    if (!showOptionChain || !selectedOptionIndex) return;
+    if (!selectedOptionIndex) return;
     
     const fetchFuturesPrice = async () => {
       try {
@@ -5358,6 +5358,7 @@ ${
               
               if (price && price > 100) { // Validate it's a realistic price
                 setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
+                console.log(`✅ Fetched futures price for ${selectedOptionIndex}: ${price}`);
                 found = true;
                 break;
               }
@@ -5370,14 +5371,17 @@ ${
         // If no valid futures price found, try getting from optionChainData which should have spotPrice
         if (!found && optionChainData?.spotPrice && optionChainData.spotPrice > 100) {
           setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
+          console.log(`✅ Using fallback spot price for ${selectedOptionIndex}: ${optionChainData.spotPrice}`);
         }
       } catch (error) {
         console.error('Error in futures price fetch:', error);
       }
     };
     
+    // Fetch immediately when index changes
     fetchFuturesPrice();
-  }, [showOptionChain, selectedOptionIndex, optionChainData?.spotPrice]);
+  }, [selectedOptionIndex, optionChainData?.spotPrice]);
+
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
 
   // Auto-default to latest expiry date when option chain data loads
