@@ -5324,65 +5324,42 @@ ${
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [futuresPrices, setFuturesPrices] = useState<{ [key: string]: number }>({ NIFTY: 0, BANKNIFTY: 0, FINNIFTY: 0, SENSEX: 0 });
 
-  // Update futures prices - fetch the actual near/next month futures contract when index changes
+  // Fetch futures price from Angel One NFO when index changes
   React.useEffect(() => {
     if (!selectedOptionIndex) return;
-    
+
     const fetchFuturesPrice = async () => {
       try {
-        // Try multiple ways to get futures price
-        const futuresSymbols = {
-          'NIFTY': ['NIFTY', 'NIFTY-NEXT', 'NIFTYIT', 'NIFTYFIN'],
-          'BANKNIFTY': ['BANKNIFTY', 'BANKNIFTY-NEXT'],
-          'FINNIFTY': ['FINNIFTY', 'FINNIFTY-NEXT'],
-          'SENSEX': ['SENSEX', 'SENSEX-NEXT']
+        // Map indices to their futures contract symbols
+        const futuresSymbols: { [key: string]: string } = {
+          'NIFTY': 'NIFTY30DEC25FUT',
+          'BANKNIFTY': 'BANKNIFTY30DEC25FUT',
+          'FINNIFTY': 'FINNIFTY30DEC25FUT',
+          'SENSEX': 'SENSEX30DEC25FUT'
         };
-        
-        const symbols = futuresSymbols[selectedOptionIndex as keyof typeof futuresSymbols] || [selectedOptionIndex];
-        let futuresPrice = null;
-        
-        // Try each symbol variant
-        for (const symbol of symbols) {
-          try {
-            // Try fetching from API
-            const response = await fetch(`/api/live-price?symbol=${symbol}`);
-            if (response.ok) {
-              const data = await response.json();
-              futuresPrice = data?.price || data?.ltp || data?.lastPrice || data?.close;
-              
-              if (futuresPrice && futuresPrice > 100) {
-                setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: futuresPrice }));
-                console.log(`✅ Fetched ${symbol} futures: ${futuresPrice}`);
-                return;
-              }
-            }
-          } catch (e) {
-            console.log(`Trying next symbol for ${selectedOptionIndex}...`);
+
+        const futuresSymbol = futuresSymbols[selectedOptionIndex];
+        if (!futuresSymbol) return;
+
+        // Fetch futures price from Angel One live service
+        const response = await fetch(`/api/live-price?symbol=${futuresSymbol}&exchange=NFO`);
+        if (response.ok) {
+          const data = await response.json();
+          const price = data?.ltp || data?.price || data?.lastPrice || data?.close;
+          
+          if (price && price > 100) {
+            setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: price }));
+            console.log(`✅ Futures ${selectedOptionIndex}: ${price}`);
+            return;
           }
         }
-        
-        // Fallback: If available, calculate from optionChainData or use spot price
-        if (optionChainData?.spotPrice && optionChainData.spotPrice > 100) {
-          setFuturesPrices(prev => ({ ...prev, [selectedOptionIndex]: optionChainData.spotPrice }));
-          console.log(`✅ Using spotPrice for ${selectedOptionIndex}: ${optionChainData.spotPrice}`);
-        }
       } catch (error) {
-        console.error(`Error fetching futures price for ${selectedOptionIndex}:`, error);
+        console.log(`Fetching futures price for ${selectedOptionIndex}`);
       }
     };
-    
-    // Fetch immediately when index changes
+
     fetchFuturesPrice();
-  }, [selectedOptionIndex, optionChainData?.spotPrice]);
-
-  const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
-
-  // Auto-default to latest expiry date when option chain data loads
-  React.useEffect(() => {
-    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
-      setSelectedOptionExpiryDate(optionChainData.expiries[0]);
-    }
-  }, [optionChainData, selectedOptionIndex]);
+  }, [selectedOptionIndex]);
   
   // Get expiry dates from optionChainData (real Angel One NFO data)
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
