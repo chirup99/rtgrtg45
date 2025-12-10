@@ -123,34 +123,25 @@ class AngelOneOptionChain {
       'MIDCPNIFTY': { exchange: 'NSE', token: '99926074', symbol: 'NIFTY MID SELECT' },
       'SENSEX': { exchange: 'BSE', token: '99919000', symbol: 'Sensex' },
     };
-    
-    // Default spot prices for indices (fallback) - Updated Dec 2025
-    const defaultPrices: { [key: string]: number } = {
-      'NIFTY': 24800,
-      'BANKNIFTY': 53000,
-      'FINNIFTY': 27400,
-      'MIDCPNIFTY': 13500,
-      'SENSEX': 81000,
-    };
 
     const indexInfo = indexMappings[normalizedUnderlying];
     
-    // PRIORITY 1: Try WebSocket live prices (most accurate, real-time streaming data)
+    // PRIORITY 1: Try WebSocket live prices (real-time streaming data from paper trading)
     // WebSocketOHLC uses 'close' for the last traded price
     if (indexInfo) {
       try {
         const wsPrices = angelOneWebSocket.getLatestPrices([indexInfo.token]);
         const wsPrice = wsPrices.get(indexInfo.token);
         if (wsPrice && wsPrice.close && wsPrice.close > 0) {
-          console.log(`📊 [OPTION-CHAIN] Got LIVE spot price for ${normalizedUnderlying} from WebSocket: ${wsPrice.close}`);
+          console.log(`📊 [OPTION-CHAIN] ✅ Got LIVE spot price for ${normalizedUnderlying} from WebSocket: ₹${wsPrice.close}`);
           return wsPrice.close;
         }
       } catch (error: any) {
-        console.log(`📊 [OPTION-CHAIN] WebSocket price not available for ${normalizedUnderlying}`);
+        console.log(`📊 [OPTION-CHAIN] WebSocket price not available for ${normalizedUnderlying}, trying API...`);
       }
     }
 
-    // PRIORITY 2: Try getLTP from Angel One API (same method as paper trading)
+    // PRIORITY 2: Try getLTP from Angel One API (same method as paper trading uses)
     try {
       if (angelOneApi.isConnected() && indexInfo) {
         console.log(`📊 [OPTION-CHAIN] Fetching real spot price for ${normalizedUnderlying} via Angel One API (LTP)...`);
@@ -161,7 +152,7 @@ class AngelOneOptionChain {
         }
       }
     } catch (error: any) {
-      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch LTP for ${normalizedUnderlying}: ${error.message}`);
+      console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch LTP for ${normalizedUnderlying}, trying candle data...`);
     }
 
     // PRIORITY 3: Try getCandleData from Angel One API (as backup)
@@ -182,9 +173,10 @@ class AngelOneOptionChain {
       console.log(`📊 [OPTION-CHAIN] ⚠️ Could not fetch candle data for ${normalizedUnderlying}: ${error.message}`);
     }
 
-    // PRIORITY 4: Fallback to default prices
-    console.log(`📊 [OPTION-CHAIN] Using default spot price for ${normalizedUnderlying}: ${defaultPrices[normalizedUnderlying] || 24500}`);
-    return defaultPrices[normalizedUnderlying] || 24500;
+    // No default fallback - all sources failed
+    const errorMsg = `❌ [OPTION-CHAIN] Could not fetch any real spot price for ${normalizedUnderlying}. WebSocket and API sources all failed.`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   private findATMStrike(strikes: number[], spotPrice: number): number {
