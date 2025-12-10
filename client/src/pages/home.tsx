@@ -4784,7 +4784,6 @@ ${
     
     // 5️⃣ Close paper trading dialog and show summary
     setShowPaperTradingModal(false);
-    setJournalChartMode('heatmap');
     
     toast({
       title: "Trades Recorded",

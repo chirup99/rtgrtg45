@@ -1,24 +1,32 @@
-# Paper Trading Record - Import Only (No Dialog)
+# Paper Trading Record - Single Tap Import Fix
 
 ## Status: ✅ FIXED
 
 ### Issue Fixed
-Removed the "MY trading report" dialog opening when user clicks Record button.
+Removed double-tap requirement for Record button. Now imports on single tap without toggling Personal/Preview view.
 
-### Current Behavior
+### Problem
+- First tap: Toggled Personal/Preview view
+- Second tap: Imported trades
+- Toggle was locked after import
+
+### Solution
+Removed `setJournalChartMode('heatmap')` from `recordAllPaperTrades()` function.
+
+### Current Behavior (FIXED)
 When user clicks **"Record"** button on paper trading history:
-1. ✅ Imports all paper trades to today's date
-2. ✅ Sets trades in heatmap mode
-3. ✅ Shows toast notification "Trades Recorded"
-4. ✅ Closes paper trading dialog
-5. ❌ Does NOT open "MY trading report" dialog
+1. ✅ Single tap imports all paper trades to today's date
+2. ✅ Heatmap shows trades data
+3. ✅ Toast notification "Trades Recorded" appears
+4. ✅ Paper trading dialog closes
+5. ✅ Personal/Preview toggle remains functional
 
-### Code Change
-**File:** `client/src/pages/home.tsx` (Line 4788)
+### Code Changed
+**File:** `client/src/pages/home.tsx` (Line 4787)
 
-**Removed:** `setShowShareDialog(true);` 
+**Removed:** `setJournalChartMode('heatmap');`
 
-Now only imports data silently with notification.
+Now it simply imports and closes without mode switching that interfered with toggle functionality.
 
 ### Deployment Status
 - ✅ Fixed and deployed
