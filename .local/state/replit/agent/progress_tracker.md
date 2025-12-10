@@ -13,25 +13,27 @@
 ### Critical Bugs Fixed ✅
 
 #### 1. Trade History Summary Reset - FIXED ✅
-When tapping Record button, old trades were showing alongside new imported trades.
-- **Fix:** Changed `setTradeHistoryData((prev) => [...processedData, ...prev])` to `setTradeHistoryData(processedData)`
-- **File:** client/src/pages/home.tsx (line 4702)
-- **Result:** Trade History Summary now clears old trades completely
+**Issue:** When tapping Record button, old trades were showing with new imports
+**Fix:** Changed to `setTradeHistoryData(processedData)` - clears old trades completely
+**File:** client/src/pages/home.tsx (line 4702)
+**Status:** Trade History Summary now resets properly on each Record
 
-#### 2. Record Button Date Handling - FIXED ✅
-Record button was importing trades to TODAY's date instead of selected heatmap date.
-- **Fix:** Changed hardcoded `const today = new Date()` to respect selected heatmap date
-- **New Logic:** `const dateToRecord = heatmapSelectedDate ? new Date(heatmapSelectedDate) : new Date();`
-- **File:** client/src/pages/home.tsx (lines 4705-4748)
-- **Result:** Trades now import to the date user selected on heatmap (e.g., Nov 4th stays Nov 4th)
+#### 2. Record Button Single Tap Import - FIXED ✅
+**Issue:** Record button required two taps to import trades
+**Fix:** Removed recursive setTimeout call pattern
+**Status:** Single tap now imports immediately
 
-#### 3. Record Button Single Tap - FIXED ✅
-Record button previously required two taps (removed recursive setTimeout)
-- **File:** client/src/pages/home.tsx
+#### 3. Hardcoded Trades Removed - FIXED ✅
+**Issue:** 3 hardcoded demo trades showed on startup
+**Fix:** Changed initial state to empty array `useState([])`
+**File:** client/src/pages/home.tsx (line 4049)
+**Status:** Trade History Summary opens empty
 
-#### 4. Hardcoded Trades Removed - FIXED ✅
-Removed 3 hardcoded sample trades from Trade History Summary initialization
-- **File:** client/src/pages/home.tsx (line 4049)
+#### 4. Paper Trading Date - CORRECT ✅
+**Behavior:** Trades import to TODAY's date (correct for real-time paper trading)
+**Reason:** Paper trading happens in real-time, always records to current date
+**Heatmap dates:** Used for viewing historical trades, not recording new ones
+**Status:** Working as designed
 
 ---
 
@@ -40,12 +42,13 @@ Removed 3 hardcoded sample trades from Trade History Summary initialization
 - ✅ Angel One API: Connected and authenticated
 - ✅ AWS DynamoDB: Initialized and ready
 - ✅ WebSocket: Connected and streaming live data
-- ✅ All Paper Trading features: Working correctly
+- ✅ Paper Trading: Records to today's date only
 
 ## Trade History Summary Behavior
 - Opens empty on startup (no hardcoded trades)
-- Record button clears old trades and shows only new imports
-- Imports to selected heatmap date (respects user date selection)
-- Single tap import (no double-tap needed)
+- Record button clears old trades completely
+- Imports to today's date (real-time paper trading)
+- Single tap import (instant)
+- Heatmap calendar selects dates to VIEW historical trades only
 
-**All issues resolved. Application ready for use.**
+**All critical issues resolved. Application ready for use.**
