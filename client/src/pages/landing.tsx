@@ -286,6 +286,19 @@ export default function Landing() {
               {isEmailLoading ? "Processing..." : isLogin ? "Login" : "Create Account"}
               {!isEmailLoading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
+            {isLogin && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    // Handle forgot password
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                  data-testid="button-forgot-password"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
           </div>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
