@@ -6,7 +6,9 @@ import {
   getCurrentUser, 
   fetchAuthSession,
   signInWithRedirect,
-  fetchUserAttributes
+  fetchUserAttributes,
+  resetPassword,
+  confirmResetPassword
 } from 'aws-amplify/auth';
 
 const cognitoConfig = {
@@ -166,6 +168,28 @@ export async function handleCognitoCallback(): Promise<{ userId: string; email: 
     console.error('Error handling Cognito callback:', error);
     return null;
   }
+}
+
+export async function cognitoForgotPassword(email: string): Promise<void> {
+  initializeCognito();
+  
+  await resetPassword({
+    username: email,
+  });
+  
+  console.log('✅ Password reset code sent to:', email);
+}
+
+export async function cognitoConfirmResetPassword(email: string, code: string, newPassword: string): Promise<void> {
+  initializeCognito();
+  
+  await confirmResetPassword({
+    username: email,
+    confirmationCode: code,
+    newPassword,
+  });
+  
+  console.log('✅ Password reset successful for:', email);
 }
 
 export { signOut };

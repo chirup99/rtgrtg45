@@ -9,16 +9,26 @@ import {
   cognitoSignInWithGoogle,
   handleCognitoCallback,
   getCognitoToken,
-  initializeCognito
+  initializeCognito,
+  cognitoForgotPassword,
+  cognitoConfirmResetPassword
 } from "@/cognito";
 
 export default function Landing() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isCheckingCallback, setIsCheckingCallback] = useState(true);
   const { toast } = useToast();
 
@@ -210,6 +220,139 @@ export default function Landing() {
     }
   };
 
+  const handleSendOtp = async () => {
+    if (!email) {
+      toast({
+        title: "Missing Email",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      await cognitoForgotPassword(email);
+      setIsOtpSent(true);
+      toast({
+        title: "OTP Sent",
+        description: "A verification code has been sent to your email.",
+      });
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      let errorMessage = error.message || "Failed to send verification code.";
+      
+      if (error.name === 'UserNotFoundException') {
+        errorMessage = "No account found with this email address.";
+      } else if (error.name === 'LimitExceededException') {
+        errorMessage = "Too many attempts. Please try again later.";
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = () => {
+    if (otp.length >= 6) {
+      setIsOtpVerified(true);
+      toast({
+        title: "OTP Verified",
+        description: "You can now set your new password.",
+      });
+    } else {
+      toast({
+        title: "Invalid OTP",
+        description: "Please enter a valid 6-digit code.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveNewPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "Missing Password",
+        description: "Please enter and confirm your new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords Don't Match",
+        description: "New password and confirmation must match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      await cognitoConfirmResetPassword(email, otp, newPassword);
+      toast({
+        title: "Password Reset Successful",
+        description: "Your password has been updated. Please login with your new password.",
+      });
+      
+      // Reset all forgot password states and go back to login
+      setIsForgotPassword(false);
+      setIsOtpSent(false);
+      setIsOtpVerified(false);
+      setOtp("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsLogin(true);
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      let errorMessage = error.message || "Failed to reset password.";
+      
+      if (error.name === 'CodeMismatchException') {
+        errorMessage = "Invalid verification code. Please check and try again.";
+        setIsOtpVerified(false);
+      } else if (error.name === 'ExpiredCodeException') {
+        errorMessage = "Verification code has expired. Please request a new one.";
+        setIsOtpSent(false);
+        setIsOtpVerified(false);
+        setOtp("");
+      } else if (error.name === 'InvalidPasswordException') {
+        errorMessage = "Password does not meet requirements. Use at least 8 characters with uppercase, lowercase, numbers, and symbols.";
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
+    setIsForgotPassword(false);
+    setIsOtpSent(false);
+    setIsOtpVerified(false);
+    setOtp("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
   if (isCheckingCallback) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center">
@@ -231,103 +374,195 @@ export default function Landing() {
           <p className="text-gray-500 text-sm">AI-powered trading insights.</p>
         </div>
         <div className="w-full max-w-md mx-auto space-y-4">
-          <div className="flex gap-2 p-1 bg-gray-800 rounded-lg">
-            <Button
-              variant="ghost"
-              className={`flex-1 ${isLogin ? "bg-gray-700 text-white" : "text-gray-400"}`}
-              onClick={() => setIsLogin(true)}
-              data-testid="button-toggle-login"
-            >
-              Login
-            </Button>
-            <Button
-              variant="ghost"
-              className={`flex-1 ${!isLogin ? "bg-gray-700 text-white" : "text-gray-400"}`}
-              onClick={() => setIsLogin(false)}
-              data-testid="button-toggle-signup"
-            >
-              Sign Up
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {!isLogin && (
-              <Input
-                type="text"
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
-                data-testid="input-name"
-              />
-            )}
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
-              data-testid="input-email"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleEmailAuth()}
-              className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
-              data-testid="input-password"
-            />
-            <Button
-              onClick={handleEmailAuth}
-              disabled={isEmailLoading || isGoogleLoading}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg"
-              data-testid="button-email-auth"
-            >
-              {isEmailLoading ? "Processing..." : isLogin ? "Login" : "Create Account"}
-              {!isEmailLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-            </Button>
-            {isLogin && (
-              <div className="flex justify-end">
-                <button
-                  onClick={() => {
-                    // Handle forgot password
-                  }}
-                  className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
-                  data-testid="button-forgot-password"
-                >
-                  Forgot password?
-                </button>
+          {isForgotPassword ? (
+            <>
+              <div className="text-center mb-4">
+                <h3 className="text-xl font-semibold text-white mb-2">Reset Password</h3>
+                <p className="text-gray-400 text-sm">Enter your email to receive a verification code</p>
               </div>
-            )}
-          </div>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-700" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-black px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-          <Button
-            onClick={handleGoogleSignIn}
-            disabled={isEmailLoading || isGoogleLoading}
-            className="w-full bg-white hover:bg-gray-100 text-gray-900 font-medium h-12 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"
-            data-testid="button-google-signin"
-          >
-            {isGoogleLoading ? (
-              'Processing...'
-            ) : (
-              <>
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-                Sign in with Google
-              </>
-            )}
-          </Button>
+              <div className="space-y-3">
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isOtpSent}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg disabled:opacity-50"
+                  data-testid="input-forgot-email"
+                />
+                {!isOtpSent ? (
+                  <Button
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg"
+                    data-testid="button-send-otp"
+                  >
+                    {isSendingOtp ? "Sending..." : "Send OTP"}
+                    {!isSendingOtp && <ArrowRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Enter OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        maxLength={6}
+                        disabled={isOtpVerified}
+                        className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg flex-1 disabled:opacity-50"
+                        data-testid="input-otp"
+                      />
+                      {!isOtpVerified && (
+                        <Button
+                          onClick={handleVerifyOtp}
+                          disabled={otp.length < 6}
+                          className="bg-green-600 hover:bg-green-700 text-white font-medium h-12 px-6 rounded-lg"
+                          data-testid="button-verify-otp"
+                        >
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+                    <Input
+                      type="password"
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={!isOtpVerified}
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg disabled:opacity-50"
+                      data-testid="input-new-password"
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Confirm New Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={!isOtpVerified}
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg disabled:opacity-50"
+                      data-testid="input-confirm-password"
+                    />
+                    <Button
+                      onClick={handleSaveNewPassword}
+                      disabled={!isOtpVerified || isSavingPassword}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg disabled:opacity-50"
+                      data-testid="button-save-password"
+                    >
+                      {isSavingPassword ? "Saving..." : "Save New Password"}
+                      {!isSavingPassword && <ArrowRight className="ml-2 h-4 w-4" />}
+                    </Button>
+                  </>
+                )}
+                <div className="flex justify-center">
+                  <button
+                    onClick={handleBackToLogin}
+                    className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                    data-testid="button-back-to-login"
+                  >
+                    Back to Login
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-2 p-1 bg-gray-800 rounded-lg">
+                <Button
+                  variant="ghost"
+                  className={`flex-1 ${isLogin ? "bg-gray-700 text-white" : "text-gray-400"}`}
+                  onClick={() => setIsLogin(true)}
+                  data-testid="button-toggle-login"
+                >
+                  Login
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={`flex-1 ${!isLogin ? "bg-gray-700 text-white" : "text-gray-400"}`}
+                  onClick={() => setIsLogin(false)}
+                  data-testid="button-toggle-signup"
+                >
+                  Sign Up
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {!isLogin && (
+                  <Input
+                    type="text"
+                    placeholder="Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
+                    data-testid="input-name"
+                  />
+                )}
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
+                  data-testid="input-email"
+                />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleEmailAuth()}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
+                  data-testid="input-password"
+                />
+                <Button
+                  onClick={handleEmailAuth}
+                  disabled={isEmailLoading || isGoogleLoading}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg"
+                  data-testid="button-email-auth"
+                >
+                  {isEmailLoading ? "Processing..." : isLogin ? "Login" : "Create Account"}
+                  {!isEmailLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                </Button>
+                {isLogin && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                      data-testid="button-forgot-password"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-700" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-black px-2 text-gray-500">Or continue with</span>
+                </div>
+              </div>
+              <Button
+                onClick={handleGoogleSignIn}
+                disabled={isEmailLoading || isGoogleLoading}
+                className="w-full bg-white hover:bg-gray-100 text-gray-900 font-medium h-12 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"
+                data-testid="button-google-signin"
+              >
+                {isGoogleLoading ? (
+                  'Processing...'
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Sign in with Google
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </div>
         <div className="flex flex-col items-center space-y-3 text-sm text-gray-400">
           <div className="flex items-center gap-2">
