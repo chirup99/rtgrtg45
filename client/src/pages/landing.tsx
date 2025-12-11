@@ -224,7 +224,7 @@ export default function Landing() {
     if (!email) {
       toast({
         title: "Missing Email",
-        description: "Please enter your email address.",
+        description: "Enter your email address.",
         variant: "destructive",
       });
       return;
@@ -232,38 +232,29 @@ export default function Landing() {
 
     setIsSendingOtp(true);
     try {
-      console.log('📧 Initiating password reset for:', email);
+      console.log('📧 AWS resetPassword:', email);
       await cognitoForgotPassword(email);
       setIsOtpSent(true);
       
       toast({
-        title: "OTP Sent Successfully",
-        description: "A 6-digit code has been sent to your email. Check inbox and spam folder.",
+        title: "OTP Sent",
+        description: "Check your email for the 6-digit code.",
       });
     } catch (error: any) {
-      console.error('❌ Password reset error:', error);
-      let errorMessage = "Failed to send reset code.";
-      let errorTitle = "Error";
+      console.error('❌ Error:', error.name, error.message);
+      let msg = error.message || "Failed to send code.";
       
       if (error.name === 'UserNotFoundException') {
-        errorTitle = "Account Not Found";
-        errorMessage = "No account exists with this email address.";
+        msg = "Email not found. Sign up first.";
       } else if (error.name === 'InvalidParameterException') {
-        errorTitle = "AWS Setup Required";
-        errorMessage = "AWS email not configured. Setup: 1) Go to AWS Console → SES → Verify email, 2) Go to Cognito user pool → Account recovery settings → Enable email.";
+        msg = "AWS not configured. Enable email in Cognito.";
       } else if (error.name === 'LimitExceededException') {
-        errorTitle = "Too Many Attempts";
-        errorMessage = "Too many attempts. Wait 5-10 minutes and try again.";
-      } else if (error.message?.includes('Network') || error.message?.includes('connection')) {
-        errorTitle = "Connection Error";
-        errorMessage = "Check your internet connection.";
-      } else {
-        errorMessage = error.message || errorMessage;
+        msg = "Too many attempts. Wait 5-10 minutes.";
       }
       
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: "Error",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -274,39 +265,25 @@ export default function Landing() {
   const handleVerifyOtp = async () => {
     if (otp.length < 6) {
       toast({
-        title: "Invalid Code",
-        description: "OTP must be 6 digits.",
+        title: "Invalid",
+        description: "Enter 6-digit code.",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      console.log('🔐 Step 3: Verifying OTP with AWS server...');
-      // OTP verification happens on backend during password reset
-      // For now, proceed to allow user to submit password reset
-      setIsOtpVerified(true);
-      
-      console.log('✅ OTP accepted. Ready for password reset.');
-      toast({
-        title: "OTP Verified",
-        description: "Enter your new password to complete the reset.",
-      });
-    } catch (error: any) {
-      console.error('❌ OTP verification error:', error);
-      toast({
-        title: "Verification Failed",
-        description: "Invalid OTP. Please check the code and try again.",
-        variant: "destructive",
-      });
-    }
+    setIsOtpVerified(true);
+    toast({
+      title: "Code Accepted",
+      description: "Enter new password.",
+    });
   };
 
   const handleSaveNewPassword = async () => {
     if (!newPassword || !confirmPassword) {
       toast({
         title: "Missing Password",
-        description: "Please enter and confirm your new password.",
+        description: "Enter new password.",
         variant: "destructive",
       });
       return;
@@ -314,8 +291,8 @@ export default function Landing() {
 
     if (newPassword !== confirmPassword) {
       toast({
-        title: "Passwords Don't Match",
-        description: "New password and confirmation must match.",
+        title: "Mismatch",
+        description: "Passwords don't match.",
         variant: "destructive",
       });
       return;
@@ -323,8 +300,8 @@ export default function Landing() {
 
     if (newPassword.length < 8) {
       toast({
-        title: "Password Too Short",
-        description: "Password must be at least 8 characters long.",
+        title: "Too Short",
+        description: "Use 8+ characters.",
         variant: "destructive",
       });
       return;
@@ -332,20 +309,14 @@ export default function Landing() {
 
     setIsSavingPassword(true);
     try {
-      console.log('🔐 Step 4: Resetting password on AWS server...');
-      console.log('   Email:', email);
-      console.log('   OTP Code: [verified]');
-      console.log('   New Password: [hidden]');
-      
+      console.log('🔐 AWS confirmResetPassword:', email, otp.length, 'chars');
       await cognitoConfirmResetPassword(email, otp, newPassword);
       
-      console.log('✅ Password successfully reset on AWS server');
       toast({
-        title: "Password Reset Successful",
-        description: "Your password has been changed. You can now login with your new password.",
+        title: "Success",
+        description: "Password reset. Login now.",
       });
       
-      // Reset all forgot password states and go back to login
       setIsForgotPassword(false);
       setIsOtpSent(false);
       setIsOtpVerified(false);
@@ -355,34 +326,26 @@ export default function Landing() {
       setEmail("");
       setIsLogin(true);
     } catch (error: any) {
-      console.error('❌ Password reset error:', error);
-      let errorMessage = error.message || "Failed to reset password.";
-      let errorTitle = "Password Reset Failed";
+      console.error('❌ Error:', error.name, error.message);
+      let msg = "Reset failed.";
       
       if (error.name === 'CodeMismatchException') {
-        errorTitle = "Invalid OTP";
-        errorMessage = "The verification code is incorrect. Please check and try again.";
+        msg = "Wrong code. Try again.";
         setIsOtpVerified(false);
       } else if (error.name === 'ExpiredCodeException') {
-        errorTitle = "Code Expired";
-        errorMessage = "Your verification code has expired. Please request a new one.";
+        msg = "Code expired. Request new one.";
         setIsOtpSent(false);
         setIsOtpVerified(false);
         setOtp("");
       } else if (error.name === 'InvalidPasswordException') {
-        errorTitle = "Invalid Password";
-        errorMessage = "Password doesn't meet AWS requirements. Use 8+ characters with uppercase, lowercase, numbers, and symbols.";
+        msg = "Password needs: uppercase, lowercase, numbers, symbols.";
       } else if (error.name === 'LimitExceededException') {
-        errorTitle = "Too Many Attempts";
-        errorMessage = "Too many failed attempts. Wait 5-10 minutes before trying again.";
-      } else if (error.name === 'UserNotFoundException') {
-        errorTitle = "User Not Found";
-        errorMessage = "Account not found. Please sign up first.";
+        msg = "Too many attempts. Wait 5-10 min.";
       }
       
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: "Error",
+        description: msg,
         variant: "destructive",
       });
     } finally {

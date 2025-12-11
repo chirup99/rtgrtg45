@@ -170,34 +170,17 @@ export async function handleCognitoCallback(): Promise<{ userId: string; email: 
   }
 }
 
-export async function cognitoForgotPassword(email: string): Promise<{ deliveryMedium?: string; destination?: string }> {
+export async function cognitoForgotPassword(email: string): Promise<void> {
   initializeCognito();
   
   try {
-    console.log('📧 Step 1: Initiating password reset for:', email);
-    const result = await resetPassword({
+    console.log('📧 Calling AWS Cognito: resetPassword for', email);
+    await resetPassword({
       username: email,
     });
-    
-    console.log('✅ Password reset OTP sent successfully');
-    console.log('📨 Delivery details:', result);
-    
-    return {
-      deliveryMedium: result?.codeDeliveryDetails?.deliveryMedium || 'EMAIL',
-      destination: result?.codeDeliveryDetails?.destination || email,
-    };
+    console.log('✅ OTP sent to email');
   } catch (error: any) {
-    console.error('❌ Password reset initiation failed:', error);
-    
-    // Provide detailed error diagnosis
-    if (error.name === 'InvalidParameterException') {
-      console.error('🔧 AWS Configuration Issue:');
-      console.error('   - Email must be verified in AWS Cognito');
-      console.error('   - AWS SES must be configured in your user pool');
-      console.error('   - Account recovery must be enabled');
-      error.diagnostics = 'AWS email service not configured or email not verified';
-    }
-    
+    console.error('❌ resetPassword failed:', error);
     throw error;
   }
 }
