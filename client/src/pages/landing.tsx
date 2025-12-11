@@ -24,7 +24,6 @@ export default function Landing() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
@@ -262,23 +261,6 @@ export default function Landing() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length < 6) {
-      toast({
-        title: "Invalid",
-        description: "Enter 6-digit code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsOtpVerified(true);
-    toast({
-      title: "Code Accepted",
-      description: "Enter new password.",
-    });
-  };
-
   const handleSaveNewPassword = async () => {
     if (!newPassword || !confirmPassword) {
       toast({
@@ -319,7 +301,6 @@ export default function Landing() {
       
       setIsForgotPassword(false);
       setIsOtpSent(false);
-      setIsOtpVerified(false);
       setOtp("");
       setNewPassword("");
       setConfirmPassword("");
@@ -330,12 +311,10 @@ export default function Landing() {
       let msg = "Reset failed.";
       
       if (error.name === 'CodeMismatchException') {
-        msg = "Wrong code. Try again.";
-        setIsOtpVerified(false);
+        msg = "Wrong verification code. Please check and try again.";
       } else if (error.name === 'ExpiredCodeException') {
         msg = "Code expired. Request new one.";
         setIsOtpSent(false);
-        setIsOtpVerified(false);
         setOtp("");
       } else if (error.name === 'InvalidPasswordException') {
         msg = "Password needs: uppercase, lowercase, numbers, symbols.";
@@ -356,7 +335,6 @@ export default function Landing() {
   const handleBackToLogin = () => {
     setIsForgotPassword(false);
     setIsOtpSent(false);
-    setIsOtpVerified(false);
     setOtp("");
     setNewPassword("");
     setConfirmPassword("");
@@ -411,35 +389,24 @@ export default function Landing() {
                   </Button>
                 ) : (
                   <>
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        placeholder="Enter OTP"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value)}
-                        maxLength={6}
-                        disabled={isOtpVerified}
-                        className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg flex-1 disabled:opacity-50"
-                        data-testid="input-otp"
-                      />
-                      {!isOtpVerified && (
-                        <Button
-                          onClick={handleVerifyOtp}
-                          disabled={otp.length < 6}
-                          className="bg-green-600 hover:bg-green-700 text-white font-medium h-12 px-6 rounded-lg"
-                          data-testid="button-verify-otp"
-                        >
-                          Verify
-                        </Button>
-                      )}
+                    <div className="p-3 bg-green-900/30 border border-green-700 rounded-lg text-center">
+                      <p className="text-green-400 text-sm">Verification code sent to your email</p>
                     </div>
                     <Input
+                      type="text"
+                      placeholder="Enter 6-digit verification code"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg text-center text-lg tracking-widest"
+                      data-testid="input-otp"
+                    />
+                    <Input
                       type="password"
-                      placeholder="New Password"
+                      placeholder="New Password (8+ characters)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      disabled={!isOtpVerified}
-                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg disabled:opacity-50"
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
                       data-testid="input-new-password"
                     />
                     <Input
@@ -447,18 +414,26 @@ export default function Landing() {
                       placeholder="Confirm New Password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      disabled={!isOtpVerified}
-                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg disabled:opacity-50"
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
                       data-testid="input-confirm-password"
                     />
                     <Button
                       onClick={handleSaveNewPassword}
-                      disabled={!isOtpVerified || isSavingPassword}
+                      disabled={otp.length < 6 || !newPassword || !confirmPassword || isSavingPassword}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg disabled:opacity-50"
                       data-testid="button-save-password"
                     >
-                      {isSavingPassword ? "Saving..." : "Save New Password"}
+                      {isSavingPassword ? "Resetting Password..." : "Reset Password"}
                       {!isSavingPassword && <ArrowRight className="ml-2 h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp}
+                      className="w-full text-gray-400 hover:text-white"
+                      data-testid="button-resend-otp"
+                    >
+                      {isSendingOtp ? "Sending..." : "Resend Code"}
                     </Button>
                   </>
                 )}

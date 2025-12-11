@@ -34,11 +34,35 @@
 
 ---
 
+## Password Reset Flow Fix - December 11, 2025 ✅
+
+### Changes Made:
+1. **Simplified password reset UI flow** - Removed misleading "Verify OTP" button that didn't actually verify with AWS Cognito
+2. **Streamlined 2-step process:**
+   - Step 1: Enter email, click "Send OTP" → AWS Cognito sends verification code to email
+   - Step 2: Enter code + new password, click "Reset Password" → Verifies code AND resets password in one call
+3. **Added visual feedback** - Green confirmation box when OTP is sent
+4. **Added "Resend Code" button** - For users who need a new verification code
+5. **Better input handling** - OTP field now only accepts numbers
+
+### Technical Implementation:
+- Uses AWS Amplify's `resetPassword()` → triggers Cognito `ForgotPasswordCommand`
+- Uses AWS Amplify's `confirmResetPassword()` → triggers Cognito `ConfirmForgotPasswordCommand`
+- Proper error handling for: CodeMismatch, ExpiredCode, InvalidPassword, LimitExceeded, UserNotFound
+
+### Prerequisites for OTP to work:
+1. User must exist in AWS Cognito User Pool
+2. User's email must be verified in Cognito
+3. Cognito User Pool must have email delivery configured (Cognito email or SES)
+
+---
+
 ## Current Status
 - ✅ Server: Running on port 5000
 - ✅ Angel One API: Initialized
 - ✅ AWS Cognito: JWT Verifier ready
 - ✅ Gemini AI: Routes configured
 - ✅ NeoFeed: DynamoDB routes registered
+- ✅ Password Reset: Fixed and simplified
 
 **Project import completed successfully. Application ready for use.**
