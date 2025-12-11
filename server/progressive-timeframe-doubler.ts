@@ -1,4 +1,4 @@
-import type { FyersAPI } from './fyers-api';
+// import type { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 import { CorrectedFourCandleProcessor } from './corrected-four-candle-processor';
 
 export interface ProgressiveAnalysisResult {

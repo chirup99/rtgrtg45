@@ -3,7 +3,7 @@
  * All Battu intraday analysis starts with fetching 1-minute data for the selected date
  */
 
-import { FyersAPI } from './fyers-api';
+// import { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 import type { CandleData } from './intraday-patterns';
 
 export interface OneMinuteBaseData {

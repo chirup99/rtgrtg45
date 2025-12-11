@@ -1,4 +1,4 @@
-import { fyersApi } from './fyers-api';
+// import { fyersApi } from './fyers-api'; // Removed: Fyers API removed
 import { CandleData } from '../shared/schema';
 
 /**
@@ -126,7 +126,7 @@ export class AuthenticC2BlockAnalyzer {
       console.log(`📡 [AUTHENTIC-DATA] Fetching real 1-minute data from Fyers API`);
       console.log(`   Range: ${startTimestamp} to ${endTimestamp} (${date})`);
       
-      const response = await fyersApi.getHistoricalData({
+      // const response = null; // fyersApi.getHistoricalData({
         symbol,
         resolution: '1',  // Always 1-minute - authentic data only
         date_format: '1',

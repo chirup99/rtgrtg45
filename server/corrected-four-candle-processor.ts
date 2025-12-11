@@ -1,4 +1,4 @@
-import type { FyersAPI } from './fyers-api';
+// import type { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -702,7 +702,7 @@ export class CorrectedFourCandleProcessor {
         return null;
       }
 
-      const response = await fyersApi.getHistoricalData(symbol, '1', startDate, endDate);
+      // const response = null; // fyersApi.getHistoricalData(symbol, '1', startDate, endDate);
       
       if (response && response.candles && response.candles.length > 0) {
         // Filter candles within our exact time window

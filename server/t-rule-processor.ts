@@ -1,4 +1,4 @@
-import { FyersAPI } from './fyers-api';
+// import { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 import { PointABExtractor } from './point-ab-extractor.js';
 
 interface CandleData {

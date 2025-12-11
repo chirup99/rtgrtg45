@@ -231,7 +231,8 @@ export class IntradayMarketAnalyzer {
 
     // First try to get market session info from Fyers API
     let marketConfig: MarketConfig;
-    const apiSessionInfo = await fyersApi.getMarketSessionInfo(symbol);
+    // const apiSessionInfo = await fyersApi.getMarketSessionInfo(symbol); // Removed: Fyers API removed
+    const apiSessionInfo = null;
     
     if (apiSessionInfo) {
       console.log(`🎯 Using real-time market data from Fyers API for ${symbol}`);

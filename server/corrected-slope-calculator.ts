@@ -1,4 +1,4 @@
-import type { FyersAPI } from './fyers-api';
+// import type { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 import { C2BlockInternalPatternAnalyzer } from './c2-block-internal-pattern-analyzer';
 
 interface OneMinuteCandle {

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { fyersApi } from "./fyers-api";
+// import { fyersApi } from "./fyers-api"; // Removed: Fyers API removed
 
 const router = Router();
 
@@ -19,7 +19,7 @@ router.get("/hybrid-data/:symbol", async (req, res) => {
     if (!isLiveMarketDay) {
       // For historical dates, return only historical data
       console.log(`📚 HISTORICAL ONLY: Fetching complete historical data for ${targetDate}`);
-      const historicalData = await fyersApi.getHistoricalData({
+      const historicalData = null; // fyersApi.getHistoricalData({
         symbol,
         resolution: '1',
         range_from: targetDate,
@@ -45,7 +45,7 @@ router.get("/hybrid-data/:symbol", async (req, res) => {
     
     // Step 1: Fetch available historical data up to current time
     console.log(`📈 Step 1: Fetching available historical data till current time...`);
-    const historicalData = await fyersApi.getHistoricalData({
+    const historicalData = null; // fyersApi.getHistoricalData({
       symbol,
       resolution: '1',
       range_from: targetDate,
@@ -132,7 +132,7 @@ router.get("/hybrid-data/:symbol", async (req, res) => {
       
       try {
         // Fetch current live price to bridge the gap
-        const liveQuote = await fyersApi.getQuotes([symbol]);
+        const liveQuote = null; // fyersApi.getQuotes([symbol]);
         if (liveQuote && liveQuote.length > 0) {
           const quote = liveQuote[0];
           const currentPrice = (quote as any).lp || (quote as any).close;
@@ -186,7 +186,7 @@ router.get("/live-stream/:symbol", async (req, res) => {
     console.log(`📡 LIVE STREAM REQUEST for ${symbol}`);
     
     // Fetch current live quote
-    const liveQuote = await fyersApi.getQuotes([symbol]);
+    const liveQuote = null; // fyersApi.getQuotes([symbol]);
     if (!liveQuote || liveQuote.length === 0) {
       return res.status(404).json({
         success: false,

@@ -3,7 +3,7 @@
  * Implements sophisticated trading rules and pattern recognition
  */
 
-import { FyersAPI } from './fyers-api.js';
+// import { FyersAPI } from './fyers-api.js'; // Removed: Fyers API removed
 import { PointABExtractor } from './point-ab-extractor.js';
 import { CorrectedSlopeCalculator } from './corrected-slope-calculator.js';
 import { ProgressiveThreeStepProcessor } from './progressive-three-step-processor.js';

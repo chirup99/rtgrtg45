@@ -1,4 +1,4 @@
-import { fyersApi } from './fyers-api';
+// import { fyersApi } from './fyers-api'; // Removed: Fyers API removed
 import { CorrectedFourCandleProcessor } from './corrected-four-candle-processor';
 
 interface CandleData {

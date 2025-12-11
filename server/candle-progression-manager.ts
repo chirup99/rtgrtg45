@@ -4,7 +4,7 @@
  * Fixes critical bug where system doesn't automatically move to 5th candle after C2B completion
  */
 
-import { fyersApi } from "./fyers-api";
+// import { fyersApi } from "./fyers-api"; // Removed: Fyers API removed
 import { Cycle3LiveDataStreamer } from "./cycle3-live-data-streamer";
 
 export interface CandleCompletionStatus {
@@ -165,7 +165,7 @@ export class CandleProgressionManager {
     try {
       // Fetch fresh 1-minute data for Point A/B recalculation
       const currentDate = new Date().toISOString().split('T')[0];
-      const oneMinuteData = await fyersApi.getHistoricalData({
+      const oneMinuteData = null; // fyersApi.getHistoricalData({
         symbol: symbol,
         resolution: '1',
         date_format: "1",
@@ -196,7 +196,7 @@ export class CandleProgressionManager {
     try {
       // Fetch fresh 1-minute data for Point A/B recalculation
       const currentDate = new Date().toISOString().split('T')[0];
-      const oneMinuteData = await fyersApi.getHistoricalData({
+      const oneMinuteData = null; // fyersApi.getHistoricalData({
         symbol: symbol,
         resolution: '1',
         date_format: "1",

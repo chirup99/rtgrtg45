@@ -4,7 +4,7 @@
  * Stores data in Google Cloud for failover when Fyers API is down
  */
 
-import { FyersAPI, CandleData, HistoricalDataRequest } from './fyers-api';
+// import { FyersAPI, CandleData, HistoricalDataRequest } from './fyers-api'; // Removed: Fyers API removed
 import { TOP_50_INDIAN_STOCKS, getTop50StockSymbols, BACKUP_TIMEFRAMES, getBackupDateRange } from './top50-stocks';
 
 export interface BackupDataRecord {

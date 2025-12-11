@@ -1,4 +1,4 @@
-import { fyersApi } from "./fyers-api";
+// import { fyersApi } from "./fyers-api"; // Removed: Fyers API removed
 import { storage } from "./storage";
 import { WebSocket } from "ws";
 
@@ -144,7 +144,7 @@ export class Cycle3LiveDataStreamer {
       let currentPrice: number = 0;
       
       try {
-        const liveQuotes = await fyersApi.getQuotes([symbol]);
+        const liveQuotes = null; // fyersApi.getQuotes([symbol]);
         if (liveQuotes && liveQuotes.length > 0) {
           currentPrice = liveQuotes[0].lp;
         }
@@ -154,7 +154,7 @@ export class Cycle3LiveDataStreamer {
         // Fallback: Use most recent historical data point
         try {
           const todayStr = new Date().toISOString().split('T')[0];
-          const historicalData = await fyersApi.getHistoricalData({
+          const historicalData = null; // fyersApi.getHistoricalData({
             symbol: symbol,
             resolution: "1",
             date_format: "1", 

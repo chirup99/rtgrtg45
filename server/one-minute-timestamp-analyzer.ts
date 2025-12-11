@@ -1,4 +1,4 @@
-import { fyersApi } from './fyers-api.js';
+// import { fyersApi } from './fyers-api'; // Removed: Fyers API removed
 
 interface CandleTimestamp {
   timestamp: number;
@@ -15,7 +15,7 @@ export class OneMinuteTimestampAnalyzer {
     console.log(`🔍 Analyzing exact timestamps for ${symbol} on ${date}...`);
     
     // Fetch 1-minute data
-    const response = await fyersApi.getHistoricalData({
+    // const response = null; // fyersApi.getHistoricalData({
       symbol,
       resolution: '1',
       range_from: date,

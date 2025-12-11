@@ -3,7 +3,7 @@
  * Implements sophisticated market scanning with various trading patterns
  */
 
-import { FyersAPI } from './fyers-api.js';
+// import { FyersAPI } from './fyers-api.js'; // Removed: Fyers API removed
 import { AdvancedBattuRulesEngine } from './advanced-battu-rules.js';
 import { RealTimeMonitoring } from './real-time-monitoring.js';
 

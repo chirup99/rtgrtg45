@@ -1,4 +1,4 @@
-import type { FyersAPI } from './fyers-api';
+// import type { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 
 interface MarketSessionData {
   symbol: string;

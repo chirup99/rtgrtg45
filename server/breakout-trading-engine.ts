@@ -1,4 +1,4 @@
-import { FyersAPI } from './fyers-api.js';
+// import { FyersAPI } from './fyers-api.js'; // Removed: Fyers API removed
 
 interface TradingSignal {
   symbol: string;

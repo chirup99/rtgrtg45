@@ -5,7 +5,7 @@ import { BattuStorage } from "./battu-storage";
 import { db } from "./db";
 import { symbols } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { fyersApi } from "./fyers-api";
+// import { fyersApi } from "./fyers-api"; // Removed: Fyers API removed
 import { C2BlockSimpleAnalyzer } from "./c2-block-simple-analyzer";
 import { recursiveC2BlockAnalyzer } from "./recursive-c2-block-analyzer";
 import { RecursivePointABAnalyzer } from "./recursive-point-ab-analyzer";
@@ -53,7 +53,7 @@ import { googleCloudService } from './google-cloud-service';
 const router = Router();
 const scannerEngine = new BattuScannerEngine();
 const storage = new BattuStorage();
-const recursiveAnalyzer = new RecursivePointABAnalyzer(fyersApi);
+// const recursiveAnalyzer = new RecursivePointABAnalyzer(fyersApi); // Removed: fyersApi no longer available
 
 // DEEP PATTERN ANALYSIS FUNCTIONS
 // Pattern power hierarchy: 1-3 > 2-4 > 1-4 > 2-3 (2-3 is waste pattern)
@@ -657,7 +657,7 @@ router.post('/3-cycle-scanner/cycle1-pointab', async (req, res) => {
     } else {
       // Fetch 1-minute data using the same methodology as 4 Candle Rule tab
       console.log(`📈 Fetching 1-minute data from API`);
-      oneMinuteData = await fyersApi.getHistoricalData({
+      oneMinuteData = await // fyersApi.getHistoricalData({
         symbol,
         resolution: '1',
         range_from: date,
@@ -967,7 +967,7 @@ router.get("/3-cycle-scanner/data/:symbol", async (req, res) => {
     console.log(`🔄 Fetching ${timeframe}-minute data for ${symbol} on ${date}...`);
     
     // Fetch historical data from Fyers API
-    const historicalData = await fyersApi.getHistoricalData(params);
+    const historicalData = null; // fyersApi.getHistoricalData(params);
 
     if (!historicalData || historicalData.length === 0) {
       return res.json({
@@ -1045,7 +1045,7 @@ router.post("/3-cycle-scanner/resample", async (req, res) => {
     }
 
     // Use Fyers API's combineCandles method for proper partial candle handling
-    const resampledData = fyersApi.combineCandles(data, parseInt(targetTimeframe));
+    const resampledData = // fyersApi.combineCandles(data, parseInt(targetTimeframe));
 
     console.log(`📊 ENHANCED RESAMPLING: ${data.length} 1min → ${resampledData.length} ${targetTimeframe}min candles`);
     console.log(`   Includes partial candles for market close scenarios`);
@@ -1243,7 +1243,7 @@ router.post("/3-cycle-scanner/analyze", async (req, res) => {
         console.log(`🔍 [EXACT-TIMESTAMPS] Fetching 1-minute data for exact Point A/B extraction...`);
         
         // Fetch 1-minute data directly using the same methodology as 4 Candle Rule tab
-        const oneMinuteData = await fyersApi.getHistoricalData({
+        const oneMinuteData = null; // fyersApi.getHistoricalData({
           symbol,
           resolution: '1',
           range_from: date,
@@ -1577,7 +1577,7 @@ router.post('/backtest/exact-timestamp-analysis', async (req, res) => {
     console.log(`📊 Symbol: ${symbol}, Date: ${date}, Timeframe: ${timeframe}min`);
 
     // Fetch 1-minute data using the same methodology as 4 Candle Rule tab
-    const oneMinuteData = await fyersApi.getHistoricalData({
+    const oneMinuteData = null; // fyersApi.getHistoricalData({
       symbol,
       resolution: '1',
       range_from: date,
@@ -1870,7 +1870,7 @@ router.post("/c2-recursive-analysis", async (req, res) => {
     }
 
     // Get initial 1-minute data for the entire trading session
-    const oneMinuteData = await fyersApi.getHistoricalData({
+    const oneMinuteData = null; // fyersApi.getHistoricalData({
       symbol: symbol,
       resolution: '1',
       date_format: '1',

@@ -178,9 +178,9 @@ export class IntradayPatternDetector {
         cont_flag: "1"
       };
       
-      const oneMinuteData = await fyersApi.getHistoricalData(params);
+      const oneMinuteData = null; // fyersApi.getHistoricalData(params);
       
-      if (!oneMinuteData || oneMinuteData.length === 0) {
+    if (apiResponse) {  // Fyers API removed
         console.log(`⚠️ No 1-minute data available for ${symbol} on ${date}`);
         return [];
       }

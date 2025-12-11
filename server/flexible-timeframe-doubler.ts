@@ -1,4 +1,12 @@
-import { FyersAPI, CandleData } from './fyers-api';
+// import { FyersAPI, CandleData } from './fyers-api'; // Removed: Fyers API removed
+interface CandleData {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+}
 import { CorrectedSlopeCalculator } from './corrected-slope-calculator';
 
 export interface FlexibleTimeframeResult {

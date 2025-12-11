@@ -1,4 +1,4 @@
-import { fyersApi } from './fyers-api';
+// import { fyersApi } from './fyers-api'; // Removed: Fyers API removed
 
 interface CandleData {
   timestamp: number;
@@ -238,7 +238,7 @@ export class C2BlockSimpleAnalyzer {
       console.log(`   Fetching 1-minute data between these timestamps for authentic Point A/B extraction...`);
       
       // Fetch 1-minute data for the C2 block timeframe
-      const oneMinuteData = await fyersApi.getHistoricalData({
+      const oneMinuteData = null; // fyersApi.getHistoricalData({
         symbol: symbol,
         resolution: '1',
         date_format: '1',

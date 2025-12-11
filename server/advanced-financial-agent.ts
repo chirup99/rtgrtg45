@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import axios from "axios";
-import type { FyersQuote } from "./fyers-api";
+// import type { FyersQuote } from "./fyers-api"; // Removed: Fyers API removed
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 

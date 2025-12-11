@@ -6,7 +6,7 @@
 import { createBackupDataService } from './backup-data-service';
 import { createHistoricalDataFetcher } from './historical-data-fetcher';
 import { getTop50StockSymbols } from './top50-stocks';
-import type { FyersAPI } from './fyers-api';
+// import type { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 
 export class BackupSyncScheduler {
   private backupService = createBackupDataService();

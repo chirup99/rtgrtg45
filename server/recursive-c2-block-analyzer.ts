@@ -1,4 +1,4 @@
-import { fyersApi } from './fyers-api';
+// import { fyersApi } from './fyers-api'; // Removed: Fyers API removed
 
 interface CandleData {
   timestamp: number;
@@ -327,7 +327,7 @@ export class RecursiveC2BlockAnalyzer {
       console.log(`📊 [REAL-C2-SPLIT] C2B (4th candle): ${new Date(c2b.timestamp * 1000).toLocaleTimeString()}`);
       
       // Get 1-minute data for the entire C2 block range (C2A + C2B)
-      const oneMinuteData = await fyersApi.getHistoricalData({
+      const oneMinuteData = null; // fyersApi.getHistoricalData({
         symbol: symbol,
         resolution: '1',
         date_format: '1',
@@ -445,7 +445,7 @@ export class RecursiveC2BlockAnalyzer {
   ): Promise<CandleData[] | null> {
     
     try {
-      const oneMinuteData = await fyersApi.getHistoricalData({
+      const oneMinuteData = null; // fyersApi.getHistoricalData({
         symbol: symbol,
         resolution: '1',
         date_format: '1',

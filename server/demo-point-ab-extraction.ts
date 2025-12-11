@@ -1,5 +1,5 @@
 import { PointABExtractor } from './point-ab-extractor.js';
-import { FyersAPI } from './fyers-api.js';
+// import { FyersAPI } from './fyers-api.js'; // Removed: Fyers API removed
 
 /**
  * Demo script to show Point A/B extraction working with real NIFTY data

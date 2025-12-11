@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { createGoogleCloudBackupService, GoogleCloudBackupService, BackupQueryParams } from './google-cloud-backup-service';
 import { createHistoricalDataFetcher, FetchProgress } from './historical-data-fetcher';
 import { getTop50StockSymbols, getStockBySymbol } from './top50-stocks';
-import { FyersAPI } from './fyers-api';
+// import { FyersAPI } from './fyers-api'; // Removed: Fyers API removed
 
 const router = Router();
 const googleCloudBackupService: GoogleCloudBackupService = createGoogleCloudBackupService();

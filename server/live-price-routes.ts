@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { fyersApi } from "./fyers-api";
+// import { fyersApi } from "./fyers-api"; // Removed: Fyers API removed
 import { liveWebSocketStreamer } from "./live-websocket-streamer";
 
 const router = Router();

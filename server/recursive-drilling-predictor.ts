@@ -1,4 +1,4 @@
-import { CandleData } from './fyers-api';
+// import { CandleData } from './fyers-api'; // Removed: Fyers API removed
 
 export interface PredictedCandle {
   timestamp: number;

@@ -1,4 +1,4 @@
-import { FyersAPI, CandleData, HistoricalDataRequest } from './fyers-api';
+// import { FyersAPI, CandleData, HistoricalDataRequest } from './fyers-api'; // Removed: Fyers API removed
 
 export interface FlexibleTimeframeConfig {
   symbol: string;

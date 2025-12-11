@@ -1,4 +1,4 @@
-import { fyersApi } from './fyers-api';
+// import { fyersApi } from './fyers-api'; // Removed: Fyers API removed
 
 interface CandleData {
   timestamp: number;
@@ -271,7 +271,7 @@ export class C2BlockInternalPatternAnalyzer {
       console.log(`📡 Fetching 1-minute data from ${new Date(startTime * 1000).toLocaleTimeString()} to ${new Date(endTime * 1000).toLocaleTimeString()}`);
       
       // First, try to get existing historical data from the main analysis
-      const response = await fyersApi.getHistoricalData({
+      // const response = null; // fyersApi.getHistoricalData({
         symbol: symbol,
         resolution: '1',
         date_format: '1',

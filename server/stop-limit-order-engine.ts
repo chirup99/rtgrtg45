@@ -1,4 +1,4 @@
-import type { FyersAPI } from './fyers-api.js';
+// import type { FyersAPI } from './fyers-api.js'; // Removed: Fyers API removed
 
 interface StopLimitOrder {
   symbol: string;
