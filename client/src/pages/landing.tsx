@@ -232,56 +232,33 @@ export default function Landing() {
 
     setIsSendingOtp(true);
     try {
-      console.log('🔐 Step 1: Validating email address exists in AWS Cognito...');
-      
-      // First: Verify email exists by attempting a dummy sign-in
-      // This will throw UserNotFoundException if email doesn't exist
-      try {
-        await cognitoSignIn(email, "dummy_check_password_12345");
-      } catch (checkError: any) {
-        // Expected: UserNotFoundException means email doesn't exist
-        // NotAuthorizedException means email exists but wrong password (good!)
-        // Any other error = check it
-        if (checkError.name === 'UserNotFoundException') {
-          throw {
-            name: 'UserNotFoundException',
-            message: 'No account found with this email address. Please sign up first.'
-          };
-        }
-        // NotAuthorizedException or other auth errors = email exists, proceed
-        console.log('✅ Email verified: Account exists in AWS Cognito');
-      }
-      
-      // Second: Send OTP to verified email
-      console.log('🔐 Step 2: Sending OTP to verified email...');
+      console.log('📧 Initiating password reset for:', email);
       await cognitoForgotPassword(email);
       setIsOtpSent(true);
       
-      console.log('✅ OTP sent successfully to:', email);
       toast({
         title: "OTP Sent Successfully",
-        description: "A 6-digit verification code has been sent to your email. Check your inbox and spam folder.",
+        description: "A 6-digit code has been sent to your email. Check inbox and spam folder.",
       });
     } catch (error: any) {
-      console.error('❌ Forgot password error:', error);
-      let errorMessage = error.message || "Failed to send verification code.";
+      console.error('❌ Password reset error:', error);
+      let errorMessage = "Failed to send reset code.";
       let errorTitle = "Error";
       
       if (error.name === 'UserNotFoundException') {
         errorTitle = "Account Not Found";
-        errorMessage = "No account exists with this email. Please sign up first.";
+        errorMessage = "No account exists with this email address.";
+      } else if (error.name === 'InvalidParameterException') {
+        errorTitle = "AWS Setup Required";
+        errorMessage = "AWS email not configured. Setup: 1) Go to AWS Console → SES → Verify email, 2) Go to Cognito user pool → Account recovery settings → Enable email.";
       } else if (error.name === 'LimitExceededException') {
         errorTitle = "Too Many Attempts";
-        errorMessage = "You've tried too many times. Please wait 5-10 minutes before trying again. AWS has rate limits for security.";
-      } else if (error.name === 'InvalidParameterException') {
-        errorTitle = "AWS Configuration Issue";
-        errorMessage = "Email service not configured in AWS. To fix: 1) Go to AWS SES, 2) Verify your email, 3) Configure Cognito to use SES for password reset.";
-      } else if (error.message?.includes('InvalidParameter') || error.name?.includes('InvalidParameter')) {
-        errorTitle = "Configuration Error";
-        errorMessage = "AWS email configuration incomplete. Please ensure AWS SES is configured and your email is verified in AWS.";
+        errorMessage = "Too many attempts. Wait 5-10 minutes and try again.";
       } else if (error.message?.includes('Network') || error.message?.includes('connection')) {
         errorTitle = "Connection Error";
-        errorMessage = "Network error. Check your internet connection and try again.";
+        errorMessage = "Check your internet connection.";
+      } else {
+        errorMessage = error.message || errorMessage;
       }
       
       toast({

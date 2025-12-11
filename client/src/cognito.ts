@@ -170,26 +170,59 @@ export async function handleCognitoCallback(): Promise<{ userId: string; email: 
   }
 }
 
-export async function cognitoForgotPassword(email: string): Promise<void> {
+export async function cognitoForgotPassword(email: string): Promise<{ deliveryMedium?: string; destination?: string }> {
   initializeCognito();
   
-  await resetPassword({
-    username: email,
-  });
-  
-  console.log('✅ Password reset code sent to:', email);
+  try {
+    console.log('📧 Step 1: Initiating password reset for:', email);
+    const result = await resetPassword({
+      username: email,
+    });
+    
+    console.log('✅ Password reset OTP sent successfully');
+    console.log('📨 Delivery details:', result);
+    
+    return {
+      deliveryMedium: result?.codeDeliveryDetails?.deliveryMedium || 'EMAIL',
+      destination: result?.codeDeliveryDetails?.destination || email,
+    };
+  } catch (error: any) {
+    console.error('❌ Password reset initiation failed:', error);
+    
+    // Provide detailed error diagnosis
+    if (error.name === 'InvalidParameterException') {
+      console.error('🔧 AWS Configuration Issue:');
+      console.error('   - Email must be verified in AWS Cognito');
+      console.error('   - AWS SES must be configured in your user pool');
+      console.error('   - Account recovery must be enabled');
+      error.diagnostics = 'AWS email service not configured or email not verified';
+    }
+    
+    throw error;
+  }
 }
 
 export async function cognitoConfirmResetPassword(email: string, code: string, newPassword: string): Promise<void> {
   initializeCognito();
   
-  await confirmResetPassword({
-    username: email,
-    confirmationCode: code,
-    newPassword,
-  });
-  
-  console.log('✅ Password reset successful for:', email);
+  try {
+    console.log('🔐 Step 2: Confirming password reset...');
+    console.log('   Email:', email);
+    console.log('   Code: [6-digit OTP]');
+    console.log('   Password: [hidden]');
+    
+    await confirmResetPassword({
+      username: email,
+      confirmationCode: code,
+      newPassword,
+    });
+    
+    console.log('✅ Password reset successful for:', email);
+    console.log('   User can now login with new password');
+  } catch (error: any) {
+    console.error('❌ Password reset confirmation failed:', error);
+    throw error;
+  }
 }
 
 export { signOut };
