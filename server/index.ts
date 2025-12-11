@@ -1,9 +1,39 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import fileUpload from 'express-fileupload';
+import path from "path";
+import fs from "fs";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import { liveWebSocketStreamer } from "./live-websocket-streamer";
+
+// Simple logging function (inline to avoid vite dependency in production)
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+// Serve static files in production (inline to avoid vite dependency)
+function serveStatic(app: express.Express) {
+  const distPath = path.resolve(process.cwd(), "dist", "public");
+
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    );
+  }
+
+  app.use(express.static(distPath));
+
+  // fall through to index.html if the file doesn't exist
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
+}
 
 
 const app = express();
@@ -169,6 +199,8 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     try {
+      // Dynamic import to avoid loading vite in production
+      const { setupVite } = await import("./vite");
       await setupVite(app, server);
     } catch (error) {
       console.error('⚠️ Error setting up Vite:', error);
