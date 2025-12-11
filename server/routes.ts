@@ -4560,6 +4560,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send Forgot Password OTP - Auto-verifies email first to bypass verification requirement
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Email is required' });
+      }
+
+      console.log('🔐 Forgot password request for:', email);
+
+      const { 
+        CognitoIdentityProviderClient, 
+        AdminUpdateUserAttributesCommand,
+        AdminGetUserCommand,
+        ForgotPasswordCommand 
+      } = await import('@aws-sdk/client-cognito-identity-provider');
+      
+      const region = process.env.AWS_COGNITO_REGION || process.env.AWS_REGION || 'eu-north-1';
+      const userPoolId = process.env.AWS_COGNITO_USER_POOL_ID || 'eu-north-1_rXrrnI6cZ';
+      const clientId = process.env.AWS_COGNITO_APP_CLIENT_ID;
+      
+      const cognitoClient = new CognitoIdentityProviderClient({
+        region,
+        credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        } : undefined,
+      });
+
+      // Step 1: Check if user exists
+      try {
+        await cognitoClient.send(new AdminGetUserCommand({
+          UserPoolId: userPoolId,
+          Username: email
+        }));
+      } catch (getUserError: any) {
+        if (getUserError.name === 'UserNotFoundException') {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'No account found with this email. Please sign up first.',
+            code: 'UserNotFoundException'
+          });
+        }
+        throw getUserError;
+      }
+
+      // Step 2: Auto-verify email to allow password reset
+      console.log('📧 Auto-verifying email for password reset:', email);
+      try {
+        await cognitoClient.send(new AdminUpdateUserAttributesCommand({
+          UserPoolId: userPoolId,
+          Username: email,
+          UserAttributes: [
+            { Name: 'email_verified', Value: 'true' }
+          ]
+        }));
+        console.log('✅ Email auto-verified for:', email);
+      } catch (verifyError: any) {
+        console.warn('⚠️ Email verification warning (continuing anyway):', verifyError.message);
+      }
+
+      // Step 3: Send forgot password OTP
+      console.log('📧 Sending forgot password OTP to:', email);
+      await cognitoClient.send(new ForgotPasswordCommand({
+        ClientId: clientId,
+        Username: email
+      }));
+
+      console.log('✅ Forgot password OTP sent successfully to:', email);
+      res.json({ 
+        success: true, 
+        message: 'Verification code sent to your email'
+      });
+
+    } catch (error: any) {
+      console.error('❌ Forgot password error:', error.name, error.message);
+      
+      let message = error.message || 'Failed to send verification code';
+      let code = error.name || 'UnknownError';
+      
+      if (error.name === 'LimitExceededException') {
+        message = 'Too many requests. Please wait before trying again.';
+      } else if (error.name === 'UserNotFoundException') {
+        message = 'No account found with this email.';
+      }
+      
+      res.status(400).json({ 
+        success: false, 
+        message,
+        code
+      });
+    }
+  });
+
   // User Profile Management Routes - Using AWS Cognito + DynamoDB
   app.get('/api/user/profile', async (req, res) => {
     try {

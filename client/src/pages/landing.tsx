@@ -241,7 +241,7 @@ export default function Landing() {
     if (cooldownSeconds > 0) {
       toast({
         title: "Please Wait",
-        description: `AWS rate limit active. Try again in ${cooldownSeconds} seconds.`,
+        description: `Rate limit active. Try again in ${cooldownSeconds} seconds.`,
         variant: "destructive",
       });
       return;
@@ -249,35 +249,39 @@ export default function Landing() {
 
     setIsSendingOtp(true);
     try {
-      console.log('📧 Connecting to AWS Cognito...');
-      console.log('📧 Sending resetPassword request to AWS for:', email);
-      await cognitoForgotPassword(email);
-      console.log('✅ AWS Cognito responded: OTP sent successfully!');
+      console.log('📧 Sending forgot password request via backend...');
+      
+      // Use backend endpoint that auto-verifies email before sending OTP
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw { name: result.code || 'Error', message: result.message };
+      }
+      
+      console.log('✅ OTP sent successfully!');
       setIsOtpSent(true);
       
       toast({
         title: "Code Sent Successfully",
-        description: "AWS Cognito sent a verification code to your email.",
+        description: "Verification code sent to your email.",
       });
     } catch (error: any) {
-      console.error('❌ AWS Cognito Error:', error.name, error.message);
+      console.error('❌ Forgot Password Error:', error.name, error.message);
       let msg = error.message || "Failed to send code.";
-      let title = "AWS Error";
+      let title = "Error";
       
       if (error.name === 'UserNotFoundException') {
         msg = "This email is not registered. Please sign up first.";
         title = "User Not Found";
-      } else if (error.name === 'InvalidParameterException') {
-        if (error.message?.includes('no registered/verified email')) {
-          msg = "This account's email is not verified. Please contact support or sign up again with email verification.";
-          title = "Email Not Verified";
-        } else {
-          msg = "Invalid request. Please check your email and try again.";
-          title = "Invalid Request";
-        }
       } else if (error.name === 'LimitExceededException') {
-        msg = "AWS Cognito rate limit exceeded. Please wait before trying again.";
-        title = "Rate Limited by AWS";
+        msg = "Rate limit exceeded. Please wait before trying again.";
+        title = "Rate Limited";
         setCooldownSeconds(300); // 5 minute cooldown
       }
       
