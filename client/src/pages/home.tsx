@@ -15653,6 +15653,47 @@ ${
                               />
                             ) : (
                               <div className="flex-1 w-full p-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white overflow-y-auto custom-thin-scrollbar">
+                                {/* Display daily factors inline when they exist */}
+                                {selectedDailyFactors.length > 0 && (
+                                  <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="flex flex-wrap gap-1">
+                                      {selectedDailyFactors.map((factor) => (
+                                        <span
+                                          key={factor}
+                                          className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-700 transition-colors group"
+                                          onClick={() => toggleDailyFactor(factor)}
+                                          title="Click to remove daily factor"
+                                          data-testid={`inline-daily-factor-${factor}`}
+                                        >
+                                          {factor}
+                                          <X className="w-3 h-3 ml-1 opacity-60 group-hover:opacity-100" />
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Display indicators inline when they exist */}
+                                {selectedIndicators.length > 0 && (
+                                  <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="flex flex-wrap gap-1">
+                                      {selectedIndicators.map((indicator) => (
+                                        <span
+                                          key={indicator}
+                                          className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-full cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-700 transition-colors group"
+                                          onClick={() => toggleIndicator(indicator)}
+                                          title="Click to remove indicator"
+                                          data-testid={`inline-indicator-${indicator}`}
+                                        >
+                                          {indicator}
+                                          <X className="w-3 h-3 ml-1 opacity-60 group-hover:opacity-100" />
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Display tags inline when they exist */}
                                 {/* Display tags inline when they exist */}
                                 {getValidTags(selectedTags).length > 0 && (
                                   <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
