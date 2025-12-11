@@ -201,6 +201,7 @@ class AWSDynamoDBService {
           dateKey: userDateKey,
           userId: userId,
           date: dateKey,
+          sessionDate: dateKey, // Required for GSI userId-sessionDate-index
           data: data,
           updatedAt: new Date().toISOString()
         }
@@ -251,7 +252,42 @@ class AWSDynamoDBService {
 
     try {
       const userPrefix = `user_${userId}_`;
-      const command = new ScanCommand({
+      
+      // Try using GSI userId-sessionDate-index for efficient lookup
+      try {
+        const queryCommand = new QueryCommand({
+          TableName: TABLE_NAME,
+          IndexName: 'userId-sessionDate-index',
+          KeyConditionExpression: "userId = :userId",
+          ExpressionAttributeValues: {
+            ":userId": userId
+          }
+        });
+        
+        const response = await this.docClient!.send(queryCommand);
+        const result: Record<string, any> = {};
+
+        if (response.Items) {
+          for (const item of response.Items) {
+            if (item.dateKey && item.data) {
+              const cleanKey = item.dateKey.replace(userPrefix, '');
+              result[cleanKey] = item.data;
+            }
+          }
+          console.log(`✅ AWS: Retrieved ${Object.keys(result).length} user journal entries for ${userId} (GSI)`);
+        }
+        return result;
+      } catch (gsiError: any) {
+        // Fallback to scan if GSI doesn't exist
+        if (gsiError.message?.includes('index') || gsiError.name === 'ValidationException') {
+          console.log('⚠️ GSI not found, using scan fallback for getAllUserJournalData');
+        } else {
+          throw gsiError;
+        }
+      }
+
+      // Fallback to scan
+      const scanCommand = new ScanCommand({
         TableName: TABLE_NAME,
         FilterExpression: "begins_with(dateKey, :prefix)",
         ExpressionAttributeValues: {
@@ -259,7 +295,7 @@ class AWSDynamoDBService {
         }
       });
 
-      const response = await this.docClient!.send(command);
+      const response = await this.docClient!.send(scanCommand);
 
       const result: Record<string, any> = {};
 

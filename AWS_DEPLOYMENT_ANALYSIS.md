@@ -78,54 +78,80 @@ This document provides a comprehensive analysis of AWS services configuration be
 - [x] **No provisioned capacity limits** - Handles variable load
 - [x] **Key schema** - Using pk/sk pattern
 
-### CRITICAL OPTIMIZATION NEEDED
+### OPTIMIZATION COMPLETE ✅
 
-**WARNING:** Current implementation uses `Scan` operations for some queries (e.g., `getUserPost`, `getUserPostsByUsername`). For 1M+ users, this will cause:
-- High latency (scanning entire tables)
-- Excessive read capacity consumption
-- High costs
+**The codebase has been updated to use Query operations with GSIs instead of Scan operations.**
 
-**Required Changes Before 1M User Launch:**
+All DynamoDB functions have been refactored to:
+1. Use Global Secondary Indexes (GSIs) for efficient lookups
+2. Fallback to Scan operations only if GSI doesn't exist yet
+3. Use proper KeyConditionExpression for O(1) lookups instead of table scans
 
-| Fix | Priority | Status |
-|-----|----------|--------|
-| Add Global Secondary Index (GSI) for authorUsername | CRITICAL | Manual - AWS Console or code |
-| Replace Scan with Query operations | CRITICAL | Code change needed |
-| Add GSI for post lookup by ID | CRITICAL | Manual - AWS Console or code |
+**Changes Made:**
+- `getUserPost` - Now uses `id-index` GSI
+- `getUserPostsByUsername` - Now uses `authorUsername-createdAt-index` GSI
+- `getPostLikesCount` - Now uses `postId-createdAt-index` GSI
+- `getPostDowntrendsCount` - Now uses `postId-createdAt-index` GSI
+- `getPostRetweetsCount` - Now uses `postId-createdAt-index` GSI
+- `getPostRetweets` - Now uses `postId-createdAt-index` GSI
+- `getPostComments` - Now uses `postId-createdAt-index` GSI
+- `getPostCommentsCount` - Now uses `postId-createdAt-index` GSI
+- `isFollowing` - Now uses `followerUsername-index` GSI
+- `getFollowersCount` - Now uses `followingUsername-index` GSI
+- `getFollowingCount` - Now uses `followerUsername-index` GSI
+- `getFollowersList` - Now uses `followingUsername-index` GSI
+- `getFollowingList` - Now uses `followerUsername-index` GSI
+- `getAllUserJournalData` - Now uses `userId-sessionDate-index` GSI
 
-### Recommended GSI Configuration
+### Required GSI Configuration
 
-```javascript
-// For neofeed-user-posts table:
-// GSI 1: Query posts by username
-{
-  IndexName: 'authorUsername-index',
-  KeySchema: [
-    { AttributeName: 'authorUsername', KeyType: 'HASH' },
-    { AttributeName: 'createdAt', KeyType: 'RANGE' }
-  ]
-}
+Run the following command to set up all GSIs in your AWS account:
 
-// GSI 2: Query posts by ID
-{
-  IndexName: 'id-index',
-  KeySchema: [
-    { AttributeName: 'id', KeyType: 'HASH' }
-  ]
-}
+```bash
+npx tsx scripts/setup-dynamodb-gsis.ts setup
 ```
+
+To check the status of existing GSIs:
+
+```bash
+npx tsx scripts/setup-dynamodb-gsis.ts check
+```
+
+### Complete GSI List
+
+| Table | GSI Name | Hash Key | Range Key |
+|-------|----------|----------|-----------|
+| neofeed-user-posts | authorUsername-createdAt-index | authorUsername | createdAt |
+| neofeed-user-posts | status-createdAt-index | status | createdAt |
+| neofeed-user-posts | id-index | id | - |
+| neofeed-likes | postId-createdAt-index | postId | createdAt |
+| neofeed-likes | userId-postId-index | userId | postId |
+| neofeed-downtrends | postId-createdAt-index | postId | createdAt |
+| neofeed-retweets | postId-createdAt-index | postId | createdAt |
+| neofeed-comments | postId-createdAt-index | postId | createdAt |
+| neofeed-follows | followerUsername-index | followerUsername | followingUsername |
+| neofeed-follows | followingUsername-index | followingUsername | followerUsername |
+| neofeed-audio-posts | authorUsername-createdAt-index | authorUsername | createdAt |
+| neofeed-finance-news | category-publishedAt-index | category | publishedAt |
+| neofeed-banners | active-displayStart-index | active | displayStart |
+| tradebook-heatmaps | userId-sessionDate-index | userId | sessionDate |
 
 ### High-Traffic Recommendations
 
 | Recommendation | Priority | Status |
 |---------------|----------|--------|
-| Add GSIs and convert Scans to Queries | CRITICAL | Required before launch |
+| Add GSIs and convert Scans to Queries | CRITICAL | ✅ COMPLETE |
+| Run GSI setup script | CRITICAL | Run before deployment |
 | Enable Point-in-Time Recovery | High | Manual - AWS Console |
 | Enable Encryption at Rest | High | Enabled by default |
 | Configure Global Tables for multi-region | Medium | Optional for global users |
 | Set up DynamoDB Accelerator (DAX) | Medium | For hot partition scenarios |
 
-**Note: DynamoDB billing model is ready, but query patterns need optimization before 1M users.**
+**Important Notes:**
+1. Code now uses Query operations with GSI fallback to Scan if GSI doesn't exist
+2. Run GSI setup script before deployment: `npx tsx scripts/setup-dynamodb-gsis.ts setup`
+3. Some operations (user search, reposts feed) still use Scan for prefix/full-table access patterns
+4. Existing data may need `status` field added for posts, `sessionDate` for journal entries
 
 ---
 

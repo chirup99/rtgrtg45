@@ -98,6 +98,7 @@ export async function createUserPost(postData: any) {
       sk: timestamp,
       id: postId,
       ...postData,
+      status: postData.status || 'published', // Required for GSI status-createdAt-index
       createdAt: timestamp,
       updatedAt: timestamp,
       likes: 0,
@@ -116,13 +117,25 @@ export async function createUserPost(postData: any) {
 
 export async function getUserPost(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI id-index for efficient lookup (O(1) instead of table scan)
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.USER_POSTS,
-      FilterExpression: 'id = :postId',
+      IndexName: 'id-index',
+      KeyConditionExpression: 'id = :postId',
       ExpressionAttributeValues: { ':postId': postId }
     }));
     return result.Items?.[0] || null;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      console.log('⚠️ GSI not found, using scan fallback for getUserPost');
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.USER_POSTS,
+        FilterExpression: 'id = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return result.Items?.[0] || null;
+    }
     console.error('❌ Error fetching user post:', error);
     return null;
   }
@@ -130,13 +143,26 @@ export async function getUserPost(postId: string) {
 
 export async function getUserPostsByUsername(username: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI authorUsername-createdAt-index for efficient lookup
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.USER_POSTS,
-      FilterExpression: 'authorUsername = :username',
-      ExpressionAttributeValues: { ':username': username }
+      IndexName: 'authorUsername-createdAt-index',
+      KeyConditionExpression: 'authorUsername = :username',
+      ExpressionAttributeValues: { ':username': username },
+      ScanIndexForward: false // Sort by createdAt descending
     }));
     return result.Items || [];
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      console.log('⚠️ GSI not found, using scan fallback for getUserPostsByUsername');
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.USER_POSTS,
+        FilterExpression: 'authorUsername = :username',
+        ExpressionAttributeValues: { ':username': username }
+      }));
+      return result.Items || [];
+    }
     console.error('❌ Error fetching user posts:', error);
     return [];
   }
@@ -193,20 +219,37 @@ export async function deleteUserPost(postId: string) {
   }
 }
 
-export async function getAllUserPosts(limit = 50) {
+export async function getAllUserPosts(limit = 50, lastKey?: any) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI status-createdAt-index with status='published' for efficient feed query
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.USER_POSTS,
-      Limit: limit
+      IndexName: 'status-createdAt-index',
+      KeyConditionExpression: '#status = :status',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':status': 'published' },
+      ScanIndexForward: false, // Sort by createdAt descending
+      Limit: limit,
+      ExclusiveStartKey: lastKey
     }));
     
-    const items = (result.Items || []).sort((a: any, b: any) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    
-    return { items, lastEvaluatedKey: result.LastEvaluatedKey };
-  } catch (error) {
-    console.error('❌ Error scanning user posts:', error);
+    return { items: result.Items || [], lastEvaluatedKey: result.LastEvaluatedKey };
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist or query fails
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      console.log('⚠️ GSI not found, using scan fallback for getAllUserPosts');
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.USER_POSTS,
+        Limit: limit
+      }));
+      
+      const items = (result.Items || []).sort((a: any, b: any) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      return { items, lastEvaluatedKey: result.LastEvaluatedKey };
+    }
+    console.error('❌ Error fetching user posts:', error);
     return { items: [], lastEvaluatedKey: undefined };
   }
 }
@@ -267,13 +310,25 @@ export async function deleteLike(userId: string, postId: string) {
 
 export async function getPostLikesCount(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI postId-createdAt-index for efficient count
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.LIKES,
-      FilterExpression: 'postId = :postId',
-      ExpressionAttributeValues: { ':postId': postId }
+      IndexName: 'postId-createdAt-index',
+      KeyConditionExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId },
+      Select: 'COUNT'
     }));
     return result.Count || 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.LIKES,
+        FilterExpression: 'postId = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return result.Count || 0;
+    }
     return 0;
   }
 }
@@ -347,13 +402,25 @@ export async function deleteDowntrend(userId: string, postId: string) {
 
 export async function getPostDowntrendsCount(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI postId-createdAt-index for efficient count
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.DOWNTRENDS,
-      FilterExpression: 'postId = :postId',
-      ExpressionAttributeValues: { ':postId': postId }
+      IndexName: 'postId-createdAt-index',
+      KeyConditionExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId },
+      Select: 'COUNT'
     }));
     return result.Count || 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.DOWNTRENDS,
+        FilterExpression: 'postId = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return result.Count || 0;
+    }
     return 0;
   }
 }
@@ -428,13 +495,25 @@ export async function deleteRetweet(userId: string, postId: string) {
 
 export async function getPostRetweetsCount(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI postId-createdAt-index for efficient count
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.RETWEETS,
-      FilterExpression: 'postId = :postId',
-      ExpressionAttributeValues: { ':postId': postId }
+      IndexName: 'postId-createdAt-index',
+      KeyConditionExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId },
+      Select: 'COUNT'
     }));
     return result.Count || 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.RETWEETS,
+        FilterExpression: 'postId = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return result.Count || 0;
+    }
     return 0;
   }
 }
@@ -460,13 +539,25 @@ export async function userRetweetedPost(userId: string, postId: string) {
 // Get all retweets for a post with user details
 export async function getPostRetweets(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI postId-createdAt-index for efficient lookup
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.RETWEETS,
-      FilterExpression: 'postId = :postId',
-      ExpressionAttributeValues: { ':postId': postId }
+      IndexName: 'postId-createdAt-index',
+      KeyConditionExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId },
+      ScanIndexForward: false
     }));
     return result.Items || [];
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.RETWEETS,
+        FilterExpression: 'postId = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return result.Items || [];
+    }
     console.error('❌ Error fetching post retweets:', error);
     return [];
   }
@@ -496,28 +587,52 @@ export async function createComment(commentData: any) {
 
 export async function getPostComments(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI postId-createdAt-index for efficient lookup
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.COMMENTS,
-      FilterExpression: 'postId = :postId',
-      ExpressionAttributeValues: { ':postId': postId }
+      IndexName: 'postId-createdAt-index',
+      KeyConditionExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId },
+      ScanIndexForward: false // Sort by createdAt descending
     }));
-    return (result.Items || []).sort((a: any, b: any) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  } catch (error) {
+    return result.Items || [];
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.COMMENTS,
+        FilterExpression: 'postId = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return (result.Items || []).sort((a: any, b: any) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }
     return [];
   }
 }
 
 export async function getPostCommentsCount(postId: string) {
   try {
-    const result = await docClient.send(new ScanCommand({
+    // Use GSI postId-createdAt-index for efficient count
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.COMMENTS,
-      FilterExpression: 'postId = :postId',
-      ExpressionAttributeValues: { ':postId': postId }
+      IndexName: 'postId-createdAt-index',
+      KeyConditionExpression: 'postId = :postId',
+      ExpressionAttributeValues: { ':postId': postId },
+      Select: 'COUNT'
     }));
     return result.Count || 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.COMMENTS,
+        FilterExpression: 'postId = :postId',
+        ExpressionAttributeValues: { ':postId': postId }
+      }));
+      return result.Count || 0;
+    }
     return 0;
   }
 }
@@ -711,14 +826,29 @@ export async function isFollowing(followerUsername: string, followingUsername: s
     // Normalize usernames to lowercase for consistent matching
     const normalizedFollower = followerUsername.toLowerCase();
     const normalizedFollowing = followingUsername.toLowerCase();
-    const followId = `${normalizedFollower}_${normalizedFollowing}`;
-    const result = await docClient.send(new ScanCommand({
+    
+    // Use GSI followerUsername-index for efficient lookup
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.FOLLOWS,
-      FilterExpression: 'followId = :followId',
-      ExpressionAttributeValues: { ':followId': followId }
+      IndexName: 'followerUsername-index',
+      KeyConditionExpression: 'followerUsername = :follower AND followingUsername = :following',
+      ExpressionAttributeValues: { 
+        ':follower': normalizedFollower,
+        ':following': normalizedFollowing
+      }
     }));
     return (result.Items?.length || 0) > 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const followId = `${followerUsername.toLowerCase()}_${followingUsername.toLowerCase()}`;
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.FOLLOWS,
+        FilterExpression: 'followId = :followId',
+        ExpressionAttributeValues: { ':followId': followId }
+      }));
+      return (result.Items?.length || 0) > 0;
+    }
     return false;
   }
 }
@@ -727,14 +857,27 @@ export async function getFollowersCount(username: string): Promise<number> {
   try {
     // Normalize username to lowercase for consistent matching
     const normalizedUsername = username.toLowerCase();
-    const result = await docClient.send(new ScanCommand({
+    
+    // Use GSI followingUsername-index for efficient count
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.FOLLOWS,
-      FilterExpression: 'followingUsername = :username',
-      ExpressionAttributeValues: { ':username': normalizedUsername }
+      IndexName: 'followingUsername-index',
+      KeyConditionExpression: 'followingUsername = :username',
+      ExpressionAttributeValues: { ':username': normalizedUsername },
+      Select: 'COUNT'
     }));
     console.log(`📊 getFollowersCount for ${normalizedUsername}: ${result.Count || 0} followers`);
     return result.Count || 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.FOLLOWS,
+        FilterExpression: 'followingUsername = :username',
+        ExpressionAttributeValues: { ':username': username.toLowerCase() }
+      }));
+      return result.Count || 0;
+    }
     console.error(`❌ Error getting followers count:`, error);
     return 0;
   }
@@ -744,14 +887,27 @@ export async function getFollowingCount(username: string): Promise<number> {
   try {
     // Normalize username to lowercase for consistent matching
     const normalizedUsername = username.toLowerCase();
-    const result = await docClient.send(new ScanCommand({
+    
+    // Use GSI followerUsername-index for efficient count
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.FOLLOWS,
-      FilterExpression: 'followerUsername = :username',
-      ExpressionAttributeValues: { ':username': normalizedUsername }
+      IndexName: 'followerUsername-index',
+      KeyConditionExpression: 'followerUsername = :username',
+      ExpressionAttributeValues: { ':username': normalizedUsername },
+      Select: 'COUNT'
     }));
     console.log(`📊 getFollowingCount for ${normalizedUsername}: ${result.Count || 0} following`);
     return result.Count || 0;
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.FOLLOWS,
+        FilterExpression: 'followerUsername = :username',
+        ExpressionAttributeValues: { ':username': username.toLowerCase() }
+      }));
+      return result.Count || 0;
+    }
     console.error(`❌ Error getting following count:`, error);
     return 0;
   }
@@ -761,9 +917,12 @@ export async function getFollowersList(username: string): Promise<any[]> {
   try {
     // Normalize username to lowercase for consistent matching
     const normalizedUsername = username.toLowerCase();
-    const result = await docClient.send(new ScanCommand({
+    
+    // Use GSI followingUsername-index for efficient lookup
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.FOLLOWS,
-      FilterExpression: 'followingUsername = :username',
+      IndexName: 'followingUsername-index',
+      KeyConditionExpression: 'followingUsername = :username',
       ExpressionAttributeValues: { ':username': normalizedUsername }
     }));
     
@@ -774,7 +933,22 @@ export async function getFollowersList(username: string): Promise<any[]> {
       avatar: item.followerAvatar,
       followedAt: item.createdAt
     }));
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.FOLLOWS,
+        FilterExpression: 'followingUsername = :username',
+        ExpressionAttributeValues: { ':username': username.toLowerCase() }
+      }));
+      return (result.Items || []).map((item: any) => ({
+        id: item.followerUsername,
+        username: item.followerUsername,
+        displayName: item.followerDisplayName || item.followerUsername,
+        avatar: item.followerAvatar,
+        followedAt: item.createdAt
+      }));
+    }
     return [];
   }
 }
@@ -783,9 +957,12 @@ export async function getFollowingList(username: string): Promise<any[]> {
   try {
     // Normalize username to lowercase for consistent matching
     const normalizedUsername = username.toLowerCase();
-    const result = await docClient.send(new ScanCommand({
+    
+    // Use GSI followerUsername-index for efficient lookup
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLES.FOLLOWS,
-      FilterExpression: 'followerUsername = :username',
+      IndexName: 'followerUsername-index',
+      KeyConditionExpression: 'followerUsername = :username',
       ExpressionAttributeValues: { ':username': normalizedUsername }
     }));
     
@@ -796,7 +973,22 @@ export async function getFollowingList(username: string): Promise<any[]> {
       avatar: item.followingAvatar,
       followedAt: item.createdAt
     }));
-  } catch (error) {
+  } catch (error: any) {
+    // Fallback to scan if GSI doesn't exist yet
+    if (error.message?.includes('index') || error.name === 'ValidationException') {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.FOLLOWS,
+        FilterExpression: 'followerUsername = :username',
+        ExpressionAttributeValues: { ':username': username.toLowerCase() }
+      }));
+      return (result.Items || []).map((item: any) => ({
+        id: item.followingUsername,
+        username: item.followingUsername,
+        displayName: item.followingDisplayName || item.followingUsername,
+        avatar: item.followingAvatar,
+        followedAt: item.createdAt
+      }));
+    }
     return [];
   }
 }
