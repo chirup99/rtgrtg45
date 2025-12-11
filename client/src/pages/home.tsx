@@ -8699,6 +8699,9 @@ ${
       const updatedData = {
         ...existingData,
         tradingNotes: tempNotesContent,
+        selectedDailyFactors: selectedDailyFactors,
+        selectedIndicators: selectedIndicators,
+        selectedTags: getValidTags(selectedTags),
       };
 
       const response = await fetch(`/api/journal/${selectedDateStr}`, {
@@ -8744,6 +8747,8 @@ ${
 
   const clearAllTags = () => {
     setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
   };
 
   // Calendar handler functions
@@ -8834,6 +8839,8 @@ ${
     setNotesContent("");
     setTempNotesContent("");
     setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
     setTradeHistoryData([]);
     setTradingImages([]);
     setTradedSymbols([]);
@@ -8867,6 +8874,18 @@ ${
         const tags = journalData.tags || journalData.tradingTags || journalData.selectedTags || [];
         if (Array.isArray(tags)) {
           setSelectedTags(tags);
+        }
+
+        const dailyFactors = journalData.dailyFactors || journalData.selectedDailyFactors || [];
+        if (Array.isArray(dailyFactors)) {
+          setSelectedDailyFactors(dailyFactors);
+          console.log("🌅 Loaded daily factors from Firebase:", dailyFactors);
+        }
+
+        const indicators = journalData.indicators || journalData.selectedIndicators || [];
+        if (Array.isArray(indicators)) {
+          setSelectedIndicators(indicators);
+          console.log("📊 Loaded indicators from Firebase:", indicators);
           console.log("🏷️ Loaded tags from Firebase:", tags);
         }
 
@@ -8966,6 +8985,18 @@ ${
             [];
           if (Array.isArray(tags)) {
             setSelectedTags(tags);
+        }
+
+        const dailyFactors = journalData.dailyFactors || journalData.selectedDailyFactors || [];
+        if (Array.isArray(dailyFactors)) {
+          setSelectedDailyFactors(dailyFactors);
+          console.log("🌅 Loaded daily factors from Firebase:", dailyFactors);
+        }
+
+        const indicators = journalData.indicators || journalData.selectedIndicators || [];
+        if (Array.isArray(indicators)) {
+          setSelectedIndicators(indicators);
+          console.log("📊 Loaded indicators from Firebase:", indicators);
             console.log("🏷️ Loaded tags from journal-database:", tags);
           }
 
@@ -16168,6 +16199,8 @@ ${
                                   setNotesContent("");
                                   setTempNotesContent("");
                                   setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
                                   setTradeHistoryData([]);
                                   setTradingImages([]);
                                   
