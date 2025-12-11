@@ -205,39 +205,16 @@ server.listen(listenOptions, () => {
     // Start background tasks AFTER server is ready and health check passes
     // Delay startup to ensure Cloud Run health check succeeds first
     setTimeout(() => {
-      // Start the live WebSocket price streaming system (non-blocking)
-      // Only start if Fyers credentials are available
-      if (process.env.FYERS_ACCESS_TOKEN && process.env.FYERS_APP_ID) {
-        console.log('🚀 Initializing live WebSocket price streaming system...');
-        liveWebSocketStreamer.startStreaming()
-          .then(() => {
-            console.log('✅ Live WebSocket price streaming system started successfully');
-          })
-          .catch((error) => {
-            console.error('❌ Failed to start live WebSocket price streaming system:', error);
-            console.log('⚠️  Server will continue running without live streaming');
-          });
-      } else {
-        console.log('⚠️  Fyers credentials not found, skipping WebSocket streaming');
-      }
-
-      // Auto-post finance news every hour from Google News (non-blocking)
-      const postHourlyFinanceNews = async () => {
-        try {
-          console.log('📰 Auto-posting hourly finance news from Google News...');
-          const response = await fetch(`http://localhost:${port}/api/auto-post-daily-news`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          const result = await response.json();
-          console.log(`📰 Hourly finance news result: ${result.postsCreated} posts created`);
-        } catch (error) {
-          console.error('📰 Hourly finance news error:', error);
-          console.log('⚠️  Server will continue running without auto news posting');
-        }
-      };
-
-      // Auto-news posting disabled - using AWS services instead
+      // Start the live WebSocket price streaming system using Angel One API
+      console.log('🚀 Initializing live WebSocket price streaming system (Angel One)...');
+      liveWebSocketStreamer.startStreaming()
+        .then(() => {
+          console.log('✅ Live WebSocket price streaming system started successfully');
+        })
+        .catch((error) => {
+          console.error('❌ Failed to start live WebSocket price streaming system:', error);
+          console.log('⚠️  Server will continue running without live streaming');
+        });
     }, 5000); // Delay background tasks by 5 seconds for Cloud Run health check
   });
 })();
