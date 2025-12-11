@@ -27,7 +27,8 @@ class TradingNLPAgent {
       languages: ['en'],
       forceNER: true,
       nlu: { log: false },
-      autoSave: false
+      autoSave: false,
+      ner: { useDuckling: false }
     });
     this.initializeTraining();
   }

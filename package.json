@@ -82,6 +82,7 @@
     "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
     "install": "^0.13.0",
+    "kuromoji": "^0.1.2",
     "lightweight-charts": "^5.0.8",
     "lucide-react": "^0.453.0",
     "memoizee": "^0.4.17",
