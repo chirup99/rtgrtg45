@@ -425,7 +425,7 @@ export default function Landing() {
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg disabled:opacity-50"
                     data-testid="button-send-otp"
                   >
-                    {isSendingOtp ? "Connecting to AWS..." : cooldownSeconds > 0 ? `Wait ${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}` : "Send OTP"}
+                    {isSendingOtp ? "Sending..." : cooldownSeconds > 0 ? `Wait ${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}` : "Send OTP"}
                     {!isSendingOtp && cooldownSeconds === 0 && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
                 ) : (
@@ -474,7 +474,7 @@ export default function Landing() {
                       className="w-full text-gray-400 hover:text-white disabled:opacity-50"
                       data-testid="button-resend-otp"
                     >
-                      {isSendingOtp ? "Connecting to AWS..." : cooldownSeconds > 0 ? `Wait ${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}` : "Resend Code"}
+                      {isSendingOtp ? "Sending..." : cooldownSeconds > 0 ? `Wait ${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}` : "Resend Code"}
                     </Button>
                   </>
                 )}
