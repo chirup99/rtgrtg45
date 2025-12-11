@@ -90,3 +90,19 @@ Password reset now works for ALL users, regardless of email verification status.
 - ✅ Password Reset: Fixed for unverified emails
 
 **Project import completed successfully. Application ready for use.**
+
+---
+
+## AWS Deployment Setup - December 11, 2025 ✅
+
+### Files Created:
+1. **AWS_DEPLOYMENT_GUIDE.md** - Complete step-by-step deployment guide
+2. **.ebextensions/nodecommand.config** - Elastic Beanstalk Node.js configuration
+3. **.ebextensions/https-redirect.config** - HTTPS redirect configuration
+4. **Procfile** - Already exists with correct settings
+
+### Deployment Summary:
+- Recommended: AWS Elastic Beanstalk (easiest setup)
+- Custom domain via Route 53 or external registrar
+- SSL certificate via AWS Certificate Manager (free)
+- Estimated cost: $25-40/month after free tier
