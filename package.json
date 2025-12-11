@@ -8,9 +8,7 @@
     "build": "dotenv -e .env -- vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "db:push": "drizzle-kit push",
-    "firebase:deploy": "npm run build && gcloud run deploy perala --image gcr.io/fast-planet-470408-f1/perala --platform managed --region us-central1 --allow-unauthenticated --set-env-vars=\"FIREBASE_PROJECT_ID=fast-planet-470408-f1,FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@fast-planet-470408-f1.iam.gserviceaccount.com,NODE_ENV=production,FYERS_APP_ID=BUXMASTNCH-100,FYERS_SECRET_KEY=TMA74Z9O0Z\" --update-secrets=\"FIREBASE_PRIVATE_KEY=firebase-private-key:latest,FYERS_ACCESS_TOKEN=fyers-access-token:latest\"",
-    "firebase:login": "firebase login --no-localhost"
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.17.0",
@@ -21,8 +19,6 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@google-cloud/firestore": "^7.11.3",
-    "@google-cloud/storage": "^7.17.0",
     "@google/genai": "^1.31.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -81,9 +77,6 @@
     "express": "^4.21.2",
     "express-fileupload": "^1.5.2",
     "express-session": "^1.18.1",
-    "firebase": "^12.5.0",
-    "firebase-admin": "^13.4.0",
-    "firebase-tools": "^14.25.0",
     "framer-motion": "^12.23.25",
     "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
