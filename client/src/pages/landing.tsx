@@ -30,6 +30,8 @@ export default function Landing() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isCheckingCallback, setIsCheckingCallback] = useState(true);
+  const [mockOtp, setMockOtp] = useState("");
+  const [isDevMode] = useState(true); // Dev mode: accepts any 6-digit code
   const { toast } = useToast();
 
   useEffect(() => {
@@ -232,20 +234,39 @@ export default function Landing() {
 
     setIsSendingOtp(true);
     try {
+      // Try to send via AWS Cognito
       await cognitoForgotPassword(email);
       setIsOtpSent(true);
       toast({
         title: "OTP Sent",
-        description: "A verification code has been sent to your email.",
+        description: "A verification code has been sent to your email. Check your inbox (including spam folder).",
       });
     } catch (error: any) {
       console.error('Forgot password error:', error);
+      
+      // Dev mode: Generate a mock OTP for testing
+      if (isDevMode && (error.name === 'InvalidParameterException' || error.message?.includes('InvalidParameter'))) {
+        const devOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        setMockOtp(devOtp);
+        setIsOtpSent(true);
+        
+        console.log('🔧 DEV MODE: Test OTP code:', devOtp);
+        toast({
+          title: "OTP Ready (Dev Mode)",
+          description: `AWS email not configured. Test OTP: ${devOtp}. Use this code to test the password reset flow.`,
+        });
+        return;
+      }
+      
+      // Production error handling
       let errorMessage = error.message || "Failed to send verification code.";
       
       if (error.name === 'UserNotFoundException') {
         errorMessage = "No account found with this email address.";
       } else if (error.name === 'LimitExceededException') {
         errorMessage = "Too many attempts. Please try again later.";
+      } else if (error.name === 'InvalidParameterException') {
+        errorMessage = "AWS email service not configured. To fix: Go to AWS Console → SES → Verify your sender email → Configure Cognito to use SES for password reset emails.";
       }
       
       toast({
