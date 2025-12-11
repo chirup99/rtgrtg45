@@ -265,11 +265,16 @@ export default function Landing() {
       let title = "AWS Error";
       
       if (error.name === 'UserNotFoundException') {
-        msg = "This email is not registered in AWS Cognito. Please sign up first.";
+        msg = "This email is not registered. Please sign up first.";
         title = "User Not Found";
       } else if (error.name === 'InvalidParameterException') {
-        msg = "AWS Cognito email delivery not configured. Check User Pool settings.";
-        title = "Configuration Error";
+        if (error.message?.includes('no registered/verified email')) {
+          msg = "This account's email is not verified. Please contact support or sign up again with email verification.";
+          title = "Email Not Verified";
+        } else {
+          msg = "Invalid request. Please check your email and try again.";
+          title = "Invalid Request";
+        }
       } else if (error.name === 'LimitExceededException') {
         msg = "AWS Cognito rate limit exceeded. Please wait before trying again.";
         title = "Rate Limited by AWS";
