@@ -29,7 +29,16 @@ export default function Landing() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isCheckingCallback, setIsCheckingCallback] = useState(true);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const { toast } = useToast();
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => setCooldownSeconds(cooldownSeconds - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldownSeconds]);
 
   useEffect(() => {
     initializeCognito();
@@ -229,30 +238,46 @@ export default function Landing() {
       return;
     }
 
+    if (cooldownSeconds > 0) {
+      toast({
+        title: "Please Wait",
+        description: `AWS rate limit active. Try again in ${cooldownSeconds} seconds.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSendingOtp(true);
     try {
-      console.log('📧 AWS resetPassword:', email);
+      console.log('📧 Connecting to AWS Cognito...');
+      console.log('📧 Sending resetPassword request to AWS for:', email);
       await cognitoForgotPassword(email);
+      console.log('✅ AWS Cognito responded: OTP sent successfully!');
       setIsOtpSent(true);
       
       toast({
-        title: "OTP Sent",
-        description: "Check your email for the 6-digit code.",
+        title: "Code Sent Successfully",
+        description: "AWS Cognito sent a verification code to your email.",
       });
     } catch (error: any) {
-      console.error('❌ Error:', error.name, error.message);
+      console.error('❌ AWS Cognito Error:', error.name, error.message);
       let msg = error.message || "Failed to send code.";
+      let title = "AWS Error";
       
       if (error.name === 'UserNotFoundException') {
-        msg = "Email not found. Sign up first.";
+        msg = "This email is not registered in AWS Cognito. Please sign up first.";
+        title = "User Not Found";
       } else if (error.name === 'InvalidParameterException') {
-        msg = "AWS not configured. Enable email in Cognito.";
+        msg = "AWS Cognito email delivery not configured. Check User Pool settings.";
+        title = "Configuration Error";
       } else if (error.name === 'LimitExceededException') {
-        msg = "Too many attempts. Wait 5-10 minutes.";
+        msg = "AWS Cognito rate limit exceeded. Please wait before trying again.";
+        title = "Rate Limited by AWS";
+        setCooldownSeconds(300); // 5 minute cooldown
       }
       
       toast({
-        title: "Error",
+        title: title,
         description: msg,
         variant: "destructive",
       });
@@ -377,15 +402,22 @@ export default function Landing() {
                   className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg disabled:opacity-50"
                   data-testid="input-forgot-email"
                 />
+                {cooldownSeconds > 0 && (
+                  <div className="p-3 bg-orange-900/30 border border-orange-700 rounded-lg text-center">
+                    <p className="text-orange-400 text-sm">
+                      AWS rate limit active. Wait {Math.floor(cooldownSeconds / 60)}:{(cooldownSeconds % 60).toString().padStart(2, '0')}
+                    </p>
+                  </div>
+                )}
                 {!isOtpSent ? (
                   <Button
                     onClick={handleSendOtp}
-                    disabled={isSendingOtp}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg"
+                    disabled={isSendingOtp || cooldownSeconds > 0}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium h-12 rounded-lg disabled:opacity-50"
                     data-testid="button-send-otp"
                   >
-                    {isSendingOtp ? "Sending..." : "Send OTP"}
-                    {!isSendingOtp && <ArrowRight className="ml-2 h-4 w-4" />}
+                    {isSendingOtp ? "Connecting to AWS..." : cooldownSeconds > 0 ? `Wait ${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}` : "Send OTP"}
+                    {!isSendingOtp && cooldownSeconds === 0 && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
                 ) : (
                   <>
@@ -429,11 +461,11 @@ export default function Landing() {
                     <Button
                       variant="ghost"
                       onClick={handleSendOtp}
-                      disabled={isSendingOtp}
-                      className="w-full text-gray-400 hover:text-white"
+                      disabled={isSendingOtp || cooldownSeconds > 0}
+                      className="w-full text-gray-400 hover:text-white disabled:opacity-50"
                       data-testid="button-resend-otp"
                     >
-                      {isSendingOtp ? "Sending..." : "Resend Code"}
+                      {isSendingOtp ? "Connecting to AWS..." : cooldownSeconds > 0 ? `Wait ${Math.floor(cooldownSeconds / 60)}:${(cooldownSeconds % 60).toString().padStart(2, '0')}` : "Resend Code"}
                     </Button>
                   </>
                 )}
