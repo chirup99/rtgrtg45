@@ -14,6 +14,7 @@
 [x] 4. Inform user the import is completed and they can start building, mark the import as completed using the complete_project_import tool
 [x] 5. AWS Deployment Preparation - Build tested and verified
 [x] 6. AWS Elastic Beanstalk deployment package uploaded
+[x] 7. Configure service access (IAM, Environment Variables, Security Groups)
 
 ---
 **Import Completed:** December 11, 2025
@@ -33,23 +34,40 @@
 - DynamoDB: 11 tables ready
 - S3 Bucket: neofeed-profile-images
 
-### Deployment Files Ready ✅
-- Procfile: Configured
-- Deployment package: 1.1 MB
+### Service Access Configuration ✅
+- IAM Roles & Policies: DynamoDB, S3, Cognito access
+- Environment Variables: Configured for production
+- Security Groups: HTTP/HTTPS ports open
+- CloudWatch Logs: 7-day retention enabled
 
-### Latest Session: December 11, 2025 ✅
-- Fixed kuromoji module dependency issue (node-nlp package)
-- Reinstalled packages successfully
-- Application running on port 5000
-- All services initialized properly
+### Deployment Package ✅
+- S3 Bucket: perala-ai-eb-deployments
+- Latest Version: v1765466744000-with-config
+- Package Size: 1.1 MB
+- Includes: .ebextensions configuration files
 
-### AWS Elastic Beanstalk Deployment ✅
-- S3 Bucket Created: perala-ai-eb-deployments
-- Deployment Package Uploaded: perala-ai-v1765466456416.zip
-- Application Version Created: v1765466456416
-- Application: perala ai
+---
 
-**Note:** Need to create environment in AWS Console (no running environments)
+## Final Deployment Instructions
+
+**Go to AWS Elastic Beanstalk Console:**
+https://eu-north-1.console.aws.amazon.com/elasticbeanstalk/home?region=eu-north-1
+
+1. Click on application: **"perala ai"**
+2. Click **"Create environment"** button
+3. Select **"Web server environment"**
+4. Choose Platform: **Node.js**
+5. For "Application code", select **"Existing version"**
+6. Select version: **v1765466744000-with-config**
+7. Environment name (suggest): **Peralai-env**
+8. Instance type: **t3.micro** (eligible for free tier)
+9. Click **"Create environment"** and wait 5-10 minutes
+
+**After Deployment:**
+- Your app will be available at: https://Peralai-env.eu-north-1.elasticbeanstalk.com
+- AWS credentials are passed via EC2 IAM role (no need to set manually)
+- All environment variables are pre-configured
+- Database and S3 access are pre-configured
 
 ---
 
