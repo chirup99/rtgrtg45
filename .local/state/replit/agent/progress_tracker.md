@@ -67,3 +67,23 @@
 - ✅ Password Reset: Fixed and simplified
 
 **Project import completed successfully. Application ready for use.**
+
+---
+
+## Password Reset - Unverified Email Error Fix - December 11, 2025 ✅
+
+### Issue:
+User sees "Email Not Verified" error when trying to reset password.
+
+### Root Cause:
+AWS Cognito requires a verified email to send password reset codes. If the user's email was never verified during signup, Cognito cannot send the OTP.
+
+### Fix Applied:
+Improved error message to be more helpful:
+- Old: "This account's email is not verified. Please contact support or sign up again with email verification."
+- New: "Your email was never verified during signup. To reset your password, you'll need to create a new account with email verification, or try logging in with your current password."
+
+### Important Note:
+This is expected AWS Cognito behavior - unverified emails cannot receive password reset codes. Users with unverified emails must either:
+1. Log in with their current password (if they remember it)
+2. Create a new account and verify their email during signup

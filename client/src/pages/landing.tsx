@@ -269,7 +269,7 @@ export default function Landing() {
         title = "User Not Found";
       } else if (error.name === 'InvalidParameterException') {
         if (error.message?.includes('no registered/verified email')) {
-          msg = "This account's email is not verified. Please contact support or sign up again with email verification.";
+          msg = "Your email was never verified during signup. To reset your password, you'll need to create a new account with email verification, or try logging in with your current password.";
           title = "Email Not Verified";
         } else {
           msg = "Invalid request. Please check your email and try again.";
