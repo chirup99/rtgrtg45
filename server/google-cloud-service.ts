@@ -1,7 +1,7 @@
-// Stub file - Google Cloud services removed, using AWS instead
+// Stub file - Google Cloud services removed, using AWS (DynamoDB, Cognito, S3) instead
 export const googleCloudService = {
   initializeBucket: async () => { },
-  healthCheck: async () => ({ firestore: false, storage: false }),
+  healthCheck: async () => ({ dynamodb: false, s3: false }),
   getTodaysFyersToken: async () => null,
   storeBattuScannerSession: async () => ({ success: false }),
   storeBattuPattern: async () => ({ success: false }),
