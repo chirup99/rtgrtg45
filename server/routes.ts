@@ -6583,6 +6583,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      // Security validation: File type and size limits
+      const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+      
+      if (!ALLOWED_TYPES.includes(file.mimetype)) {
+        console.log(`❌ Invalid file type: ${file.mimetype}`);
+        return res.status(400).json({ 
+          error: 'Invalid file type', 
+          message: 'Only JPEG, PNG, GIF, and WebP images are allowed.' 
+        });
+      }
+      
+      if (file.size > MAX_FILE_SIZE) {
+        console.log(`❌ File too large: ${file.size} bytes`);
+        return res.status(400).json({ 
+          error: 'File too large', 
+          message: 'Maximum file size is 5MB.' 
+        });
+      }
+
       // Import AWS S3 SDK
       const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
       
