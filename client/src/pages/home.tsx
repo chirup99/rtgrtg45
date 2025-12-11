@@ -37,7 +37,7 @@ import { DemoHeatmap } from "@/components/DemoHeatmap";
 import { PersonalHeatmap } from "@/components/PersonalHeatmap";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { cognitoSignOut, getCognitoToken } from "@/cognito";
+import { cognitoSignOut, getCognitoToken, sendEmailVerificationCode, confirmEmailVerification, checkEmailVerified } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
 import { LogOut, ArrowLeft, Save, Clock, Newspaper, TrendingUp, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
 import { parseBrokerTrades, ParseError } from "@/utils/trade-parser";
@@ -134,6 +134,8 @@ import {
   Edit,
   Check,
   X,
+  Mail,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -1842,6 +1844,14 @@ export default function Home() {
   const [chartTimeframe, setChartTimeframe] = useState<string>("1");
   // Navigation menu state
   const [isNavOpen, setIsNavOpen] = useState(false);
+  // Settings panel state
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [verificationOtp, setVerificationOtp] = useState("");
+  const [verificationSending, setVerificationSending] = useState(false);
+  const [verificationConfirming, setVerificationConfirming] = useState(false);
+  const [verificationCodeSent, setVerificationCodeSent] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
   
   // Auth state initialization - wait for Firebase to sync
   const [authInitialized, setAuthInitialized] = useState(false);
@@ -1883,6 +1893,57 @@ export default function Home() {
   }, []);
 
   // AI Search state
+
+  // Check email verification status when settings panel opens
+  useEffect(() => {
+    if (showSettingsPanel && currentUser) {
+      checkEmailVerified().then((verified) => {
+        setEmailVerified(verified);
+      }).catch(() => {
+        setEmailVerified(false);
+      });
+    }
+  }, [showSettingsPanel, currentUser]);
+
+  // Handle sending verification OTP
+  const handleSendVerificationOtp = async () => {
+    setVerificationSending(true);
+    setVerificationError("");
+    try {
+      await sendEmailVerificationCode();
+      setVerificationCodeSent(true);
+    } catch (error: any) {
+      setVerificationError(error?.message || "Failed to send verification code");
+    } finally {
+      setVerificationSending(false);
+    }
+  };
+
+  // Handle confirming email verification
+  const handleConfirmVerification = async () => {
+    if (!verificationOtp || verificationOtp.length !== 6) {
+      setVerificationError("Please enter a valid 6-digit code");
+      return;
+    }
+    setVerificationConfirming(true);
+    setVerificationError("");
+    try {
+      await confirmEmailVerification(verificationOtp);
+      setEmailVerified(true);
+      setVerificationCodeSent(false);
+      setVerificationOtp("");
+    } catch (error: any) {
+      if (error?.name === "CodeMismatchException") {
+        setVerificationError("Invalid verification code. Please try again.");
+      } else if (error?.name === "ExpiredCodeException") {
+        setVerificationError("Code expired. Please request a new one.");
+      } else {
+        setVerificationError(error?.message || "Verification failed");
+      }
+    } finally {
+      setVerificationConfirming(false);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchResults, setSearchResults] = useState("");
@@ -11681,10 +11742,12 @@ ${
                             </button>
                           )}
                           <button
-                            className="w-full px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                            onClick={() => setShowSettingsPanel(true)}
+                            className="w-full px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors text-left flex items-center gap-2"
                             data-testid="nav-settings"
                           >
-                            setting & privacy
+                            <Settings className="h-4 w-4" />
+                            <span>setting & privacy</span>
                           </button>
                           <button
                             onClick={toggleTheme}
@@ -11736,6 +11799,149 @@ ${
                     )}
                   </div>
                 </div>
+
+
+                {/* Settings & Privacy Panel - Email Verification */}
+                {showSettingsPanel && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowSettingsPanel(false)}>
+                    <div 
+                      className="bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl border border-gray-700"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-white">Settings & Privacy</h2>
+                        <button
+                          onClick={() => setShowSettingsPanel(false)}
+                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                          data-testid="button-close-settings"
+                        >
+                          <X className="h-5 w-5 text-gray-400" />
+                        </button>
+                      </div>
+                      
+                      {/* Email Verification Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                          <div className="flex items-center gap-3">
+                            <Mail className="h-5 w-5 text-blue-400" />
+                            <div>
+                              <p className="text-white font-medium">Email Verification</p>
+                              <p className="text-sm text-gray-400">
+                                {currentUser?.email || localStorage.getItem('currentUserEmail') || 'Not available'}
+                              </p>
+                            </div>
+                          </div>
+                          {emailVerified === null ? (
+                            <div className="w-5 h-5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                          ) : emailVerified ? (
+                            <div className="flex items-center gap-1 text-green-400 text-sm">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Verified</span>
+                            </div>
+                          ) : (
+                            <span className="text-yellow-400 text-sm">Not verified</span>
+                          )}
+                        </div>
+                        
+                        {/* Verify Email UI - Only show if not verified */}
+                        {emailVerified === false && (
+                          <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-700/50 space-y-4">
+                            {!verificationCodeSent ? (
+                              <>
+                                <p className="text-sm text-gray-300">
+                                  Verify your email to secure your account and receive important notifications.
+                                </p>
+                                <button
+                                  onClick={handleSendVerificationOtp}
+                                  disabled={verificationSending}
+                                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                  data-testid="button-send-verification"
+                                >
+                                  {verificationSending ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      <span>Sending...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Mail className="h-4 w-4" />
+                                      <span>Verify Email</span>
+                                    </>
+                                  )}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-2 text-green-400 text-sm mb-3">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span>Verification code sent to your email</span>
+                                </div>
+                                <div className="space-y-3">
+                                  <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    maxLength={6}
+                                    placeholder="Enter 6-digit code"
+                                    value={verificationOtp}
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(/\D/g, '');
+                                      setVerificationOtp(value);
+                                    }}
+                                    className="w-full bg-gray-800 border-gray-600 text-white text-center text-lg tracking-widest"
+                                    data-testid="input-verification-code"
+                                  />
+                                  <button
+                                    onClick={handleConfirmVerification}
+                                    disabled={verificationConfirming || verificationOtp.length !== 6}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                    data-testid="button-confirm-verification"
+                                  >
+                                    {verificationConfirming ? (
+                                      <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <span>Verifying...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-4 w-4" />
+                                        <span>Confirm</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setVerificationCodeSent(false);
+                                      setVerificationOtp("");
+                                      setVerificationError("");
+                                    }}
+                                    className="w-full py-2 text-gray-400 hover:text-white text-sm transition-colors"
+                                    data-testid="button-resend-code"
+                                  >
+                                    Resend Code
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                            {verificationError && (
+                              <p className="text-red-400 text-sm text-center">{verificationError}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Success message when verified */}
+                        {emailVerified === true && (
+                          <div className="p-4 bg-green-900/30 rounded-lg border border-green-700/50">
+                            <div className="flex items-center gap-2 text-green-400">
+                              <CheckCircle className="h-5 w-5" />
+                              <span>Your email is verified and secured</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Two-line Hamburger Icon - Mobile only - Theme responsive - Fixed position */}
                 <button

@@ -8,7 +8,9 @@ import {
   signInWithRedirect,
   fetchUserAttributes,
   resetPassword,
-  confirmResetPassword
+  confirmResetPassword,
+  sendUserAttributeVerificationCode,
+  confirmUserAttribute
 } from 'aws-amplify/auth';
 
 const cognitoConfig = {
@@ -205,6 +207,49 @@ export async function cognitoConfirmResetPassword(email: string, code: string, n
   } catch (error: any) {
     console.error('❌ Password reset confirmation failed:', error);
     throw error;
+  }
+}
+
+// Email verification functions
+export async function sendEmailVerificationCode(): Promise<void> {
+  initializeCognito();
+  
+  try {
+    console.log('📧 Sending email verification code...');
+    await sendUserAttributeVerificationCode({
+      userAttributeKey: 'email',
+    });
+    console.log('✅ Email verification code sent successfully');
+  } catch (error: any) {
+    console.error('❌ Failed to send email verification code:', error);
+    throw error;
+  }
+}
+
+export async function confirmEmailVerification(code: string): Promise<void> {
+  initializeCognito();
+  
+  try {
+    console.log('🔐 Confirming email verification with code...');
+    await confirmUserAttribute({
+      userAttributeKey: 'email',
+      confirmationCode: code,
+    });
+    console.log('✅ Email verified successfully');
+  } catch (error: any) {
+    console.error('❌ Email verification failed:', error);
+    throw error;
+  }
+}
+
+export async function checkEmailVerified(): Promise<boolean> {
+  initializeCognito();
+  
+  try {
+    const attributes = await fetchUserAttributes();
+    return attributes.email_verified === 'true';
+  } catch {
+    return false;
   }
 }
 
