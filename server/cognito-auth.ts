@@ -1,4 +1,10 @@
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
+import { 
+  CognitoIdentityProviderClient, 
+  AdminSetUserPasswordCommand,
+  AdminGetUserCommand,
+  AdminUpdateUserAttributesCommand
+} from '@aws-sdk/client-cognito-identity-provider';
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | null = null;
 
@@ -80,4 +86,54 @@ export async function authenticateRequest(authHeader: string | undefined): Promi
     return null;
   }
   return verifyCognitoToken(token);
+}
+
+// Admin function to reset password directly (bypasses email verification)
+export async function adminResetPassword(email: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  const userPoolId = process.env.AWS_COGNITO_USER_POOL_ID;
+  const region = process.env.AWS_COGNITO_REGION || process.env.AWS_REGION || 'eu-north-1';
+  
+  if (!userPoolId) {
+    return { success: false, message: 'Cognito User Pool not configured' };
+  }
+  
+  const client = new CognitoIdentityProviderClient({ region });
+  
+  try {
+    // First verify the user exists
+    await client.send(new AdminGetUserCommand({
+      UserPoolId: userPoolId,
+      Username: email
+    }));
+    
+    // Set the new password directly
+    await client.send(new AdminSetUserPasswordCommand({
+      UserPoolId: userPoolId,
+      Username: email,
+      Password: newPassword,
+      Permanent: true
+    }));
+    
+    // Also mark email as verified so future password resets work
+    await client.send(new AdminUpdateUserAttributesCommand({
+      UserPoolId: userPoolId,
+      Username: email,
+      UserAttributes: [
+        { Name: 'email_verified', Value: 'true' }
+      ]
+    }));
+    
+    console.log(`✅ Admin password reset successful for: ${email}`);
+    return { success: true, message: 'Password reset successfully' };
+  } catch (error: any) {
+    console.error('❌ Admin password reset failed:', error.name, error.message);
+    
+    if (error.name === 'UserNotFoundException') {
+      return { success: false, message: 'User not found' };
+    } else if (error.name === 'InvalidPasswordException') {
+      return { success: false, message: 'Password does not meet requirements (8+ chars, uppercase, lowercase, numbers)' };
+    }
+    
+    return { success: false, message: error.message || 'Failed to reset password' };
+  }
 }

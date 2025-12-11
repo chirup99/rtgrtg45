@@ -60,7 +60,7 @@ import { angelOneRealTicker } from './angel-one-real-ticker';
 import { brokerFormatsLibrary, type UniversalFormatData } from './broker-formats-library';
 import { registerNeoFeedAwsRoutes } from './neofeed-routes-replacement';
 import { initializeNeoFeedTables } from './neofeed-dynamodb-migration';
-import { initializeCognitoVerifier, authenticateRequest } from './cognito-auth';
+import { initializeCognitoVerifier, authenticateRequest, adminResetPassword } from './cognito-auth';
 import { screenerScraper } from './screener-scraper';
 import { getDemoHeatmapData, seedDemoDataToAWS } from './demo-heatmap-data';
 import { tradingNLPAgent } from './nlp-trading-agent';
@@ -4518,6 +4518,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: 'Failed to confirm user',
         error: error.message 
+      });
+    }
+  });
+
+  // Admin Password Reset - Bypasses email verification requirement
+  app.post('/api/auth/admin-reset-password', async (req, res) => {
+    try {
+      const { email, newPassword, adminKey } = req.body;
+      
+      // Simple admin key protection (you can make this more secure)
+      const ADMIN_KEY = process.env.ADMIN_RESET_KEY || 'perala-admin-2024';
+      
+      if (adminKey !== ADMIN_KEY) {
+        return res.status(403).json({ success: false, message: 'Invalid admin key' });
+      }
+      
+      if (!email || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Email and new password are required' });
+      }
+      
+      if (newPassword.length < 8) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
+      }
+
+      console.log('🔐 Admin password reset requested for:', email);
+      
+      const result = await adminResetPassword(email, newPassword);
+      
+      if (result.success) {
+        res.json({ success: true, message: result.message });
+      } else {
+        res.status(400).json({ success: false, message: result.message });
+      }
+    } catch (error: any) {
+      console.error('❌ Admin password reset error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message || 'Failed to reset password'
       });
     }
   });
