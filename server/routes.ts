@@ -4188,7 +4188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ⚡ CRITICAL: LOAD TOKEN FROM DATABASE AT SERVER STARTUP (ONLY IF FRESH!)
   // This ensures UI-submitted tokens persist across server restarts
   // BUT: Skip expired tokens to avoid rate limit blocking
-  console.log('🔑 [STARTUP] Checking for valid Fyers token in database...');
+  console.log('🔑 [STARTUP] Checking for valid token in database...');
   try {
     const apiStatus = await storage.getApiStatus();
     if (apiStatus?.accessToken && apiStatus?.tokenExpiry) {

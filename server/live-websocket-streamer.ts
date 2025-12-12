@@ -415,8 +415,8 @@ export class LiveWebSocketStreamer {
   }
 
   private async startQuotesBackup() {
-    // DEPRECATED: This backup method is no longer needed since real Fyers API data is primary source
-    console.log('✅ Real Fyers API data is now the primary source - backup not needed');
+    // DEPRECATED: This backup method is no longer needed since Angel One API is the primary data source
+    console.log('✅ Angel One API is the primary data source - backup not needed');
   }
 
   private startSSEBroadcasting() {

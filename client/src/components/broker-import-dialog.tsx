@@ -24,7 +24,6 @@ import {
   type BrokerTradesResponse,
   brokerIds,
   kiteCredentialSchema,
-  fyersCredentialSchema,
   dhanCredentialSchema,
 } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -46,15 +45,12 @@ export function BrokerImportDialog({
 
   const brokerLabels: Record<BrokerId, string> = {
     kite: "Kite (Zerodha)",
-    fyers: "Fyers",
     dhan: "Dhan",
   };
 
   const brokerDescriptions: Record<BrokerId, string> = {
     kite:
       "Login to Kite Connect and generate a request token from your developer dashboard.",
-    fyers:
-      "Generate an auth code from your Fyers API dashboard after authentication.",
     dhan: "Get your access token from the Dhan trading platform settings.",
   };
 
@@ -65,16 +61,6 @@ export function BrokerImportDialog({
       apiKey: "",
       apiSecret: "",
       requestToken: "",
-    },
-  });
-
-  const fyersForm = useForm({
-    resolver: zodResolver(fyersCredentialSchema),
-    defaultValues: {
-      broker: "fyers" as const,
-      appId: "",
-      secretId: "",
-      authCode: "",
     },
   });
 
@@ -89,7 +75,6 @@ export function BrokerImportDialog({
 
   const getCurrentForm = () => {
     if (selectedBroker === "kite") return kiteForm;
-    if (selectedBroker === "fyers") return fyersForm;
     if (selectedBroker === "dhan") return dhanForm;
     return null;
   };
@@ -119,7 +104,6 @@ export function BrokerImportDialog({
     setSelectedBroker("");
     setImportSuccess(false);
     kiteForm.reset();
-    fyersForm.reset();
     dhanForm.reset();
     importMutation.reset();
     onOpenChange(false);
@@ -229,63 +213,6 @@ export function BrokerImportDialog({
                     {kiteForm.formState.errors.requestToken && (
                       <p className="text-xs text-red-600 mt-1">
                         {kiteForm.formState.errors.requestToken.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {selectedBroker === "fyers" && (
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="fyers-app-id" className="text-sm">
-                      App ID
-                    </Label>
-                    <Input
-                      id="fyers-app-id"
-                      {...fyersForm.register("appId")}
-                      placeholder="Enter your Fyers App ID"
-                      className="mt-1"
-                      data-testid="input-fyers-app-id"
-                    />
-                    {fyersForm.formState.errors.appId && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fyersForm.formState.errors.appId.message}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="fyers-secret-id" className="text-sm">
-                      Secret ID
-                    </Label>
-                    <Input
-                      id="fyers-secret-id"
-                      type="password"
-                      {...fyersForm.register("secretId")}
-                      placeholder="Enter your Fyers Secret ID"
-                      className="mt-1"
-                      data-testid="input-fyers-secret-id"
-                    />
-                    {fyersForm.formState.errors.secretId && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fyersForm.formState.errors.secretId.message}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="fyers-auth-code" className="text-sm">
-                      Auth Code
-                    </Label>
-                    <Input
-                      id="fyers-auth-code"
-                      {...fyersForm.register("authCode")}
-                      placeholder="Enter your Auth Code"
-                      className="mt-1"
-                      data-testid="input-fyers-auth-code"
-                    />
-                    {fyersForm.formState.errors.authCode && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fyersForm.formState.errors.authCode.message}
                       </p>
                     )}
                   </div>

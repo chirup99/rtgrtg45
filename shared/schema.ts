@@ -765,8 +765,8 @@ export type InsertSavedPattern = z.infer<typeof insertSavedPatternSchema>;
 // BROKER INTEGRATION SCHEMA
 // ============================================================================
 
-// Broker identifiers
-export const brokerIds = ['kite', 'fyers', 'dhan'] as const;
+// Broker identifiers (Fyers removed - using Angel One only)
+export const brokerIds = ['kite', 'dhan'] as const;
 export type BrokerId = typeof brokerIds[number];
 export const brokerIdSchema = z.enum(brokerIds);
 
@@ -778,13 +778,6 @@ export const kiteCredentialSchema = z.object({
   requestToken: z.string().min(1, 'Request Token is required'),
 });
 
-export const fyersCredentialSchema = z.object({
-  broker: z.literal('fyers'),
-  appId: z.string().min(1, 'App ID is required'),
-  secretId: z.string().min(1, 'Secret ID is required'),
-  authCode: z.string().min(1, 'Auth Code is required'),
-});
-
 export const dhanCredentialSchema = z.object({
   broker: z.literal('dhan'),
   clientId: z.string().min(1, 'Client ID is required'),
@@ -794,14 +787,12 @@ export const dhanCredentialSchema = z.object({
 // Discriminated union for broker credentials
 export const brokerCredentialSchema = z.discriminatedUnion('broker', [
   kiteCredentialSchema,
-  fyersCredentialSchema,
   dhanCredentialSchema,
 ]);
 
 // Credential schema map for per-broker access
 export const brokerCredentialSchemas = {
   kite: kiteCredentialSchema,
-  fyers: fyersCredentialSchema,
   dhan: dhanCredentialSchema,
 } as const;
 
@@ -847,7 +838,6 @@ export const brokerTradesResponseSchema = z.object({
 
 // Types
 export type KiteCredentials = z.infer<typeof kiteCredentialSchema>;
-export type FyersCredentials = z.infer<typeof fyersCredentialSchema>;
 export type DhanCredentials = z.infer<typeof dhanCredentialSchema>;
 export type BrokerCredentials = z.infer<typeof brokerCredentialSchema>;
 export type BrokerImportRequest = z.infer<typeof brokerImportRequestSchema>;

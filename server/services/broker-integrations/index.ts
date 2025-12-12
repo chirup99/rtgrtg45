@@ -2,12 +2,10 @@ import type {
   BrokerCredentials,
   BrokerTrade,
   KiteCredentials,
-  FyersCredentials,
   DhanCredentials,
 } from "@shared/schema";
-import { fetchKiteTrades } from "./kiteService";
-// import { fetchFyersTrades } from "./fyersService"; // Removed: Fyers API removed
-import { fetchDhanTrades } from "./dhanService";
+import { fetchKiteTrades } from "./kiteService.js";
+import { fetchDhanTrades } from "./dhanService.js";
 
 export async function fetchBrokerTrades(
   credentials: BrokerCredentials
@@ -15,8 +13,6 @@ export async function fetchBrokerTrades(
   switch (credentials.broker) {
     case "kite":
       return fetchKiteTrades(credentials as KiteCredentials);
-    case "fyers":
-      throw new Error("Fyers broker is no longer supported");
     case "dhan":
       return fetchDhanTrades(credentials as DhanCredentials);
     default:

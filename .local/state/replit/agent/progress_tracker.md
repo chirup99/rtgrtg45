@@ -11,6 +11,7 @@
 [x] 6. Configure environment variables on AWS
 [x] 7. Verify AWS deployment is healthy
 [x] 8. Migrate import to Replit environment
+[x] 9. Remove Fyers API completely - using Angel One only
 
 ### AWS Elastic Beanstalk Deployment
 - **Application**: perala ai
@@ -31,13 +32,22 @@
 - `Procfile` - EB process configuration
 - `.ebextensions/nodecommand.config` - EB Node.js settings
 - `.ebextensions/environment.config` - Environment variables
-- `deploy-eb.sh` - Deployment script
 
 ### What Was Fixed
 1. Removed vite as a production dependency (dynamic import only in dev)
 2. Added --external flags in esbuild to exclude dev-only packages
 3. Configured proper port (8080) for EB nginx proxy
 4. Added all required AWS environment variables
+5. Removed Fyers API completely - now using Angel One API only
+
+### Fyers Removal Summary (December 12, 2025)
+- Removed FYERS_APP_ID from .ebextensions/environment.config
+- Removed FyersCredentials type from shared/schema.ts
+- Removed fyers from brokerIds array
+- Removed fyersCredentialSchema from schema
+- Updated broker-import-dialog.tsx to remove Fyers form
+- Updated broker-integrations service to remove Fyers case
+- Updated log messages to reference Angel One instead of Fyers
 
 ### Completion Date
 December 12, 2025
