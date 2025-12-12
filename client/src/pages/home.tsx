@@ -16424,10 +16424,21 @@ ${
                                 winningTrades += metrics.winningTrades || 0;
                                 trendData.push(netPnL);
                                 
-                                // Track overtrading dates (> 10 trades)
+                                // Track overtrading - check for tag or high trade count
                                 if ((metrics.totalTrades || 0) > 10) {
                                   overTradingCount++;
                                   overTradingDates.push(dateKey);
+                                }
+                                
+                                // Also track if overtrading tag exists
+                                if (Array.isArray(tags) && tags.length > 0) {
+                                  const normalizedTags = tags.map((t: string) => t.trim().toLowerCase());
+                                  if (normalizedTags.includes('overtrading')) {
+                                    if (!overTradingDates.includes(dateKey)) {
+                                      overTradingCount++;
+                                      overTradingDates.push(dateKey);
+                                    }
+                                  }
                                 }
                                 
                                 if (Array.isArray(tags) && tags.length > 0) {
