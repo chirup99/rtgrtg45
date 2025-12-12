@@ -5184,7 +5184,7 @@ ${
       
       // ✅ SMART DEFAULT: If no userId exists, automatically start in Demo mode
       // This ensures heatmap loads instantly without needing to toggle
-      const userId = localStorage.getItem("awsUserId");
+      const userId = localStorage.getItem("currentUserId");
       if (!userId) {
         console.log("🎯 Auto-default: Demo mode ON (no userId found)");
         return true; // Demo mode
@@ -5219,7 +5219,7 @@ ${
     if (typeof window === "undefined") return null;
 
     // Use the actual AWS user ID from authentication ONLY
-    const awsUserId = localStorage.getItem("awsUserId");
+    const awsUserId = localStorage.getItem("currentUserId");
     if (awsUserId) {
       console.log(`🔑 Using AWS user ID: ${awsUserId}`);
       return awsUserId;
