@@ -169,5 +169,21 @@ return paperPositions.reduce((total, p) => total + (p.pnl || 0), 0);
 - Realized P&L from closed positions
 - Total P&L even after exiting all trades
 
+### Open Positions Privacy Mode - IMPLEMENTED (December 12, 2025, 4:10 AM)
+**Issue**: User wanted ability to hide sensitive position details (P&L and Avg price) while still viewing percentage changes.
+
+**Implementation**:
+1. **Added state** (line 4115): `hidePositionDetails` - toggles visibility mode
+2. **Added eye icon button** next to "Exit All" button:
+   - Click to toggle between showing/hiding details
+   - Open eye = shows all columns (Avg, P&L, %)
+   - Closed eye = hides Avg and P&L columns
+3. **Modified table**:
+   - Avg column: Shows actual price OR *** when hidden
+   - P&L column: Shows actual P&L OR *** when hidden
+   - % column: Always visible (never hidden)
+
+**Result**: ✅ Users can now toggle visibility of sensitive position details. Percentage changes always visible for monitoring gains/losses at a glance.
+
 ### Completion Date
 December 12, 2025

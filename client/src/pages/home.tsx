@@ -4111,6 +4111,7 @@ ${
   // PAPER TRADING (DEMO TRADING) STATE - Like TradingView Practice Account
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);
+  const [hidePositionDetails, setHidePositionDetails] = useState(false); // Eye icon toggle
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
@@ -19398,15 +19399,36 @@ ${
                       Open Positions
                       {paperTradingWsStatus === 'connected' && <span className="w-1 h-1 bg-green-500 rounded-full" />}
                     </div>
-                    <Button
-                      onClick={exitAllPaperPositions}
-                      size="sm"
-                      variant="outline"
-                      className="h-5 px-2 text-[10px] text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-700 dark:hover:bg-red-900/20"
-                      data-testid="button-exit-all-positions"
-                    >
-                      Exit All
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => setHidePositionDetails(!hidePositionDetails)}
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5"
+                        data-testid="button-toggle-position-visibility"
+                        title={hidePositionDetails ? "Show details" : "Hide details"}
+                      >
+                        {hidePositionDetails ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-4.803m5.596-3.856a3.375 3.375 0 11-4.753 4.753m4.753-4.753L3.596 3.039m10.318 10.318L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={exitAllPaperPositions}
+                        size="sm"
+                        variant="outline"
+                        className="h-5 px-2 text-[10px] text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-700 dark:hover:bg-red-900/20"
+                        data-testid="button-exit-all-positions"
+                      >
+                        Exit All
+                      </Button>
+                    </div>
                   </div>
                   <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden">
                     <table className="w-full text-[11px]">
@@ -19415,10 +19437,10 @@ ${
                           <th className="px-2 py-1.5 text-left font-medium">Symbol</th>
                           <th className="px-2 py-1.5 text-center font-medium">Order</th>
                           <th className="px-2 py-1.5 text-right font-medium">Qty</th>
-                          <th className="px-2 py-1.5 text-right font-medium">Avg</th>
+                          {!hidePositionDetails && <th className="px-2 py-1.5 text-right font-medium">Avg</th>}
                           <th className="px-2 py-1.5 text-right font-medium">LTP</th>
                           <th className="px-2 py-1.5 text-right font-medium">SL</th>
-                          <th className="px-2 py-1.5 text-right font-medium">P&L</th>
+                          {!hidePositionDetails && <th className="px-2 py-1.5 text-right font-medium">P&L</th>}
                           <th className="px-2 py-1.5 text-right font-medium">%</th>
                           <th className="px-2 py-1.5 text-right font-medium">Duration</th>
                         </tr>
@@ -19467,7 +19489,8 @@ ${
                                 </span>
                               </td>
                               <td className="px-2 py-1.5 text-right">{position.quantity}</td>
-                              <td className="px-2 py-1.5 text-right text-gray-500">{position.entryPrice.toFixed(2)}</td>
+                              {!hidePositionDetails && <td className="px-2 py-1.5 text-right text-gray-500">{position.entryPrice.toFixed(2)}</td>}
+                              {hidePositionDetails && <td className="px-2 py-1.5 text-right text-gray-400">***</td>}
                               <td className="px-2 py-1.5 text-right" data-testid={`position-ltp-${position.symbol}`}>
                                 {position.currentPrice.toFixed(2)}
                               </td>
@@ -19480,9 +19503,10 @@ ${
                                   ? `${(position as any).slTimeframe} ${(position as any).slType}`
                                   : '-'}
                               </td>
-                              <td className={`px-2 py-1.5 text-right font-medium ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`position-pnl-${position.symbol}`}>
+                              {!hidePositionDetails && <td className={`px-2 py-1.5 text-right font-medium ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`position-pnl-${position.symbol}`}>
                                 {position.pnl >= 0 ? '+' : ''}{position.pnl.toFixed(0)}
-                              </td>
+                              </td>}
+                              {hidePositionDetails && <td className="px-2 py-1.5 text-right text-gray-400">***</td>}
                               <td className={`px-2 py-1.5 text-right text-[10px] ${position.pnlPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
                               </td>
@@ -19523,7 +19547,7 @@ ${
                           <th className="px-2 py-1.5 text-center font-medium">Type</th>
                           <th className="px-2 py-1.5 text-right font-medium">Qty</th>
                           <th className="px-2 py-1.5 text-right font-medium">Price</th>
-                          <th className="px-2 py-1.5 text-right font-medium">P&L</th>
+                          {!hidePositionDetails && <th className="px-2 py-1.5 text-right font-medium">P&L</th>}
                         </tr>
                       </thead>
                       <tbody>
