@@ -5446,13 +5446,14 @@ ${
   };
   
   // Fetch option chain data
-  const fetchOptionChainData = async (indexToFetch?: string) => {
+  const fetchOptionChainData = async (indexToFetch?: string, expiryToFetch?: string) => {
     const underlying = getUnderlyingSymbol(indexToFetch);
     if (!underlying) return;
     
     setOptionChainLoading(true);
     try {
-      const response = await fetch(`/api/options/chain?symbol=${underlying}`);
+      const expiry = expiryToFetch ? `&expiry=${encodeURIComponent(expiryToFetch)}` : '';
+      const response = await fetch(`/api/options/chain?symbol=${underlying}${expiry}`);
       const data = await response.json();
       
       if (data.success && data.data) {
@@ -19713,7 +19714,10 @@ ${
                 <select
                   value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                   onChange={(e) => {
-                    setSelectedOptionExpiryDate(e.target.value);
+                    const newExpiry = e.target.value;
+                    setSelectedOptionExpiryDate(newExpiry);
+                    // Refetch option chain data for the new expiry date
+                    fetchOptionChainData(selectedOptionIndex, newExpiry);
                   }}
                   className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
                   data-testid="select-option-expiry-date"

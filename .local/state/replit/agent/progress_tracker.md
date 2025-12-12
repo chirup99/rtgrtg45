@@ -122,5 +122,21 @@
 
 **Result**: ✅ Open Positions will now show live LTP updates at 700ms intervals for all instruments (stocks, options, futures). Prices update in the table as you execute trades.
 
+### Option Chain Expiry Date Loading - FIXED (December 12, 2025, 4:04 AM)
+**Issue**: Option chain shows 16 Dec options correctly, but switching to 23 Dec expiry dropdown shows no options (empty table).
+
+**Root Cause**: When you changed the expiry date dropdown, the code updated the selected expiry state BUT did NOT refetch the option chain data from the backend. The `optionChainData` still only contained the original expiry's options, so filtering by 23 Dec found no matches.
+
+**Fix Applied**:
+1. **Updated `fetchOptionChainData` function** (line 5440):
+   - Added `expiryToFetch` parameter
+   - Pass expiry to backend API: `/api/options/chain?symbol=NIFTY&expiry=2025-12-23`
+
+2. **Updated expiry dropdown onChange** (line 19706):
+   - When user changes expiry, immediately call `fetchOptionChainData(selectedOptionIndex, newExpiry)`
+   - Refetches fresh option data for the new expiry date from backend
+
+**Result**: ✅ Switching expiry dates in the option chain modal now properly loads and displays options for that expiry. No more empty tables when changing from 16 Dec → 23 Dec → 30 Dec, etc.
+
 ### Completion Date
 December 12, 2025
