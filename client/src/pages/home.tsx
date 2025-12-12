@@ -16978,7 +16978,12 @@ ${
                                       width="100%"
                                       height="100%"
                                     >
-                                      <AreaChart
+                                      {(() => {
+                                        const chartStrokeColor = theme === 'dark' ? '#ffffff' : '#000000';
+                                        const tooltipBg = theme === 'dark' ? '#1e293b' : '#ffffff';
+                                        const tooltipText = theme === 'dark' ? '#e2e8f0' : '#1e293b';
+                                        return (
+                                        <AreaChart
                                         data={chartData}
                                         margin={{
                                           top: 40,
@@ -17034,10 +17039,10 @@ ${
                                         />
                                         <Tooltip
                                           contentStyle={{
-                                            background: "var(--background)",
-                                            border: "1px solid var(--border)",
+                                            background: tooltipBg,
+                                            border: `1px solid ${theme === 'dark' ? '#334155' : '#e2e8f0'}`,
                                             borderRadius: "12px",
-                                            color: "var(--foreground)",
+                                            color: tooltipText,
                                             fontSize: "12px",
                                             padding: "8px 12px",
                                           }}
@@ -17068,13 +17073,13 @@ ${
                                         <Area
                                           type="natural"
                                           dataKey="value"
-                                          stroke={theme === 'dark' ? '#ffffff' : '#000000'}
+                                          stroke={chartStrokeColor}
                                           strokeWidth={3}
                                           fill="url(#areaGradientPositive)"
                                           dot={false}
                                           activeDot={{
                                             r: 6,
-                                            fill: theme === 'dark' ? '#ffffff' : '#000000',
+                                            fill: chartStrokeColor,
                                             stroke: "white",
                                             strokeWidth: 2,
                                           }}
@@ -17083,6 +17088,8 @@ ${
                                           animationEasing="ease-in-out"
                                         />
                                       </AreaChart>
+                                        );
+                                      })()}
                                     </ResponsiveContainer>
                                   </div>
                                 );
