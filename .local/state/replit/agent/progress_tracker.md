@@ -131,6 +131,13 @@
        * Line 11709 - Trading Notes borders: `dark:border-gray-700` → `dark:border-slate-800`
      - Result: ALL window backgrounds now unified with consistent `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800` pattern
      - Verification: Server restarted, running successfully
+[x] 27. **UI: Trading Notes textarea colors updated (December 12, 2025, 4:53 PM)**
+     - Request: Change Trading Notes section colors to match unified design
+     - Changes Applied to home.tsx:
+       * Line 15708 - Textarea (edit mode): Updated border `gray-300/600` → `slate-200/800`, background `gray-700` → `slate-900`
+       * Line 15710 - Display div (view mode): Updated border `gray-200/700` → `slate-200/800`, background `gray-50/900` → `white/slate-900`
+     - Result: Trading Notes now matches cohesive minimalistic design with `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800`
+     - Verification: Server restarted, running successfully
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**

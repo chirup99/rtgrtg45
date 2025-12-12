@@ -15705,11 +15705,11 @@ ${
                                   setTempNotesContent(e.target.value)
                                 }
                                 placeholder="Write your trading notes, strategies, observations..."
-                                className="flex-1 w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-1 w-full p-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 data-testid="textarea-notes"
                               />
                             ) : (
-                              <div className="flex-1 w-full p-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white overflow-y-auto custom-thin-scrollbar">
+                              <div className="flex-1 w-full p-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-gray-800 dark:text-white overflow-y-auto custom-thin-scrollbar">
                                 {/* Display daily factors inline when they exist */}
                                 {selectedDailyFactors.length > 0 && (
                                   <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
