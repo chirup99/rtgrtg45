@@ -1319,7 +1319,7 @@ function ProfileHeader() {
           {/* Profile Picture - overlapping cover */}
           <div className="absolute -bottom-16 left-4">
             <div className="relative group">
-              <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800">
+              <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800 overflow-hidden">
                 {profilePicUrl ? (
                   <AvatarImage src={profilePicUrl} />
                 ) : (
