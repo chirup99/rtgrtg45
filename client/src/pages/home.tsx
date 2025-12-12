@@ -810,7 +810,7 @@ function SwipeableCardStack({
                   className={`bg-white ${card.buttonColor} hover:bg-gray-100 px-3 py-1.5 md:px-3 md:py-1 rounded-full text-xs md:text-[11px] font-semibold shadow-lg w-fit`}
                   onClick={() => {
                     if (isTop) {
-                      const userId = localStorage.getItem('awsUserId');
+                      const userId = localStorage.getItem('currentUserId');
                       const userEmail = localStorage.getItem('currentUserEmail');
                       
                       if (!userId || !userEmail) {
@@ -1870,7 +1870,7 @@ export default function Home() {
   // Initialize AWS auth sync with localStorage - NO AUTOMATIC REDIRECT
   // Users can view the home screen, redirect only happens when they try to interact with protected content
   useEffect(() => {
-    const userId = localStorage.getItem('awsUserId');
+    const userId = localStorage.getItem('currentUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     if (userId && userEmail && userId !== 'null' && userEmail !== 'null') {
@@ -1880,7 +1880,7 @@ export default function Home() {
     } else {
       // Wait for AWS auth state with timeout - but DON'T redirect, just enable view-only mode
       const timer = setTimeout(() => {
-        const finalUserId = localStorage.getItem('awsUserId');
+        const finalUserId = localStorage.getItem('currentUserId');
         const finalUserEmail = localStorage.getItem('currentUserEmail');
         
         if (!finalUserId || !finalUserEmail || finalUserId === 'null' || finalUserEmail === 'null') {
@@ -2191,7 +2191,7 @@ export default function Home() {
 
   // Centralized authentication check helper - ALL tab switches MUST use this
   const setTabWithAuthCheck = (tabName: string) => {
-    const userId = localStorage.getItem('awsUserId');
+    const userId = localStorage.getItem('currentUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     // Robust check for Cloud Run compatibility
@@ -2213,7 +2213,7 @@ export default function Home() {
 
   // Handle Trading Master access - only for chiranjeevi.perala99@gmail.com
   const handleTradingMasterAccess = () => {
-    const userId = localStorage.getItem('awsUserId');
+    const userId = localStorage.getItem('currentUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     // Robust check for Cloud Run compatibility
@@ -2375,7 +2375,7 @@ export default function Home() {
     if (!query.trim()) return;
 
     // Check authentication before allowing search
-    const userId = localStorage.getItem('awsUserId');
+    const userId = localStorage.getItem('currentUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     if (!userId || !userEmail || userId === 'null' || userEmail === 'null') {
@@ -2429,7 +2429,7 @@ export default function Home() {
           body: JSON.stringify({
             query: query,
             context: {
-              userId: currentUser?.userId || localStorage.getItem('awsUserId'),
+              userId: currentUser?.userId || localStorage.getItem('currentUserId'),
             },
           }),
         });
