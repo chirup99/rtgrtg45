@@ -4298,6 +4298,14 @@ ${
         return 'Search instruments...';
     }
   };
+  // 🔴 FIX: Restart price streaming when dialog opens with existing instrument
+  // This ensures first-time open shows streaming prices (not just on reopen)
+  useEffect(() => {
+    if (showPaperTradingModal && selectedPaperTradingInstrument) {
+      console.log(`🔄 [PAPER-TRADE] Dialog opened with instrument: ${selectedPaperTradingInstrument.symbol}`);
+      fetchPaperTradePrice(selectedPaperTradingInstrument);
+    }
+  }, [showPaperTradingModal]);
 
   // Sort instruments by category: Index -> Futures (near, next, far) -> Options
   const sortInstruments = (instruments: any[]): any[] => {
