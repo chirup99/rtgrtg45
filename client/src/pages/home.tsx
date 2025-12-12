@@ -14328,7 +14328,7 @@ ${
                                     align="start"
                                   >
                                     <div className="space-y-3">
-                                      <div className="flex gap-2">
+                                      <div className="flex gap-1.5">
                                         <Input
                                           placeholder={
                                             journalSearchType === 'STOCK'
@@ -14339,7 +14339,7 @@ ${
                                           }
                                           value={stockSearchQuery}
                                           onChange={(e) => setStockSearchQuery(e.target.value)}
-                                          className="text-sm flex-1"
+                                          className="text-xs flex-1 h-7 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700"
                                           data-testid="input-stock-search"
                                         />
                                         <select
@@ -14349,7 +14349,7 @@ ${
                                             setStockSearchQuery('');
                                             setSearchedInstruments([]);
                                           }}
-                                          className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded px-2 text-xs"
+                                          className="h-7 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 rounded px-2 text-xs font-medium"
                                           data-testid="select-journal-type"
                                         >
                                           <option value="STOCK">Stock</option>

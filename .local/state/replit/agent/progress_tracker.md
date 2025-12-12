@@ -73,6 +73,18 @@
        * Line 16543 - PopoverContent: Changed from `bg-slate-900 border-slate-700 text-slate-100` to `bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100`
      - Result: Charts now display properly in light theme with minimalistic design matching Paper Trading dialog
      - Verification: Server restarted and running
+[x] 21. **UI: Minimalistic chart search bar (December 12, 2025, 4:44 PM)**
+     - Request: Make chart search bar minimalistic to match Paper Trading design
+     - Changes Applied to chart search bar (Lines 14331-14359):
+       * Input element: Changed from `text-sm flex-1` to `text-xs flex-1 h-7 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700`
+         - Added h-7 for compact height matching minimalistic style
+         - Updated colors for light/dark theme support
+       * Select dropdown: Changed from `bg-slate-50 dark:bg-slate-800 text-slate-900...px-2` to `h-7 bg-white dark:bg-slate-800...px-2 text-xs font-medium`
+         - Added h-7 for height consistency
+         - Updated styling to match minimalistic design
+       * Gap spacing: Changed from `gap-2` to `gap-1.5` for more compact layout
+     - Result: Search bar now matches Paper Trading dialog minimalistic aesthetic
+     - Verification: Server restarted and running
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**
