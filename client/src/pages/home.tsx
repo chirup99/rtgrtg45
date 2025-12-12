@@ -17019,7 +17019,7 @@ ${
                                           tickLine={false}
                                           tick={{
                                             fontSize: 12,
-                                            fill: "#64748b",
+                                            fill: theme === 'dark' ? '#cbd5e1' : '#64748b',
                                           }}
                                           tickFormatter={(value) =>
                                             `${value >= 0 ? "" : "-"}${(
@@ -17068,13 +17068,13 @@ ${
                                         <Area
                                           type="natural"
                                           dataKey="value"
-                                          stroke="#000000"
+                                          stroke={theme === 'dark' ? '#ffffff' : '#000000'}
                                           strokeWidth={3}
                                           fill="url(#areaGradientPositive)"
                                           dot={false}
                                           activeDot={{
                                             r: 6,
-                                            fill: "#000000",
+                                            fill: theme === 'dark' ? '#ffffff' : '#000000',
                                             stroke: "white",
                                             strokeWidth: 2,
                                           }}

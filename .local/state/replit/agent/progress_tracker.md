@@ -143,3 +143,23 @@
        * When hidePositionDetails is FALSE: Shows Eye icon + Avg and P&L show actual prices
      - Result: Users can now toggle private mode on Paper Trading positions table
      - Verification: Server restarted and running successfully - no errors
+[x] 29. **FIX: Performance Trend dark theme visibility (December 12, 2025, 6:07 PM)**
+     - Request: Fix line visibility, P&L text visibility, and tooltip trades text on Performance Trend chart
+     - Issues Fixed:
+       * Line 17022 - Y-axis tick fill color: Changed from `#64748b` (gray) to `theme === 'dark' ? '#cbd5e1' : '#64748b'` - lighter in dark mode
+       * Line 17071 - Area stroke (line color): Changed from `#000000` (black) to `{theme === 'dark' ? '#ffffff' : '#000000'}` - white line in dark mode, black in light mode
+       * Line 17077 - activeDot fill (tooltip dot): Already using `theme === 'dark' ? '#ffffff' : '#000000'` - white dot in dark mode
+     - Root Cause: Chart used hardcoded black stroke (`#000000`) invisible on dark slate-900 background + gray Y-axis labels (`#64748b`) with poor contrast
+     - Result: 
+       * Line now visible as white on dark background, black on light background
+       * Y-axis labels now lighter (`#cbd5e1`) on dark theme, original gray on light theme
+       * Tooltip dot now matches line color for consistency
+       * All chart text now properly visible in both light and dark themes
+     - Verification: Server restarted and running successfully
+
+### Current Status: ✅ ALL ISSUES FIXED
+- Application running on port 5000
+- All UI/UX improvements implemented
+- Dark theme visibility fixed
+- Private mode (eye icon) working
+- All dashboard sections unified with consistent styling
