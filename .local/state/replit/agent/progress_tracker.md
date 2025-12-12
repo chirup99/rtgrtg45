@@ -147,5 +147,27 @@
 
 **Result**: ✅ Journal chart now shows clean loading spinner without text while fetching candles.
 
+### Paper Trading P&L Calculation - FIXED (December 12, 2025, 4:08 AM)
+**Issue**: After exiting all positions, P&L displayed as +₹0 instead of showing realized P&L from closed trades. P&L only worked for open positions.
+
+**Root Cause**: P&L calculation at line 5032 only summed P&L from OPEN positions:
+```typescript
+const openPositions = paperPositions.filter(p => p.isOpen);
+return openPositions.reduce((total, p) => total + (p.pnl || 0), 0);
+```
+
+When all positions were closed, there were no open positions, so P&L = 0.
+
+**Fix Applied** (line 5032):
+- Changed calculation to include ALL positions (both open AND closed):
+```typescript
+return paperPositions.reduce((total, p) => total + (p.pnl || 0), 0);
+```
+
+**Result**: ✅ P&L now correctly shows:
+- Unrealized P&L from open positions
+- Realized P&L from closed positions
+- Total P&L even after exiting all trades
+
 ### Completion Date
 December 12, 2025

@@ -5030,8 +5030,8 @@ ${
   
   // Calculate total unrealized P&L for all open positions
   const paperTradingTotalPnl = useMemo(() => {
-    const openPositions = paperPositions.filter(p => p.isOpen);
-    return openPositions.reduce((total, p) => total + (p.pnl || 0), 0);
+    // Include P&L from BOTH open (unrealized) and closed (realized) positions
+    return paperPositions.reduce((total, p) => total + (p.pnl || 0), 0);
   }, [paperPositions]);
   
   // SL Monitoring Effect - Auto-exit positions when SL is triggered
