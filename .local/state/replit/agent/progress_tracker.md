@@ -84,5 +84,16 @@
   - 'NSE' for STOCK trades
 **Result**: Options and Futures positions will now stream live LTP updates every 700ms from Angel One NFO, just like stocks.
 
+### Option Chain Instruments Price Streaming Fix (December 12, 2025, 3:56 AM)
+**Issue**: Options selected from the option chain modal were not streaming prices.
+**Root Cause**: When clicking on an option contract from the option chain, the `handleOptionClick` function was creating an instrument object with `token: ''` (empty string). Without a valid token, the Angel One live price stream API couldn't find and fetch the contract's price data.
+**Fix Applied** (line 19826 in `client/src/pages/home.tsx`):
+- Modified `handleOptionClick` to be async
+- Added API call to fetch the instrument token: `/api/angelone/search-instruments?query={symbol}&exchange=NFO`
+- Extracts token from API response and stores it in the instrument object
+- Passes the complete instrument (with token) to `fetchPaperTradePrice` for proper streaming
+- Includes fallback handling if token fetch fails
+**Result**: Options selected from the option chain will now properly stream live prices at 700ms intervals, just like manually searched options.
+
 ### Completion Date
 December 12, 2025

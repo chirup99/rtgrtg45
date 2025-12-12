@@ -19823,7 +19823,7 @@ ${
     return exchangeMap[index] || 'NFO';
   };
 
-                const handleOptionClick = (instrumentSymbol: string, ltp?: number) => {
+                const handleOptionClick = async (instrumentSymbol: string, ltp?: number) => {
                   // Populate paper trading search bar with selected option
                   setPaperTradeSymbol(instrumentSymbol);
                   setPaperTradeSymbolSearch(instrumentSymbol);
@@ -19835,17 +19835,52 @@ ${
                     setPaperTradeCurrentPrice(ltp);
                     setPaperTradePriceLoading(false);
                     
-                    // Create instrument object for paper trading
-                    const optionInstrument = {
-                      symbol: instrumentSymbol,
-                      exchange: getExchangeForIndex(selectedOptionIndex),
-                      token: '',
-                      name: instrumentSymbol
-                    };
-                    setSelectedPaperTradingInstrument(optionInstrument);
-                    
-                    // Start live price streaming for this instrument
-                    fetchPaperTradePrice(optionInstrument);
+                    // Fetch the instrument token from Angel One API for proper streaming
+                    try {
+                      const exchange = getExchangeForIndex(selectedOptionIndex);
+                      const searchUrl = `/api/angelone/search-instruments?query=${encodeURIComponent(instrumentSymbol)}&exchange=${encodeURIComponent(exchange)}&limit=1`;
+                      const response = await fetch(searchUrl);
+                      
+                      if (response.ok) {
+                        const data = await response.json();
+                        const instruments = data.instruments || data.results || [];
+                        
+                        if (instruments.length > 0) {
+                          const inst = instruments[0];
+                          const optionInstrument = {
+                            symbol: instrumentSymbol,
+                            exchange: inst.exchange || exchange,
+                            token: inst.token || inst.symbolToken || '',
+                            name: instrumentSymbol
+                          };
+                          setSelectedPaperTradingInstrument(optionInstrument);
+                          
+                          // Start live price streaming with proper token
+                          if (optionInstrument.token) {
+                            fetchPaperTradePrice(optionInstrument);
+                          }
+                        } else {
+                          // Fallback if API returns no results
+                          const optionInstrument = {
+                            symbol: instrumentSymbol,
+                            exchange: getExchangeForIndex(selectedOptionIndex),
+                            token: '',
+                            name: instrumentSymbol
+                          };
+                          setSelectedPaperTradingInstrument(optionInstrument);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error fetching option token:', error);
+                      // Fallback to empty token
+                      const optionInstrument = {
+                        symbol: instrumentSymbol,
+                        exchange: getExchangeForIndex(selectedOptionIndex),
+                        token: '',
+                        name: instrumentSymbol
+                      };
+                      setSelectedPaperTradingInstrument(optionInstrument);
+                    }
                   }
                   
                   // Close option chain dialog
