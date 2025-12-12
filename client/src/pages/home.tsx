@@ -160,6 +160,7 @@ import {
   Trophy,
   Radio,
   Eye,
+  EyeOff,
   Blocks,
   Hammer,
   Plus,
