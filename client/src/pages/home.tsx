@@ -4203,6 +4203,30 @@ ${
   const paperTradingEventSourcesRef = useRef<Map<string, EventSource>>(new Map());
   const paperTradingLastUpdateRef = useRef<number>(Date.now());
   
+  // 🔴 CRITICAL FIX: Sync live prices from WebSocket stream to paper positions immediately
+  // This ensures that when a new position is opened, its LTP updates instantly as prices stream in
+  useEffect(() => {
+    if (paperTradingLivePrices.size === 0 || paperPositions.length === 0) return;
+    
+    const updatedPositions = paperPositions.map(position => {
+      const livePrice = paperTradingLivePrices.get(position.symbol);
+      if (livePrice && livePrice !== position.currentPrice) {
+        const pnl = (livePrice - position.entryPrice) * position.quantity;
+        const pnlPercent = ((livePrice - position.entryPrice) / position.entryPrice) * 100;
+        return {
+          ...position,
+          currentPrice: livePrice,
+          pnl: position.action === "BUY" ? pnl : -pnl,
+          pnlPercent: position.action === "BUY" ? pnlPercent : -pnlPercent
+        };
+      }
+      return position;
+    });
+    
+    if (JSON.stringify(updatedPositions) !== JSON.stringify(paperPositions)) {
+      setPaperPositions(updatedPositions);
+    }
+  }, [paperTradingLivePrices]);
   // Map paper trade type to exchange segment for filtering
   const getExchangeForTradeType = (type: 'STOCK' | 'FUTURES' | 'OPTIONS' | 'MCX'): string => {
     switch (type) {
