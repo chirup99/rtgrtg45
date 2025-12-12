@@ -93,6 +93,17 @@
        * Changed to: `flex justify-between items-center gap-2`
      - Result: All icons (P&L, Trend, FOMO, Win%, Streak, Share, 3-dot menu) now align vertically at center
      - Verification: Server restarted and running
+[x] 23. **UI: Minimalistic Trade History header (December 12, 2025, 4:48 PM)**
+     - Request: Remove "SUMMARY" from Trade History header, make section minimalistic to match Paper Trading
+     - Changes Applied at Lines 16035-16040:
+       * Changed from: `<h3 className="text-lg font-semibold...">TRADE HISTORY SUMMARY</h3>`
+       * Changed to: `<h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">Trade History</h3>`
+       * Reduced font size from text-lg to text-sm
+       * Reduced weight from semibold to medium
+       * Updated colors for better subtlety
+       * Added uppercase and tracking-wide for minimalistic professional look
+     - Result: Trade History header now matches Paper Trading minimalistic aesthetic
+     - Verification: Server restarted and running
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**
