@@ -3714,7 +3714,6 @@ ${
   const [showBrokerSuggestions, setShowBrokerSuggestions] = useState(false);
   const [availableBrokers, setAvailableBrokers] = useState<string[]>([
     // Top Discount Brokers
-    "Zerodha", "Groww", "Angel One", "Upstox", "5paisa", "Fyers", "Paytm Money", "Alice Blue",
     "Shoonya by Finvasia", "Samco Securities", "Motilal Oswal",
     
     // Crypto Exchanges & Brokers
@@ -4215,7 +4214,6 @@ ${
     }
   };
 
-  // Get lot size for Angel One instruments based on API standards
   const getLotSizeForInstrument = (symbol: string, type: 'STOCK' | 'FUTURES' | 'OPTIONS' | 'MCX'): number => {
 
     // Current lot sizes (effective now)
@@ -4458,7 +4456,6 @@ ${
     setPaperTradingWsStatus('connecting');
     try {
       // 🔴 CRITICAL FIX: Stream continuous live prices at 700ms (tick data!)
-      // Using interval=0 to get raw tick updates from Angel One, NOT binned candles
       const sseUrl = `/api/angelone/live-stream-ws?symbol=${stockInfo.symbol}&symbolToken=${stockInfo.token}&exchange=${stockInfo.exchange}&tradingSymbol=${stockInfo.symbol}&interval=0`; // 0 = live tick data at 700ms
       
       console.log(`📊 [PAPER-TRADE-PRICE] Opening CONTINUOUS live price stream for ${stockInfo.symbol} (NSE, BSE, MCX, NCDEX, NFO, BFO, CDS)`);
@@ -5810,7 +5807,6 @@ ${
     return tf ? tf.label : value;
   };
   
-  // Convert timeframe to Angel One API interval format (minutes)
   const getJournalAngelOneInterval = (timeframe: string): string => {
     // Convert preset timeframes to minutes (1D -> 1440 minutes)
     const presetToMinutes: { [key: string]: string } = {
@@ -5966,7 +5962,6 @@ ${
     time: number;
   } | null>(null);
 
-  // Angel One Stock Token Mapping for Journal Chart (Expanded for all exchanges)
   const journalAngelOneTokens: { [key: string]: { token: string, exchange: string, tradingSymbol: string } } = {
     // NSE Indices
     'NIFTY50': { token: '99926000', exchange: 'NSE', tradingSymbol: 'Nifty 50' },
@@ -6001,7 +5996,6 @@ ${
   // Store selected instrument with token (direct from search API)
   const [selectedInstrumentToken, setSelectedInstrumentToken] = useState<{ token: string; exchange: string; tradingSymbol: string } | null>(null);
 
-  // Convert NSE/MCX symbol format to Angel One format with fuzzy matching
   const getJournalAngelOneSymbol = (symbol: string): string => {
     let cleanSymbol = symbol
       .replace(/^(NSE|BSE|MCX|NCDEX|NFO|BFO|CDS):/, '')
@@ -6119,7 +6113,6 @@ ${
     }
   };
 
-  // 🔍 Fetch instruments from Angel One master file API
   const fetchInstruments = async (searchQuery: string, searchType: 'STOCK' | 'COMMODITY' | 'F&O') => {
     if (!searchQuery || searchQuery.trim().length < 2) {
       setSearchedInstruments([]);
@@ -6583,7 +6576,6 @@ ${
     let stockToken: { token: string, exchange: string, tradingSymbol: string } | undefined;
     
     if (journalChartMode === 'search') {
-      // Search mode: Use selectedJournalSymbol with Angel One token mapping
       const cleanSymbol = getJournalAngelOneSymbol(selectedJournalSymbol);
       stockToken = journalAngelOneTokens[cleanSymbol];
       console.log(`✅ [SSE SEARCH MODE] Using selectedJournalSymbol: ${selectedJournalSymbol} → ${cleanSymbol}, Token: ${stockToken?.token}`);
@@ -6620,7 +6612,6 @@ ${
     // 🔶 Convert selected timeframe to seconds (selectedJournalInterval is in minutes)
     const intervalSeconds = parseInt(selectedJournalInterval || "1") * 60;
     
-    // Start new WebSocket SSE connection with REAL Angel One market data
     let sseUrl = getFullApiUrl(`/api/angelone/live-stream-ws?symbol=${stockToken.tradingSymbol}&symbolToken=${stockToken.token}&exchange=${stockToken.exchange}&tradingSymbol=${stockToken.tradingSymbol}&interval=${intervalSeconds}`);
     
     // Add initial OHLC as fallback for when real API fails
@@ -11672,44 +11663,20 @@ ${
                     <Star className="h-6 w-6 text-yellow-400" />
                     <h2 className="text-2xl font-bold text-orange-400">Trading Dashboard</h2>
                   </div>
-                  <p className="text-orange-300">Real-time market data via Angel One SmartAPI</p>
                 </div>
 
-                {/* Angel One Connection Setup */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                  <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Angel One Connection</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Automatic TOTP authentication - No daily token refresh needed</p>
                       </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                        <p className="text-sm text-green-800 dark:text-green-200">
-                          <strong>✅ Angel One SmartAPI:</strong> Free API with automatic authentication. Perfect for real-time trading and market data.
-                        </p>
-                      </div>
-                      <AuthButtonAngelOne />
-                    </div>
-                  </div>
-                </div>
 
                 {/* SignIn Data Window with YouTube Link */}
                 <SigninDataWindow />
 
-                {/* Angel One Status */}
                 <AngelOneStatus />
 
                 {/* Live Market Prices - BANKNIFTY, SENSEX, GOLD with WebSocket status */}
                 <AngelOneLiveMarketPrices />
 
-                {/* Angel One API Statistics */}
                 <AngelOneApiStatistics />
 
-                {/* Angel One System Status and Recent Activity */}
                 <AngelOneSystemStatus />
 
               </div>
@@ -14359,7 +14326,6 @@ ${
                                                 // Currency Derivatives: CDS exchange
                                                 return i.exchange === 'CDS';
                                               case 'index':
-                                                // Indices: AMXIDX is the main index type from Angel One
                                                 return i.instrumentType === 'AMXIDX' || i.instrumentType === 'INDEX';
                                               default:
                                                 return true;
@@ -14486,7 +14452,6 @@ ${
                                                 // Currency Derivatives: CDS exchange
                                                 return i.exchange === 'CDS';
                                               case 'index':
-                                                // Indices: AMXIDX is the main index type from Angel One
                                                 return i.instrumentType === 'AMXIDX' || i.instrumentType === 'INDEX';
                                               default:
                                                 return true;
@@ -14971,7 +14936,6 @@ ${
                                       </div>
                                       <div className="text-center">
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Loading {getJournalTimeframeLabel(journalChartTimeframe)} chart...</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fetching candles from Angel One API</p>
                                       </div>
                                     </div>
                                   </div>
