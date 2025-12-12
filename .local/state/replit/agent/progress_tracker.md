@@ -12,6 +12,7 @@
 [x] 7. Verify AWS deployment is healthy
 [x] 8. Migrate import to Replit environment
 [x] 9. Remove Fyers API completely - using Angel One only
+[x] 10. Final verification - server running on port 5000
 
 ### AWS Elastic Beanstalk Deployment
 - **Application**: perala ai
