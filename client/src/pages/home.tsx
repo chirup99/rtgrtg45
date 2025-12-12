@@ -16193,7 +16193,7 @@ ${
 
                     {/* Trade Book - Right Side (Functional Calendar) */}
                     <div className="relative">
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
