@@ -810,7 +810,7 @@ function SwipeableCardStack({
                   className={`bg-white ${card.buttonColor} hover:bg-gray-100 px-3 py-1.5 md:px-3 md:py-1 rounded-full text-xs md:text-[11px] font-semibold shadow-lg w-fit`}
                   onClick={() => {
                     if (isTop) {
-                      const userId = localStorage.getItem('currentUserId');
+                      const userId = localStorage.getItem('awsUserId');
                       const userEmail = localStorage.getItem('currentUserEmail');
                       
                       if (!userId || !userEmail) {
@@ -1852,19 +1852,25 @@ export default function Home() {
   const [verificationConfirming, setVerificationConfirming] = useState(false);
   const [verificationCodeSent, setVerificationCodeSent] = useState(false);
   const [verificationError, setVerificationError] = useState("");
+
+  // Clear old localStorage data - using AWS only now
+  useEffect(() => {
+    localStorage.removeItem("tradingDataByDate");
+    console.log("🧹 Cleared old localStorage tradingDataByDate - using AWS only");
+  }, []);
   
-  // Auth state initialization - wait for Firebase to sync
+  // Auth state initialization - wait for AWS to sync
   const [authInitialized, setAuthInitialized] = useState(false);
   // View-only mode for unauthenticated users - they can view but not interact with protected features
   const [isViewOnlyMode, setIsViewOnlyMode] = useState(false);
 
-  // Get current user data from Firebase
+  // Get current user data from AWS DynamoDB
   const { currentUser } = useCurrentUser();
   
-  // Initialize Firebase auth sync with localStorage - NO AUTOMATIC REDIRECT
+  // Initialize AWS auth sync with localStorage - NO AUTOMATIC REDIRECT
   // Users can view the home screen, redirect only happens when they try to interact with protected content
   useEffect(() => {
-    const userId = localStorage.getItem('currentUserId');
+    const userId = localStorage.getItem('awsUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     if (userId && userEmail && userId !== 'null' && userEmail !== 'null') {
@@ -1872,9 +1878,9 @@ export default function Home() {
       setAuthInitialized(true);
       setIsViewOnlyMode(false);
     } else {
-      // Wait for Firebase auth state with timeout - but DON'T redirect, just enable view-only mode
+      // Wait for AWS auth state with timeout - but DON'T redirect, just enable view-only mode
       const timer = setTimeout(() => {
-        const finalUserId = localStorage.getItem('currentUserId');
+        const finalUserId = localStorage.getItem('awsUserId');
         const finalUserEmail = localStorage.getItem('currentUserEmail');
         
         if (!finalUserId || !finalUserEmail || finalUserId === 'null' || finalUserEmail === 'null') {
@@ -1886,7 +1892,7 @@ export default function Home() {
           setAuthInitialized(true);
           setIsViewOnlyMode(false);
         }
-      }, 500); // Wait 500ms for Firebase auth to sync
+      }, 500); // Use AWS Cognito for authentication sync
       
       return () => clearTimeout(timer);
     }
@@ -2185,7 +2191,7 @@ export default function Home() {
 
   // Centralized authentication check helper - ALL tab switches MUST use this
   const setTabWithAuthCheck = (tabName: string) => {
-    const userId = localStorage.getItem('currentUserId');
+    const userId = localStorage.getItem('awsUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     // Robust check for Cloud Run compatibility
@@ -2207,7 +2213,7 @@ export default function Home() {
 
   // Handle Trading Master access - only for chiranjeevi.perala99@gmail.com
   const handleTradingMasterAccess = () => {
-    const userId = localStorage.getItem('currentUserId');
+    const userId = localStorage.getItem('awsUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     // Robust check for Cloud Run compatibility
@@ -2369,7 +2375,7 @@ export default function Home() {
     if (!query.trim()) return;
 
     // Check authentication before allowing search
-    const userId = localStorage.getItem('currentUserId');
+    const userId = localStorage.getItem('awsUserId');
     const userEmail = localStorage.getItem('currentUserEmail');
     
     if (!userId || !userEmail || userId === 'null' || userEmail === 'null') {
@@ -2423,7 +2429,7 @@ export default function Home() {
           body: JSON.stringify({
             query: query,
             context: {
-              userId: currentUser?.userId || localStorage.getItem('currentUserId'),
+              userId: currentUser?.userId || localStorage.getItem('awsUserId'),
             },
           }),
         });
@@ -2646,7 +2652,7 @@ Use Trading Master for detailed chart analysis with all 14 timeframes and advanc
               mentionedStock ? `- ${mentionedStock.toUpperCase()}` : ""
             }
 
-**🔥 Trending Discussions:**
+**💹 Trending Discussions:**
 ${
   trendingTopics.map((topic) => `• ${topic}`).join("\n") ||
   "• General market discussions"
@@ -3392,11 +3398,8 @@ ${fundamentalInsights}**📈 Essential Analysis Framework:**
         ? await allDatesResponse.json()
         : {};
 
-      // Use localStorage as fallback if API fails
-      const localStorageData = localStorage.getItem("tradingDataByDate");
-      const fallbackData = localStorageData ? JSON.parse(localStorageData) : {};
-      const journalData =
-        Object.keys(allJournalData).length > 0 ? allJournalData : fallbackData;
+      // AWS is the only data source - no localStorage fallback
+      const journalData = allJournalData;
 
       if (Object.keys(journalData).length === 0) {
         setSearchResults(
@@ -3520,7 +3523,7 @@ ${fundamentalInsights}**📈 Essential Analysis Framework:**
 **⚠️ Average Loss:** ₹${avgLoss.toLocaleString("en-IN")}
 
 ### 🧠 **Psychology Analysis**
-**🔥 FOMO Trades:** ${fomoTrades} trades
+**💹 FOMO Trades:** ${fomoTrades} trades
 **🎭 Top Patterns:** ${topPsychologyPatterns || "No patterns identified"}
 
 ### 📈 **Performance Trend (Recent)**
@@ -3922,7 +3925,7 @@ ${
   };
 
 
-  // Load user's saved formats from Firebase when user is authenticated
+  // Load user's saved formats from AWS when user is authenticated
   useEffect(() => {
     const loadUserFormats = async () => {
       console.log("🔄 loadUserFormats triggered, currentUser:", currentUser?.userId ? `userId: ${currentUser.userId}` : "NO USER");
@@ -3954,14 +3957,14 @@ ${
         console.log("📡 Response status:", response.status, response.statusText);
         if (response.ok) {
           const formats = await response.json();
-          console.log("✅ Loaded formats from Firebase:", Object.keys(formats).length, "formats", formats);
+          console.log("✅ Loaded formats from AWS:", Object.keys(formats).length, "formats", formats);
           setSavedFormats(formats);
           if (Object.keys(formats).length > 0) {
             console.log("📦 Formats available in dropdown:", Object.keys(formats).join(", "));
           }
         } else {
           const errorText = await response.text();
-          console.log("📭 No saved formats found in Firebase, status:", response.status, "error:", errorText);
+          console.log("📭 No saved formats found in AWS, status:", response.status, "error:", errorText);
           setSavedFormats({});
         }
       } catch (error) {
@@ -5133,10 +5136,10 @@ ${
   // ============================================
 
   // ✅ SIMPLIFIED: TWO SEPARATE HEATMAP DATA STATES - NO localStorage!
-  // Demo heatmap data (Heatmap #1) - loaded directly from Firebase
+  // Demo heatmap data (Heatmap loaded from AWS DynamoDB
   const [demoTradingDataByDate, setDemoTradingDataByDate] = useState<Record<string, any>>({});
 
-  // Personal heatmap data (Heatmap #2) - loaded directly from Firebase
+  // Personal heatmap data (Heatmap loaded from AWS DynamoDB
   const [personalTradingDataByDate, setPersonalTradingDataByDate] = useState<Record<string, any>>({});
 
   // ✅ PERSONAL HEATMAP REVISION: Track updates to force React re-renders
@@ -5157,7 +5160,7 @@ ${
       
       // ✅ SMART DEFAULT: If no userId exists, automatically start in Demo mode
       // This ensures heatmap loads instantly without needing to toggle
-      const userId = localStorage.getItem("currentUserId");
+      const userId = localStorage.getItem("awsUserId");
       if (!userId) {
         console.log("🎯 Auto-default: Demo mode ON (no userId found)");
         return true; // Demo mode
@@ -5186,20 +5189,20 @@ ${
   const setTradingDataByDate = isDemoMode ? setDemoTradingDataByDate : setPersonalTradingDataByDate;
   const getActiveStorageKey = () => isDemoMode ? "demoTradingDataByDate" : "personalTradingDataByDate";
 
-  // Helper function to get Firebase userId from localStorage
-  // Returns null if user is not logged in with Firebase
+  // Helper function to get AWS userId from localStorage
+  // Returns null if user is not logged in with AWS
   const getUserId = (): string | null => {
     if (typeof window === "undefined") return null;
 
-    // Use the actual Firebase user ID from authentication ONLY
-    const firebaseUserId = localStorage.getItem("currentUserId");
-    if (firebaseUserId) {
-      console.log(`🔑 Using Firebase user ID: ${firebaseUserId}`);
-      return firebaseUserId;
+    // Use the actual AWS user ID from authentication ONLY
+    const awsUserId = localStorage.getItem("awsUserId");
+    if (awsUserId) {
+      console.log(`🔑 Using AWS user ID: ${awsUserId}`);
+      return awsUserId;
     }
 
-    // No Firebase user logged in - return null instead of generating random IDs
-    console.log(`⚠️ No Firebase user logged in - getUserId() returns null`);
+    // No AWS user logged in - return null instead of generating random IDs
+    console.log(`⚠️ No AWS user logged in - getUserId() returns null`);
     return null;
   };
 
@@ -5228,8 +5231,8 @@ ${
           return;
         }
 
-        // ALWAYS fetch user-specific data from Firebase (never demo data)
-        console.log("📥 HEATMAP: Fetching user data from Firebase for userId:", userId);
+        // Load user data from AWS DynamoDB
+        console.log("📥 HEATMAP: Fetching user data from AWS for userId:", userId);
         const response = await fetch(getFullApiUrl(`/api/user-journal/${userId}/all`));
         if (response.ok) {
           const personalData = await response.json();
@@ -5238,8 +5241,6 @@ ${
           setTradingDataByDate(personalData);
           setCalendarData(personalData);
 
-          // Save to localStorage for offline access
-          localStorage.setItem("tradingDataByDate", JSON.stringify(personalData));
 
           // Auto-click all available dates to populate heatmap colors - ULTRA FAST
           // This simulates clicking each date to ensure colors appear immediately
@@ -5283,7 +5284,6 @@ ${
               });
               setTradingDataByDate(updatedData);
               setCalendarData(updatedData);
-              localStorage.setItem("tradingDataByDate", JSON.stringify(updatedData));
               console.log(
                 `✅ Ultra-fast PERSONAL heatmap population complete! Loaded ${validResults.length} dates in parallel.`,
               );
@@ -5309,19 +5309,6 @@ ${
         console.error("Error type:", typeof error);
         console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
         console.error("Error stack:", error instanceof Error ? error.stack : 'No stack');
-        // Fallback to localStorage data if Google Cloud is unavailable
-        console.log("🔄 Falling back to localStorage data...");
-        const localStorageData = localStorage.getItem("tradingDataByDate");
-        if (localStorageData) {
-          const parsedLocalData = JSON.parse(localStorageData);
-          console.log(
-            "💾 Emergency fallback - Found localStorage journal data:",
-            Object.keys(parsedLocalData).length,
-            "entries",
-          );
-          setTradingDataByDate(parsedLocalData);
-          setCalendarData(parsedLocalData);
-        }
       } finally {
         setIsLoadingHeatmapData(false);
       }
@@ -8404,7 +8391,7 @@ ${
     // ✅ AUTO-SWITCH TO DEMO MODE: Only for new users on initial load (not after manual toggle)
     if (!isDemoMode && getUserId() && !hasManuallyToggledMode) {
       const hasAnyTradeData = Object.values(data).some((dayData: any) => {
-        // Check both wrapped (Firebase) and unwrapped formats
+        // Check both wrapped (AWS) and unwrapped formats
         const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
         const tradeHistory = dayData?.tradingData?.tradeHistory || dayData?.tradeHistory;
         
@@ -8507,7 +8494,7 @@ ${
     const userId = getUserId();
     if (!userId) {
       console.log("⚠️ No user ID found - cannot auto-click personal dates");
-      alert("⚠️ Please log in with your Firebase account to use personal mode");
+      alert("⚠️ Please log in with your AWS account to use personal mode");
       return;
     }
     
@@ -8560,10 +8547,10 @@ ${
           if (response.ok) {
             let journalData = await response.json();
             
-            // CRITICAL FIX: Unwrap Firebase response format (has tradingData wrapper)
+            // CRITICAL FIX: Unwrap AWS response format (has tradingData wrapper)
             if (journalData && journalData.tradingData) {
               journalData = journalData.tradingData;
-              console.log(`📦 Unwrapped Firebase tradingData for ${dateStr}`);
+              console.log(`📦 Unwrapped AWS tradingData for ${dateStr}`);
             }
             
             if (journalData && Object.keys(journalData).length > 0) {
@@ -8651,20 +8638,20 @@ ${
           console.log(`ℹ️ No userId but user manually selected personal mode - respecting choice`);
         }
       } else {
-        // ✅ SIMPLIFIED: Load demo data directly from Firebase - NO localStorage!
-        console.log(`📊 Demo mode - loading from Firebase journal-database...`);
+        // ✅ SIMPLIFIED: Load demo data directly from AWS - NO localStorage!
+        console.log(`📊 Demo mode - loading from AWS DynamoDB journal-database...`);
         (async () => {
           try {
             const response = await fetch(getFullApiUrl('/api/journal/all-dates'));
             if (response.ok) {
-              const firebaseData = await response.json();
-              const dateCount = Object.keys(firebaseData).length;
-              setDemoTradingDataByDate(firebaseData);
-              setCalendarData(firebaseData);
-              console.log(`✅ Loaded ${dateCount} real dates from Firebase`);
+              const awsData = await response.json(); // AWS DynamoDB data
+              const dateCount = Object.keys(awsData).length;
+              setDemoTradingDataByDate(awsData);
+              setCalendarData(awsData);
+              console.log(`✅ Loaded ${dateCount} real dates from AWS`);
             }
           } catch (error) {
-            console.error("❌ Error loading from Firebase:", error);
+            console.error("❌ Error loading from AWS:", error);
           }
         })();
       }
@@ -8833,7 +8820,7 @@ ${
     return result;
   };
 
-  const handleDateSelect = async (date: Date, firebaseData?: any) => {
+  const handleDateSelect = async (date: Date, awsData?: any) => {
     // 📅 User selected date from heatmap
     const dateString = formatDateKey(date);
     console.log(`📅 DATE SELECTED: ${dateString}`);
@@ -8867,26 +8854,26 @@ ${
 
     const dateKey = formatDateKey(date);
     
-    // If firebaseData is provided (from PersonalHeatmap), use it directly - NO API FETCH
-    if (firebaseData !== undefined) {
-      console.log(`✅ Using FRESH Firebase data from PersonalHeatmap for ${dateKey}:`, firebaseData);
-      let journalData = firebaseData;
+    // If awsData is provided (from PersonalHeatmap), use it directly - NO API FETCH
+    if (awsData !== undefined) {
+      console.log(`✅ Using FRESH AWS data from PersonalHeatmap for ${dateKey}:`, awsData);
+      let journalData = awsData;
 
-      // Handle Firebase response format (has tradingData wrapper)
+      // Handle AWS response format (has tradingData wrapper)
       if (journalData && journalData.tradingData) {
         journalData = journalData.tradingData;
-        console.log(`📦 Unwrapped Firebase tradingData:`, journalData);
+        console.log(`📦 Unwrapped AWS tradingData:`, journalData);
       }
 
       if (journalData && Object.keys(journalData).length > 0) {
-        console.log("🎯 Populating UI with FRESH Firebase data:", journalData);
+        console.log("🎯 Populating UI with FRESH AWS data:", journalData);
 
         // Load the data into correct state variables
         const notes = journalData.notes || journalData.tradingNotes || journalData.notesContent || "";
         if (notes) {
           setNotesContent(notes);
           setTempNotesContent(notes);
-          console.log("📝 Loaded notes from Firebase:", notes);
+          console.log("📝 Loaded notes from AWS:", notes);
         }
 
         const tags = journalData.tags || journalData.tradingTags || journalData.selectedTags || [];
@@ -8897,19 +8884,19 @@ ${
         const dailyFactors = journalData.dailyFactors || journalData.selectedDailyFactors || [];
         if (Array.isArray(dailyFactors)) {
           setSelectedDailyFactors(dailyFactors);
-          console.log("🌅 Loaded daily factors from Firebase:", dailyFactors);
+          console.log("🌅 Loaded daily factors from AWS:", dailyFactors);
         }
 
         const indicators = journalData.indicators || journalData.selectedIndicators || [];
         if (Array.isArray(indicators)) {
           setSelectedIndicators(indicators);
-          console.log("📊 Loaded indicators from Firebase:", indicators);
-          console.log("🏷️ Loaded tags from Firebase:", tags);
+          console.log("📊 Loaded indicators from AWS:", indicators);
+          console.log("🏷️ Loaded tags from AWS:", tags);
         }
 
         if (journalData.tradeHistory && Array.isArray(journalData.tradeHistory)) {
           setTradeHistoryData(journalData.tradeHistory);
-          console.log("📊 Loaded trade history from Firebase:", journalData.tradeHistory.length, "trades");
+          console.log("📊 Loaded trade history from AWS:", journalData.tradeHistory.length, "trades");
           
           // Extract symbols with most trades
           const symbols = extractTradedSymbols(journalData.tradeHistory);
@@ -8930,15 +8917,15 @@ ${
         const images = journalData.images || journalData.tradingImages || [];
         if (Array.isArray(images)) {
           setTradingImages(images);
-          console.log("🖼️ Loaded images from Firebase:", images.length, "images");
+          console.log("🖼️ Loaded images from AWS:", images.length, "images");
         }
 
-        console.log("✅ Successfully loaded all FRESH Firebase data for:", dateKey);
+        console.log("✅ Successfully loaded all FRESH AWS data for:", dateKey);
       } else {
-        console.log(`📭 No Firebase data for: ${dateKey}`);
+        console.log(`📭 No AWS data for: ${dateKey}`);
       }
       setIsLoadingHeatmapData(false);
-      return; // Exit early - we used fresh Firebase data
+      return; // Exit early - we used fresh AWS data
     }
 
     // Load journal data from API
@@ -8959,10 +8946,10 @@ ${
         let journalData = await response.json();
         console.log(`📊 Journal data received:`, journalData);
 
-        // Handle Firebase response format (has tradingData wrapper)
+        // Handle AWS response format (has tradingData wrapper)
         if (journalData && journalData.tradingData) {
           journalData = journalData.tradingData;
-          console.log(`📦 Unwrapped Firebase tradingData:`, journalData);
+          console.log(`📦 Unwrapped AWS tradingData:`, journalData);
         }
 
         // FALLBACK: If user data is empty and we have a userId, try loading shared demo data
@@ -9008,13 +8995,13 @@ ${
         const dailyFactors = journalData.dailyFactors || journalData.selectedDailyFactors || [];
         if (Array.isArray(dailyFactors)) {
           setSelectedDailyFactors(dailyFactors);
-          console.log("🌅 Loaded daily factors from Firebase:", dailyFactors);
+          console.log("🌅 Loaded daily factors from AWS:", dailyFactors);
         }
 
         const indicators = journalData.indicators || journalData.selectedIndicators || [];
         if (Array.isArray(indicators)) {
           setSelectedIndicators(indicators);
-          console.log("📊 Loaded indicators from Firebase:", indicators);
+          console.log("📊 Loaded indicators from AWS:", indicators);
             console.log("🏷️ Loaded tags from journal-database:", tags);
           }
 
@@ -9026,7 +9013,7 @@ ${
           ) {
             setTradeHistoryData(journalData.tradeHistory);
             console.log(
-              "✅ Loaded REAL trade history from Firebase:",
+              "✅ Loaded REAL trade history from AWS:",
               journalData.tradeHistory.length,
               "trades",
             );
@@ -9047,9 +9034,9 @@ ${
               // ✅ DO NOT set selectedJournalSymbol here - manual search chart is independent from heatmap
             }
           } else {
-            // No trade history in Firebase - keep empty state, DO NOT construct fake data
+            // No trade history in AWS - keep empty state, DO NOT construct fake data
             setTradeHistoryData([]);
-            console.log("📭 No trade history in Firebase for this date - showing empty state");
+            console.log("📭 No trade history in AWS for this date - showing empty state");
           }
 
           if (journalData.images && Array.isArray(journalData.images)) {
@@ -9485,12 +9472,12 @@ ${
           body: JSON.stringify(journalData),
         });
       } else {
-        // Switch OFF = Personal mode: Save to Firebase (user-specific)
+        // Switch OFF = Personal mode: Save to AWS (user-specific)
         const userId = getUserId();
         if (!userId) {
-          console.error("❌ Cannot save in personal mode - no Firebase user logged in");
-          alert("⚠️ Please log in with your Firebase account to save personal trading data.\n\nSwitch to Demo mode or log in to continue.");
-          throw new Error("No Firebase user logged in - cannot save to personal mode");
+          console.error("❌ Cannot save in personal mode - no AWS user logged in");
+          alert("⚠️ Please log in with your AWS account to save personal trading data.\n\nSwitch to Demo mode or log in to continue.");
+          throw new Error("No AWS user logged in - cannot save to personal mode");
         }
         console.log(`👤 Saving to user-specific data (userId: ${userId})`);
         response = await fetch(`/api/user-journal`, {
@@ -16811,7 +16798,7 @@ ${
                       dates.forEach(dateKey => {
                         const dayData = filteredHeatmapData[dateKey];
                         
-                        // Handle both wrapped (Firebase) and unwrapped formats
+                        // Handle both wrapped (AWS) and unwrapped formats
                         const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
                         
                         if (metrics) {
@@ -16930,7 +16917,7 @@ ${
                                     const date = new Date(dateStr);
                                     const dayData = filteredHeatmapData[dateStr];
                                     
-                                    // Handle both wrapped (Firebase) and unwrapped formats
+                                    // Handle both wrapped (AWS) and unwrapped formats
                                     const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
 
                                     const netPnL = metrics?.netPnL || 0;
@@ -18685,7 +18672,7 @@ ${
                                               const newFormats = { ...savedFormats };
                                               delete newFormats[formatId];
                                               setSavedFormats(newFormats);
-                                              await saveFormatsToFirebase(newFormats);
+                                              await saveFormatsToAWS(newFormats);
                                               if (activeFormat === format) {
                                                 setActiveFormat(null);
                                               }

@@ -132,13 +132,13 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
     }
     
     // Otherwise, fetch from API (normal demo mode)
-    console.log(`🔥 DemoHeatmap: Fetching ALL data from Firebase... (refreshKey: ${refreshKey})`);
+    console.log(`🔥 DemoHeatmap: Fetching ALL data from AWS... (refreshKey: ${refreshKey})`);
     setIsLoading(true);
     
     fetch('/api/journal/all-dates')
       .then(res => res.json())
       .then(data => {
-        console.log("✅ DemoHeatmap: Raw Firebase data received:", data);
+        console.log("✅ DemoHeatmap: Raw AWS data received:", data);
         console.log("✅ DemoHeatmap: Total dates:", Object.keys(data).length);
         
         // Process each date to calculate P&L
@@ -740,7 +740,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
         description: `Removing all data for ${selectedDateForDelete}`,
       });
 
-      // Delete data from Firebase by setting to empty object
+      // Delete data from AWS by setting to empty object
       const deleteResponse = await fetch(`/api/journal/${selectedDateForDelete}`, {
         method: 'PUT',
         headers: {
@@ -750,7 +750,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
       });
 
       if (!deleteResponse.ok) {
-        throw new Error('Failed to delete data from Firebase');
+        throw new Error('Failed to delete data from AWS');
       }
 
       console.log(`✅ Data deleted successfully for ${selectedDateForDelete}`);
@@ -873,7 +873,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
       });
 
       // Force heatmap refresh by incrementing refreshKey
-      // This triggers the useEffect to re-fetch all data from Firebase
+      // This triggers the useEffect to re-fetch all data from AWS
       console.log('🔄 Triggering heatmap refresh after relocation...');
       setRefreshKey(prev => prev + 1);
 
