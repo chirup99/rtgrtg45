@@ -16972,9 +16972,6 @@ ${
                                   chartData[0] || { value: 0, day: "", pnl: 0 },
                                 );
 
-                                const lineColor = chartData.reduce((sum: number, d: any) => sum + d.value, 0) >= 0 ? "#22c55e" : "#ef4444";
-                                const gradientId = chartData.reduce((sum: number, d: any) => sum + d.value, 0) >= 0 ? "areaGradientPositive" : "areaGradientNegative";
-                                
                                 return (
                                   <div className="relative h-full">
                                     <ResponsiveContainer
@@ -17000,31 +16997,13 @@ ${
                                           >
                                             <stop
                                               offset="0%"
-                                              stopColor="rgb(34, 197, 94)"
-                                              stopOpacity={0.4}
+                                              stopColor="rgb(107, 114, 128)"
+                                              stopOpacity={0.6}
                                             />
                                             <stop
                                               offset="100%"
-                                              stopColor="rgb(34, 197, 94)"
-                                              stopOpacity={0.05}
-                                            />
-                                          </linearGradient>
-                                          <linearGradient
-                                            id="areaGradientNegative"
-                                            x1="0"
-                                            y1="0"
-                                            x2="0"
-                                            y2="1"
-                                          >
-                                            <stop
-                                              offset="0%"
-                                              stopColor="rgb(239, 68, 68)"
-                                              stopOpacity={0.4}
-                                            />
-                                            <stop
-                                              offset="100%"
-                                              stopColor="rgb(239, 68, 68)"
-                                              stopOpacity={0.05}
+                                              stopColor="rgb(107, 114, 128)"
+                                              stopOpacity={0.1}
                                             />
                                           </linearGradient>
                                         </defs>
@@ -17040,7 +17019,7 @@ ${
                                           tickLine={false}
                                           tick={{
                                             fontSize: 12,
-                                            fill: "#94a3b8",
+                                            fill: "#64748b",
                                           }}
                                           tickFormatter={(value) =>
                                             `${value >= 0 ? "" : "-"}${(
@@ -17062,26 +17041,18 @@ ${
                                             fontSize: "12px",
                                             padding: "8px 12px",
                                           }}
-                                          labelStyle={{
-                                            color: "var(--foreground)",
-                                          }}
                                           formatter={(
                                             value: any,
                                             name: any,
                                             props: any,
-                                          ) => {
-                                            const textColor = value >= 0 ? "#22c55e" : "#ef4444";
-                                            return [
-                                              <span style={{ color: textColor, fontWeight: 600 }}>
-                                                {`${
-                                                  value >= 0 ? "₹+" : "-₹"
-                                                }${Math.abs(
-                                                  value,
-                                                ).toLocaleString()}`}
-                                              </span>,
-                                              "Daily P&L",
-                                            ];
-                                          }}
+                                          ) => [
+                                            `${
+                                              value >= 0 ? "₹" : "-₹"
+                                            }${Math.abs(
+                                              value,
+                                            ).toLocaleString()}`,
+                                            "Daily P&L",
+                                          ]}
                                           labelFormatter={(label, payload) => {
                                             if (
                                               payload &&
@@ -17094,22 +17065,16 @@ ${
                                             return label;
                                           }}
                                         />
-                                        <ReferenceLine
-                                          y={0}
-                                          stroke="#64748b"
-                                          strokeDasharray="5 5"
-                                          strokeWidth={1}
-                                        />
                                         <Area
                                           type="natural"
                                           dataKey="value"
-                                          stroke={lineColor}
+                                          stroke="#000000"
                                           strokeWidth={3}
-                                          fill={`url(#${gradientId})`}
+                                          fill="url(#areaGradientPositive)"
                                           dot={false}
                                           activeDot={{
                                             r: 6,
-                                            fill: lineColor,
+                                            fill: "#000000",
                                             stroke: "white",
                                             strokeWidth: 2,
                                           }}
@@ -17121,6 +17086,9 @@ ${
                                     </ResponsiveContainer>
                                   </div>
                                 );
+                              })()}
+                            </div>
+                          ) : (
                             <div className="flex items-center justify-center h-48 text-slate-400">
                               <div className="text-center">
                                 <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
