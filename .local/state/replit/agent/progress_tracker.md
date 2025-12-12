@@ -84,16 +84,31 @@
   - 'NSE' for STOCK trades
 **Result**: Options and Futures positions will now stream live LTP updates every 700ms from Angel One NFO, just like stocks.
 
-### Option Chain Instruments Price Streaming Fix (December 12, 2025, 3:56 AM)
-**Issue**: Options selected from the option chain modal were not streaming prices.
-**Root Cause**: When clicking on an option contract from the option chain, the `handleOptionClick` function was creating an instrument object with `token: ''` (empty string). Without a valid token, the Angel One live price stream API couldn't find and fetch the contract's price data.
-**Fix Applied** (line 19826 in `client/src/pages/home.tsx`):
-- Modified `handleOptionClick` to be async
-- Added API call to fetch the instrument token: `/api/angelone/search-instruments?query={symbol}&exchange=NFO`
-- Extracts token from API response and stores it in the instrument object
-- Passes the complete instrument (with token) to `fetchPaperTradePrice` for proper streaming
-- Includes fallback handling if token fetch fails
-**Result**: Options selected from the option chain will now properly stream live prices at 700ms intervals, just like manually searched options.
+### Option Chain Instruments Price Streaming - FULLY FIXED (December 12, 2025, 3:58 AM)
+**Final Issue**: NIFTY16DEC2526000CE from option chain was NOT streaming prices (LTP stuck), but manually searched NIFTY worked fine.
+
+**Root Causes Identified & Fixed**:
+1. **Token Lookup Was Optional**: Token requirement check was preventing streaming when token fetch failed
+   - **Fixed**: Removed token validation requirement in `fetchPaperTradePrice` (line 4447)
+   - **Now**: Streaming starts even without token, backend can search by symbol
+
+2. **Option Chain Data Already Had Tokens!**: The backend was returning token info in option chain response, but frontend wasn't using it
+   - **Discovery**: `/api/options/chain` returns `token: strike.CE.token` for each option
+   - **Fixed**: Modified `handleOptionClick` to accept full option object instead of just symbol + ltp
+   - **Now**: Uses token directly from option chain data (no redundant API search needed)
+
+3. **Streaming Wasn't Starting in Fallback Cases**:
+   - **Fixed**: Always call `fetchPaperTradePrice` regardless of token availability
+   - **Removed**: Conditional `if (optionInstrument.token)` check that was blocking streaming
+
+**Changes Made**:
+- Line 19826: Updated `handleOptionClick(option)` signature to accept full option object with token
+- Line 4447: Token now optional in `fetchPaperTradePrice` validation
+- Table handlers: Pass full `filteredCalls[index]` / `filteredPuts[index]` objects to handler
+- Eliminated redundant `/api/angelone/search-instruments` API calls for options
+- Fallback & error cases now also call `fetchPaperTradePrice`
+
+**Result**: ✅ Options from option chain will now stream prices at 700ms, same as manually searched instruments. The token flows directly from the backend option chain API to the streaming service.
 
 ### Completion Date
 December 12, 2025

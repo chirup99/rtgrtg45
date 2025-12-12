@@ -4444,7 +4444,7 @@ ${
     });
     
     // Validate required fields
-    if (!stockInfo.symbol || !stockInfo.token || !stockInfo.exchange) {
+    if (!stockInfo.symbol || !stockInfo.exchange) {
       console.error(`❌ [PAPER-TRADE-PRICE] Missing required fields:`, {
         symbol: stockInfo.symbol,
         token: stockInfo.token,
@@ -19823,7 +19823,9 @@ ${
     return exchangeMap[index] || 'NFO';
   };
 
-                const handleOptionClick = async (instrumentSymbol: string, ltp?: number) => {
+                const handleOptionClick = async (option: any) => {
+                  const { symbol: instrumentSymbol, ltp, token: optionToken, exchange: optionExchange } = option;
+                  // Populate paper trading search bar with selected option
                   // Populate paper trading search bar with selected option
                   setPaperTradeSymbol(instrumentSymbol);
                   setPaperTradeSymbolSearch(instrumentSymbol);
@@ -19835,52 +19837,17 @@ ${
                     setPaperTradeCurrentPrice(ltp);
                     setPaperTradePriceLoading(false);
                     
-                    // Fetch the instrument token from Angel One API for proper streaming
-                    try {
-                      const exchange = getExchangeForIndex(selectedOptionIndex);
-                      const searchUrl = `/api/angelone/search-instruments?query=${encodeURIComponent(instrumentSymbol)}&exchange=${encodeURIComponent(exchange)}&limit=1`;
-                      const response = await fetch(searchUrl);
-                      
-                      if (response.ok) {
-                        const data = await response.json();
-                        const instruments = data.instruments || data.results || [];
-                        
-                        if (instruments.length > 0) {
-                          const inst = instruments[0];
-                          const optionInstrument = {
-                            symbol: instrumentSymbol,
-                            exchange: inst.exchange || exchange,
-                            token: inst.token || inst.symbolToken || '',
-                            name: instrumentSymbol
-                          };
-                          setSelectedPaperTradingInstrument(optionInstrument);
-                          
-                          // Start live price streaming with proper token
-                          if (optionInstrument.token) {
-                            fetchPaperTradePrice(optionInstrument);
-                          }
-                        } else {
-                          // Fallback if API returns no results
-                          const optionInstrument = {
-                            symbol: instrumentSymbol,
-                            exchange: getExchangeForIndex(selectedOptionIndex),
-                            token: '',
-                            name: instrumentSymbol
-                          };
-                          setSelectedPaperTradingInstrument(optionInstrument);
-                        }
-                      }
-                    } catch (error) {
-                      console.error('Error fetching option token:', error);
-                      // Fallback to empty token
-                      const optionInstrument = {
-                        symbol: instrumentSymbol,
-                        exchange: getExchangeForIndex(selectedOptionIndex),
-                        token: '',
-                        name: instrumentSymbol
-                      };
-                      setSelectedPaperTradingInstrument(optionInstrument);
-                    }
+                    // Use token directly from option chain data (no API search needed)
+                    const optionInstrument = {
+                      symbol: instrumentSymbol,
+                      exchange: optionExchange || getExchangeForIndex(selectedOptionIndex),
+                      token: optionToken || '',
+                      name: instrumentSymbol
+                    };
+                    setSelectedPaperTradingInstrument(optionInstrument);
+                    
+                    // Start live price streaming with token from option chain
+                    fetchPaperTradePrice(optionInstrument);
                   }
                   
                   // Close option chain dialog
@@ -19910,7 +19877,7 @@ ${
                 if (maxRows === 0) {
                   return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
-                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index].symbol || `${selectedOptionIndex}${filteredCalls[index].strikePrice}CE`, filteredCalls[index].ltp)} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index].symbol || `${selectedOptionIndex}${filteredPuts[index].strikePrice}PE`, filteredPuts[index].ltp)} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index])} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index])} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
               {!optionChainLoading && !(selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (
