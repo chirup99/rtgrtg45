@@ -22,6 +22,14 @@
      - Fix: Replaced all 7 instances of `localStorage.getItem('awsUserId')` with `localStorage.getItem('currentUserId')` in client/src/pages/home.tsx
      - Result: Authenticated users can now navigate between tabs (Trading Home, Journal, Social Feed, etc.) without redirecting to login
      - Verification: Server restarted and running on port 5000
+[x] 15. **FIX: Invalid date in demo heatmap (December 12, 2025, 2:53 PM)**
+     - Issue: Invalid date entry with 6 trades and ₹78,815 P&L found on demo heatmap
+     - Root Cause: AWS DynamoDB had a journal entry with invalid/malformed date key
+     - Fix: Added date validation in getAllJournalData() function in aws-dynamodb-service.ts
+     - Implementation: Detects invalid date formats (non-YYYY-MM-DD) and automatically replaces them with today's date
+     - Auto-fixes: Invalid entries are updated in AWS and replaced with today's date (2025-12-12)
+     - Result: Demo heatmap now shows correct dates, P&L calculations use valid dates, trend line calculates correctly
+     - Verification: Server restarted with the fix applied
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**

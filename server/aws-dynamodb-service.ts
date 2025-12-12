@@ -131,11 +131,24 @@ class AWSDynamoDBService {
       const response = await this.docClient!.send(command);
 
       const result: Record<string, any> = {};
+      const today = new Date().toISOString().split('T')[0]; // 2025-12-12 format
 
       if (response.Items) {
         for (const item of response.Items) {
           if (item.dateKey && item.data) {
-            const cleanKey = item.dateKey.replace('journal_', '');
+            let cleanKey = item.dateKey.replace('journal_', '');
+            
+            // Fix invalid dates (empty, null, or non-date format)
+            const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(cleanKey);
+            if (!isValidDate) {
+              console.log(`⚠️ Invalid date key detected: "${cleanKey}" - replacing with today: ${today}`);
+              cleanKey = today;
+              // Update the item in database with fixed date
+              await this.saveJournalData(`journal_${today}`, item.data);
+              // Delete the old invalid entry
+              await this.deleteJournalData(item.dateKey);
+            }
+            
             result[cleanKey] = item.data;
           }
         }
