@@ -15225,7 +15225,7 @@ ${
 
                         {/* Bottom 70% - Notes Section */}
                         <div className="h-[70%] flex flex-col">
-                          <CardContent className="p-2 flex-1 flex flex-col">
+                          <CardContent className="p-2 flex-1 flex flex-col h-full overflow-hidden">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
                                 TRADING NOTES

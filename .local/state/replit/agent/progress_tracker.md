@@ -47,6 +47,15 @@
        * Line 15778: Changed pre element from `overflow-x-auto overflow-y-auto max-h-96` to `overflow-y-auto flex-1`
      - Result: Only the text content inside the pre element scrolls vertically, outer notes window stays fixed
      - Verification: Server restarted with isolated scrolling implemented
+[x] 18. **FIX: Text expanding instead of scrolling (December 12, 2025, 4:38 PM)**
+     - Issue: Trading notes text was expanding the container downward instead of scrolling vertically
+     - Root Cause: CardContent at line 15227 had no height constraint, so it expanded beyond the parent's h-[70%] limit
+     - Fix Applied: Added `h-full overflow-hidden` to CardContent
+       * h-full: Makes CardContent respect parent's h-[70%] height constraint
+       * overflow-hidden: Ensures content doesn't overflow beyond container bounds
+     - Result: Text now scrolls vertically within fixed 70% height container
+     - Structure now: h-[70%] → CardContent (h-full) → pre (flex-1 overflow-y-auto) = proper vertical scrolling
+     - Verification: Server restarted with height constraints applied
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**
