@@ -16989,7 +16989,7 @@ ${
                                       >
                                         <defs>
                                           <linearGradient
-                                            id="areaGradientWhite"
+                                            id="areaGradientPositive"
                                             x1="0"
                                             y1="0"
                                             x2="0"
@@ -16997,12 +16997,30 @@ ${
                                           >
                                             <stop
                                               offset="0%"
-                                              stopColor="rgb(255, 255, 255)"
-                                              stopOpacity={0.3}
+                                              stopColor="rgb(34, 197, 94)"
+                                              stopOpacity={0.4}
                                             />
                                             <stop
                                               offset="100%"
-                                              stopColor="rgb(255, 255, 255)"
+                                              stopColor="rgb(34, 197, 94)"
+                                              stopOpacity={0.05}
+                                            />
+                                          </linearGradient>
+                                          <linearGradient
+                                            id="areaGradientNegative"
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                          >
+                                            <stop
+                                              offset="0%"
+                                              stopColor="rgb(239, 68, 68)"
+                                              stopOpacity={0.4}
+                                            />
+                                            <stop
+                                              offset="100%"
+                                              stopColor="rgb(239, 68, 68)"
                                               stopOpacity={0.05}
                                             />
                                           </linearGradient>
@@ -17048,10 +17066,19 @@ ${
                                             value: any,
                                             name: any,
                                             props: any,
-                                          ) => [
-                                            `${value >= 0 ? "₹+" : "-₹"}${Math.abs(value).toLocaleString()}`,
-                                            "Daily P&L",
-                                          ]}
+                                          ) => {
+                                            const textColor = value >= 0 ? "#22c55e" : "#ef4444";
+                                            return [
+                                              <span style={{ color: textColor, fontWeight: 600 }}>
+                                                {`${
+                                                  value >= 0 ? "₹+" : "-₹"
+                                                }${Math.abs(
+                                                  value,
+                                                ).toLocaleString()}`}
+                                              </span>,
+                                              "Daily P&L",
+                                            ];
+                                          }}
                                           labelFormatter={(label, payload) => {
                                             if (
                                               payload &&
@@ -17070,25 +17097,55 @@ ${
                                           strokeDasharray="5 5"
                                           strokeWidth={1}
                                         />
-                                        <Area
-                                          type="natural"
-                                          dataKey="value"
-                                          stroke="#ffffff"
-                                          strokeWidth={3}
-                                          fill="url(#areaGradientWhite)"
-                                          dot={false}
-                                          activeDot={{
-                                            r: 6,
-                                            fill: "#ffffff",
-                                            stroke: "#64748b",
-                                            strokeWidth: 2,
-                                          }}
-                                          isAnimationActive={true}
-                                          animationDuration={600}
-                                          animationEasing="ease-in-out"
-                                        />
+                                        {chartData.some((d: any) => d.value >= 0) && (
+                                          <Area
+                                            type="natural"
+                                            dataKey="value"
+                                            stroke="#22c55e"
+                                            strokeWidth={3}
+                                            fill="url(#areaGradientPositive)"
+                                            dot={false}
+                                            activeDot={{
+                                              r: 6,
+                                              fill: "#22c55e",
+                                              stroke: "white",
+                                              strokeWidth: 2,
+                                            }}
+                                            isAnimationActive={true}
+                                            animationDuration={600}
+                                            animationEasing="ease-in-out"
+                                            data={chartData.map((d: any) =>
+                                              d.value >= 0 ? d : null
+                                            ).filter(Boolean)}
+                                          />
+                                        )}
+                                        {chartData.some((d: any) => d.value < 0) && (
+                                          <Area
+                                            type="natural"
+                                            dataKey="value"
+                                            stroke="#ef4444"
+                                            strokeWidth={3}
+                                            fill="url(#areaGradientNegative)"
+                                            dot={false}
+                                            activeDot={{
+                                              r: 6,
+                                              fill: "#ef4444",
+                                              stroke: "white",
+                                              strokeWidth: 2,
+                                            }}
+                                            isAnimationActive={true}
+                                            animationDuration={600}
+                                            animationEasing="ease-in-out"
+                                            data={chartData.map((d: any) =>
+                                              d.value < 0 ? d : null
+                                            ).filter(Boolean)}
+                                          />
+                                        )}
                                       </AreaChart>
                                     </ResponsiveContainer>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ) : (
                             <div className="flex items-center justify-center h-48 text-slate-400">
