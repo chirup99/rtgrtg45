@@ -11705,8 +11705,8 @@ ${
                 </div>
 
                 {/* Angel One Connection Setup */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                  <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Angel One Connection</h3>
@@ -16902,7 +16902,7 @@ ${
                           </div>
 
                           {/* Performance Trend Chart - Desktop: Middle */}
-                          <div className="md:col-span-6 bg-white dark:bg-slate-800 rounded-3xl p-4 md:p-8 shadow-lg border border-slate-200 dark:border-slate-700">
+                          <div className="md:col-span-6 bg-white dark:bg-slate-900 rounded-3xl p-4 md:p-8 shadow-lg border border-slate-200 dark:border-slate-800">
                           <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
                               Performance Trend
@@ -17098,7 +17098,7 @@ ${
                         </div>
 
                           {/* Top Tags - Desktop: Right side */}
-                          <div className="md:col-span-3 bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+                          <div className="md:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-lg border border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-3 mb-6">
                               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
                                 <Tag className="w-5 h-5 text-white" />

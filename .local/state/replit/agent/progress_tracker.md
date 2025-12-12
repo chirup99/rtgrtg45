@@ -122,6 +122,15 @@
        * Changed to: `border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900`
      - Result: Both Demo and Personal heatmaps now have cohesive styling matching Trade History/Trade Book
      - Verification: Server restarted and running
+[x] 26. **UI: All remaining window colors unified (December 12, 2025, 4:52 PM)**
+     - Request: Update Trading notes, Performance Trend, Top Tags, and below sections (Trading Days, Best Day, Profitable Days, Avg Daily P&L) background colors
+     - Changes Applied to home.tsx:
+       * Line 16905 - Performance Trend Card: `dark:bg-slate-800` → `dark:bg-slate-900`, border updated
+       * Line 17104 - Top Tags Card: `dark:bg-slate-800` → `dark:bg-slate-900`, border updated
+       * Line 11708 - Trading Notes (Angel One Connection): `dark:bg-gray-800` → `dark:bg-slate-900`, border updated
+       * Line 11709 - Trading Notes borders: `dark:border-gray-700` → `dark:border-slate-800`
+     - Result: ALL window backgrounds now unified with consistent `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800` pattern
+     - Verification: Server restarted, running successfully
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**
