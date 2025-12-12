@@ -16575,7 +16575,7 @@ ${
                                     </PopoverTrigger>
                                     <PopoverContent className="w-56 p-3 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                       <div className="space-y-2">
-                                        <div className="text-xs font-semibold text-slate-400 mb-2">Customize Stats</div>
+                                        <div className="text-xs font-semibold text-slate-400 mb-2">Customize Magic Bar</div>
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
                                           <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => setVisibleStats({...visibleStats, pnl: e.target.checked})} className="rounded" />
                                           P&L
