@@ -10713,7 +10713,6 @@ ${
                             </div>
                           </div>
                         </div>
-                      </div>
 
                       {/* Top Charts - Right Side (1/3 width) */}
                       <div className="lg:col-span-1">
@@ -10806,7 +10805,6 @@ ${
                             </div>
                           </div>
                         </div>
-                      </div>
                     </div>
 
                     {/* AI-Generated Trending Podcasts */}
@@ -10987,7 +10985,6 @@ ${
                           <h4 className="text-white font-medium text-sm">Hero to Zero Stories</h4>
                           <p className="text-slate-400 text-xs">Quick Lessons</p>
                         </div>
-                      </div>
                     </div>
                   </div>
                 </TabsContent>
@@ -11002,7 +10999,6 @@ ${
                         <span>Showing</span>
                         <span className="text-white">10</span>
                         <span>out of 48</span>
-                      </div>
                     </div>
 
                     {/* Scrollable Content */}
@@ -11046,7 +11042,6 @@ ${
                             className="w-full h-full object-cover rounded-lg border border-white/20"
                           />
                         </div>
-                      </div>
 
                       {/* Music Event */}
                       <div className="relative rounded-xl p-4 overflow-hidden bg-gradient-to-br from-indigo-600/80 via-blue-700/70 to-purple-800/80 flex gap-3">
@@ -11087,7 +11082,6 @@ ${
                             className="w-full h-full object-cover rounded-lg border border-white/20"
                           />
                         </div>
-                      </div>
 
 
                       {/* Health & Wellness Event */}
@@ -11127,7 +11121,6 @@ ${
                             className="w-full h-full object-cover rounded-lg border border-white/20"
                           />
                         </div>
-                      </div>
 
                       {/* Food & Culinary Event */}
                       <div className="relative rounded-xl p-4 overflow-hidden bg-gradient-to-br from-orange-400/80 via-red-500/70 to-pink-500/80 flex gap-3">
@@ -11167,7 +11160,6 @@ ${
                             className="w-full h-full object-cover rounded-lg border border-white/20"
                           />
                         </div>
-                      </div>
 
 
                       {/* Technology Event */}
@@ -11215,7 +11207,6 @@ ${
                             </div>
                           </div>
                         </div>
-                      </div>
 
                       {/* Outdoor & Adventure Event */}
                       <div className="relative rounded-xl p-4 overflow-hidden bg-gradient-to-br from-purple-400/80 via-indigo-500/70 to-blue-600/80 flex gap-3">
@@ -11261,7 +11252,6 @@ ${
                             </div>
                           )}
                         </div>
-                      </div>
 
                       {/* Startup Innovations Event */}
                       <div className="relative rounded-xl p-4 overflow-hidden bg-gradient-to-br from-emerald-400/80 via-teal-500/70 to-cyan-600/80 flex gap-3">
@@ -11308,7 +11298,6 @@ ${
                             </div>
                           )}
                         </div>
-                      </div>
 
                       {/* Promotions Event */}
                       <div className="relative rounded-xl p-4 overflow-hidden bg-gradient-to-br from-fuchsia-400/80 via-purple-500/70 to-violet-600/80 flex gap-3">
@@ -11354,8 +11343,6 @@ ${
                             </div>
                           )}
                         </div>
-                      </div>
-                      </div>
 
                       {/* Pagination */}
                       <div className="flex items-center justify-center gap-2 pt-4">
@@ -11378,7 +11365,6 @@ ${
                         <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                           <ChevronRight className="w-4 h-4" />
                         </Button>
-                      </div>
                     </div>
                   </div>
                 </TabsContent>
@@ -11665,7 +11651,6 @@ ${
                   </div>
                 </div>
 
-                      </div>
 
                 {/* SignIn Data Window with YouTube Link */}
                 <SigninDataWindow />
@@ -11793,7 +11778,6 @@ ${
                         >
                           Login
                         </button>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -11815,7 +11799,6 @@ ${
                         >
                           <X className="h-5 w-5 text-gray-400" />
                         </button>
-                      </div>
                       
                       {/* Email Verification Section */}
                       <div className="space-y-4">
@@ -11936,7 +11919,6 @@ ${
                             </div>
                           </div>
                         )}
-                      </div>
                     </div>
                   </div>
                 )}
@@ -11976,7 +11958,6 @@ ${
                       {/* Container for WorldMap - full width on mobile, constrained on desktop */}
                       <div className="w-full md:max-w-lg flex items-center justify-center">
                         <WorldMap />
-                      </div>
                     </div>
                   )}
 
@@ -12047,7 +12028,6 @@ ${
                             </div>
                           )}
                         </div>
-                      </div>
 
                       {/* Search Input - Hidden on mobile, moves to bottom when results appear */}
                       {!searchResults && (
@@ -12088,7 +12068,6 @@ ${
                             <Bot className="h-4 w-4" />
                           )}
                         </Button>
-                      </div>
                       )}
 
                       {/* Search bar at bottom when results are shown */}
@@ -12136,7 +12115,6 @@ ${
                             </Button>
                           </div>
                         </div>
-                      </div>
                       )}
 
                       {/* AI Search Results - Desktop only */}
@@ -13438,7 +13416,6 @@ ${
                             <span>Fundamentals</span>
                           </div>
                         </Button>
-                      </div>
 
                       {/* Trading Tools Section - White container with centered cards */}
                       <div className={`${searchResults ? 'bg-transparent' : 'bg-white'} md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full`}>
@@ -13934,7 +13911,6 @@ ${
                           ))}
                         </div>
                         )}
-                      </div>
                     </div>
 
                     {/* Animated Floating Tutor Button */}
@@ -13952,7 +13928,6 @@ ${
                         >
                           <ChevronUp className="h-8 w-8 text-gray-400 pointer-events-none" />
                         </Button>
-                      </div>
                     </div>
                     )}
 
@@ -14129,11 +14104,9 @@ ${
                     <div className="flex items-center gap-3">
                       <div className="p-3 bg-primary/10 rounded-lg">
                         <Activity className="h-6 w-6 text-primary" />
-                      </div>
                       <div>
                         <h1 className="text-3xl font-bold">Backtest Trading Strategies</h1>
                         <p className="text-muted-foreground mt-1">Test your trading rules with historical data</p>
-                      </div>
                     </div>
                   </div>
 
@@ -14142,7 +14115,6 @@ ${
                     <div className="text-center space-y-4">
                       <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
                         <Activity className="h-10 w-10 text-primary" />
-                      </div>
                       <h2 className="text-2xl font-semibold">Backtest Feature Coming Soon</h2>
                       <p className="text-muted-foreground max-w-md mx-auto">
                         We're building a powerful backtesting engine to help you validate your trading strategies with historical market data.
@@ -14151,7 +14123,6 @@ ${
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg">
                           <span className="text-sm font-medium">Under Development</span>
                         </div>
-                      </div>
                     </div>
                   </div>
 
@@ -14160,7 +14131,6 @@ ${
                     <div className="bg-card border border-border rounded-lg p-6">
                       <div className="p-2 bg-blue-500/10 rounded-lg w-fit mb-4">
                         <BarChart3 className="h-5 w-5 text-blue-500" />
-                      </div>
                       <h3 className="font-semibold mb-2">Historical Data Analysis</h3>
                       <p className="text-sm text-muted-foreground">
                         Test strategies against years of historical market data
@@ -14169,7 +14139,6 @@ ${
                     <div className="bg-card border border-border rounded-lg p-6">
                       <div className="p-2 bg-green-500/10 rounded-lg w-fit mb-4">
                         <TrendingUp className="h-5 w-5 text-green-500" />
-                      </div>
                       <h3 className="font-semibold mb-2">Performance Metrics</h3>
                       <p className="text-sm text-muted-foreground">
                         Comprehensive statistics on returns, drawdowns, and win rates
@@ -14178,7 +14147,6 @@ ${
                     <div className="bg-card border border-border rounded-lg p-6">
                       <div className="p-2 bg-purple-500/10 rounded-lg w-fit mb-4">
                         <Settings className="h-5 w-5 text-purple-500" />
-                      </div>
                       <h3 className="font-semibold mb-2">Custom Rules</h3>
                       <p className="text-sm text-muted-foreground">
                         Define your own entry, exit, and risk management rules
@@ -15056,7 +15024,6 @@ ${
                             </div>
                           </div>
                         </div>
-                      </div>
 
                       {/* Middle Block - Multiple Image Upload */}
                       <div
@@ -15067,7 +15034,6 @@ ${
                           images={tradingImages}
                           onImagesChange={setTradingImages}
                         />
-                      </div>
 
                       {/* Right Block - PERFORMANCE STATS (Split: 30% top, 70% bottom) */}
                       <Card
@@ -15759,7 +15725,6 @@ ${
                               ? "Upload"
                               : "Notes"}
                         </div>
-                      </div>
                       <Button
                         variant="outline"
                         onClick={() =>
@@ -15805,7 +15770,6 @@ ${
                         ) : (
                           <ChevronDown className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                         )}
-                      </div>
 
                       {/* Mobile: Trade History Summary Content (Dropdown) */}
                       {showMobileTradeHistory && (
@@ -17782,7 +17746,6 @@ ${
                             );
                           })()}
                         </div>
-                      </div>
                     );
                   })()}
                 </div>
@@ -18048,7 +18011,6 @@ ${
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
-                      </div>
 
                       <div className="bg-background rounded border overflow-hidden">
                         <table className="w-full font-mono text-xs">
@@ -18570,7 +18532,6 @@ ${
                             </tr>
                           </tbody>
                         </table>
-                      </div>
 
                       {/* Saved Formats Table - Shows all saved formats with their original trade lines */}
                       {Object.keys(savedFormats).length > 0 && (
@@ -18663,7 +18624,6 @@ ${
                     <>
                       <div className="text-xs font-medium text-muted-foreground mb-2">
                         Live Preview - How Your First Trade Will Import:
-                      </div>
                       <div className="bg-background rounded border overflow-hidden">
                         <table className="w-full font-mono text-xs">
                           <thead>
@@ -18718,7 +18678,6 @@ ${
                             })()}
                           </tbody>
                         </table>
-                      </div>
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs text-muted-foreground">
                           ✨ This preview updates automatically as you paste - check your format before importing
@@ -18901,7 +18860,6 @@ ${
                             Build
                           </Button>
                         </div>
-                      </div>
                     </>
                   )}
                 </div>
@@ -18945,7 +18903,6 @@ ${
                         <div className="mt-1 text-gray-600 font-mono truncate">
                           {error.content}
                         </div>
-                      </div>
                     ))}
                   </div>
                 </div>
@@ -19088,7 +19045,6 @@ ${
                             </button>
                           ))
                         )}
-                      </div>
                     )}
                   </div>
                   {/* Option Chain Button */}
@@ -19315,7 +19271,6 @@ ${
                             Set SL
                           </Button>
                         </div>
-                      </div>
                     )}
                   </div>
                   </div>
@@ -19546,23 +19501,18 @@ ${
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Trades:</span>
                         <span>{saveConfirmationData?.trades}</span>
-                      </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Notes:</span>
                         <span>{saveConfirmationData?.notes}</span>
-                      </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Tags:</span>
                         <span>{saveConfirmationData?.tags}</span>
-                      </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Images:</span>
                         <span>{saveConfirmationData?.images}</span>
-                      </div>
                       <div className="flex justify-between font-semibold">
                         <span className="text-gray-600 dark:text-gray-400">Net P&L:</span>
                         <span>₹{saveConfirmationData?.netPnL}</span>
-                      </div>
                     </div>
                   </div>
                 </>
@@ -19901,14 +19851,12 @@ ${
                     {journalAIData?.report ? (
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">
                         {journalAIData.report}
-                      </div>
                     ) : (
                       <div className="text-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
                         <p className="text-gray-500">
                           Loading journal analysis...
                         </p>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -19923,7 +19871,6 @@ ${
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                         <span>Not Profitable</span>
-                      </div>
                     </div>
 
                     <div className="flex-1 min-h-[250px]">
@@ -20350,7 +20297,6 @@ ${
                         <div className="text-xs font-bold">
                           {isProfitable ? '+' : ''}₹{(totalPnL / 1000).toFixed(1)}K
                         </div>
-                      </div>
                       
                       {/* Trend */}
                       <div className="flex flex-col items-center justify-center">
@@ -20368,7 +20314,6 @@ ${
                             />
                           </svg>
                         </div>
-                      </div>
                       
                       {/* FOMO - Clickable button with curved lines */}
                       <button
@@ -20417,13 +20362,11 @@ ${
                       <div className="flex flex-col items-center justify-center">
                         <div className="text-[10px] opacity-80">Win%</div>
                         <div className="text-xs font-bold">{winRate.toFixed(0)}%</div>
-                      </div>
                       
                       {/* Streak */}
                       <div className="flex flex-col items-center justify-center">
                         <div className="text-[10px] opacity-80">Streak</div>
                         <div className="text-xs font-bold">{maxWinStreak}</div>
-                      </div>
                     </div>
                   </div>
                 );
@@ -20540,7 +20483,6 @@ ${
                             </div>
                           </div>
                         </div>
-                      </div>
                       
                       {/* Column 2: Performance Trend */}
                       <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
@@ -20614,7 +20556,6 @@ ${
                             No data
                           </div>
                         )}
-                      </div>
                       
                       {/* Column 3: Loss Tags */}
                       <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
@@ -20635,7 +20576,6 @@ ${
                         ) : (
                           <div className="text-[12px] text-gray-500 dark:text-gray-400 italic py-3">No loss tags</div>
                         )}
-                      </div>
                     </>
                   );
                 })()}
