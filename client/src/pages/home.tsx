@@ -8187,6 +8187,7 @@ ${
     overtrading: false,
     topTags: false,
     aiAnalysis: false,
+    planned: false,
   });
   
   // Refs for curved line connections from tag block to heatmap dates
@@ -16600,6 +16601,10 @@ ${
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
                                           <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => setVisibleStats({...visibleStats, overtrading: e.target.checked})} className="rounded" />
                                           Overtrading
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.planned} onChange={(e) => setVisibleStats({...visibleStats, planned: e.target.checked})} className="rounded" />
+                                          Planned
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
                                           <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => setVisibleStats({...visibleStats, topTags: e.target.checked})} className="rounded" />
