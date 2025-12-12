@@ -8204,7 +8204,7 @@ ${
   
   // Effect to handle scroll updates for curved lines - ULTRA FAST VERSION
   useEffect(() => {
-    if (!activeTagHighlight || activeTagHighlight.tag !== 'fomo') return;
+    if (!activeTagHighlight || (activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading')) return;
     
     const heatmapWrapper = heatmapContainerRef.current;
     if (!heatmapWrapper) return;
