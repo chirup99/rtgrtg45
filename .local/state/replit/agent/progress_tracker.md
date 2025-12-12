@@ -39,6 +39,14 @@
        * This fix: Made parent container scrollable for overall notes section
      - Result: Trading notes now properly scroll when content exceeds the 70% container height
      - Verification: Server restarted with both overflow fixes applied
+[x] 17. **REFINEMENT: Isolated scrolling to pre element only (December 12, 2025, 4:35 PM)**
+     - Issue: User wanted scroll in text window only, not trading notes window
+     - Root Cause: max-h-96 on pre element and overflow on outer container caused scrolling in wrong place
+     - Fixes Applied:
+       * Line 15227: Removed `overflow-y-auto custom-thin-scrollbar` from h-[70%] div
+       * Line 15778: Changed pre element from `overflow-x-auto overflow-y-auto max-h-96` to `overflow-y-auto flex-1`
+     - Result: Only the text content inside the pre element scrolls vertically, outer notes window stays fixed
+     - Verification: Server restarted with isolated scrolling implemented
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**

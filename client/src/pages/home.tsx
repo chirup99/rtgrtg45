@@ -15224,7 +15224,7 @@ ${
                         </div>
 
                         {/* Bottom 70% - Notes Section */}
-                        <div className="h-[70%] flex flex-col overflow-y-auto custom-thin-scrollbar">
+                        <div className="h-[70%] flex flex-col">
                           <CardContent className="p-2 flex-1 flex flex-col">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
@@ -15775,7 +15775,7 @@ ${
 
                                 {/* Notes content */}
                                 {notesContent ? (
-                                  <pre className="font-sans text-xs overflow-x-auto overflow-y-auto max-h-96 whitespace-pre">
+                                  <pre className="font-sans text-xs overflow-y-auto flex-1 whitespace-pre">
                                     {notesContent}
                                   </pre>
                                 ) : (
