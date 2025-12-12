@@ -16972,6 +16972,9 @@ ${
                                   chartData[0] || { value: 0, day: "", pnl: 0 },
                                 );
 
+                                const lineColor = chartData.reduce((sum: number, d: any) => sum + d.value, 0) >= 0 ? "#22c55e" : "#ef4444";
+                                const gradientId = chartData.reduce((sum: number, d: any) => sum + d.value, 0) >= 0 ? "areaGradientPositive" : "areaGradientNegative";
+                                
                                 return (
                                   <div className="relative h-full">
                                     <ResponsiveContainer
@@ -17097,57 +17100,27 @@ ${
                                           strokeDasharray="5 5"
                                           strokeWidth={1}
                                         />
-                                        {chartData.some((d: any) => d.value >= 0) && (
-                                          <Area
-                                            type="natural"
-                                            dataKey="value"
-                                            stroke="#22c55e"
-                                            strokeWidth={3}
-                                            fill="url(#areaGradientPositive)"
-                                            dot={false}
-                                            activeDot={{
-                                              r: 6,
-                                              fill: "#22c55e",
-                                              stroke: "white",
-                                              strokeWidth: 2,
-                                            }}
-                                            isAnimationActive={true}
-                                            animationDuration={600}
-                                            animationEasing="ease-in-out"
-                                            data={chartData.map((d: any) =>
-                                              d.value >= 0 ? d : null
-                                            ).filter(Boolean)}
-                                          />
-                                        )}
-                                        {chartData.some((d: any) => d.value < 0) && (
-                                          <Area
-                                            type="natural"
-                                            dataKey="value"
-                                            stroke="#ef4444"
-                                            strokeWidth={3}
-                                            fill="url(#areaGradientNegative)"
-                                            dot={false}
-                                            activeDot={{
-                                              r: 6,
-                                              fill: "#ef4444",
-                                              stroke: "white",
-                                              strokeWidth: 2,
-                                            }}
-                                            isAnimationActive={true}
-                                            animationDuration={600}
-                                            animationEasing="ease-in-out"
-                                            data={chartData.map((d: any) =>
-                                              d.value < 0 ? d : null
-                                            ).filter(Boolean)}
-                                          />
-                                        )}
+                                        <Area
+                                          type="natural"
+                                          dataKey="value"
+                                          stroke={lineColor}
+                                          strokeWidth={3}
+                                          fill={`url(#${gradientId})`}
+                                          dot={false}
+                                          activeDot={{
+                                            r: 6,
+                                            fill: lineColor,
+                                            stroke: "white",
+                                            strokeWidth: 2,
+                                          }}
+                                          isAnimationActive={true}
+                                          animationDuration={600}
+                                          animationEasing="ease-in-out"
+                                        />
                                       </AreaChart>
                                     </ResponsiveContainer>
                                   </div>
                                 );
-                              })()}
-                            </div>
-                          ) : (
                             <div className="flex items-center justify-center h-48 text-slate-400">
                               <div className="text-center">
                                 <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
