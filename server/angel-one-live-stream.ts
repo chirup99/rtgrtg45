@@ -9,6 +9,7 @@ export interface LivePrice {
   close: number;
   time: number;
   isLive?: boolean;
+  isMarketOpen?: boolean;
 }
 
 interface SSEClient {
@@ -17,6 +18,7 @@ interface SSEClient {
   symbolToken: string;
   exchange: string;
   lastUpdate: number;
+  sentClosedMarketData: boolean; // Track if we've already sent closed market data
 }
 
 interface InitialCandleData {
@@ -39,6 +41,27 @@ class AngelOneLiveStream {
     console.log('🔴 Angel One Live Stream Service initialized');
   }
 
+  // Check if NSE market is currently open (9:15 AM - 3:30 PM IST, Mon-Fri)
+  private isMarketOpen(): boolean {
+    const now = new Date();
+    const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    const hour = istTime.getHours();
+    const minute = istTime.getMinutes();
+    const dayOfWeek = istTime.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Skip weekends
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return false;
+    }
+
+    // Market hours: 9:15 AM to 3:30 PM IST
+    const marketStart = 9 * 60 + 15; // 9:15 AM in minutes
+    const marketEnd = 15 * 60 + 30;  // 3:30 PM in minutes
+    const currentTime = hour * 60 + minute;
+
+    return currentTime >= marketStart && currentTime <= marketEnd;
+  }
+
   setInitialChartData(symbol: string, symbolToken: string, candleData: InitialCandleData): void {
     const key = `${symbol}_${symbolToken}`;
     this.initialChartCandle.set(key, candleData);
@@ -56,7 +79,8 @@ class AngelOneLiveStream {
       symbol,
       symbolToken,
       exchange,
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
+      sentClosedMarketData: false
     });
 
     console.log(`🔴 [SSE] Client ${clientId} connected for ${symbol}`);
@@ -74,7 +98,8 @@ class AngelOneLiveStream {
           low: initialData.low,
           close: initialData.close,
           time: now,
-          isLive: false
+          isLive: false,
+          isMarketOpen: this.isMarketOpen()
         });
         console.log(`📊 [SSE] Using chart data as initial OHLC for ${symbol}`);
       } else {
@@ -85,7 +110,8 @@ class AngelOneLiveStream {
           low: 0,
           close: 0,
           time: now,
-          isLive: false
+          isLive: false,
+          isMarketOpen: this.isMarketOpen()
         });
       }
     }
@@ -125,9 +151,18 @@ class AngelOneLiveStream {
     console.log(`📡 [POLL] Starting live price polling for ${symbol} at 700ms intervals`);
 
     const interval = setInterval(async () => {
+      const marketOpen = this.isMarketOpen();
+      
+      // If market is closed, don't stream new candles - only send status once
+      if (!marketOpen) {
+        this.handleMarketClosed(key);
+        return;
+      }
+
       try {
         if (!angelOneApi.isConnected()) {
-          this.handleFallback(key);
+          // Market is open but API not connected - don't generate fake data
+          console.log(`⏳ [POLL] Market open but Angel One not connected for ${symbol}`);
           return;
         }
 
@@ -147,7 +182,8 @@ class AngelOneLiveStream {
               low: ltp.low || ltp.ltp,
               close: ltp.ltp,
               time: now,
-              isLive: true
+              isLive: true,
+              isMarketOpen: true
             };
           } else {
             candle.high = Math.max(candle.high, ltp.ltp);
@@ -156,53 +192,74 @@ class AngelOneLiveStream {
             candle.ltp = ltp.ltp;
             candle.time = now;
             candle.isLive = true;
+            candle.isMarketOpen = true;
           }
 
           this.currentCandle.set(key, candle);
           this.lastSuccessfulCandle.set(key, { ...candle });
           this.broadcastUpdate(key, candle);
+          
+          // Reset the closed market flag for all clients when market is open
+          this.clients.forEach((client) => {
+            const clientKey = `${client.symbol}_${client.symbolToken}`;
+            if (clientKey === key) {
+              client.sentClosedMarketData = false;
+            }
+          });
         } else {
-          this.handleFallback(key);
+          // API returned no data but market is open - don't fake it
+          console.log(`⚠️ [POLL] No data from Angel One for ${symbol} (market open)`);
         }
       } catch (error: any) {
-        this.handleFallback(key);
+        // API error during market hours - don't generate fake candles
+        console.log(`⚠️ [POLL] API error for ${symbol}: ${error.message}`);
       }
     }, 700);
 
     this.pollingIntervals.set(key, interval);
   }
 
-  private handleFallback(key: string): void {
-    const failures = (this.failureCount.get(key) || 0) + 1;
-    this.failureCount.set(key, failures);
-
-    let candle = this.lastSuccessfulCandle.get(key) || this.currentCandle.get(key);
-    
-    if (!candle || candle.close === 0) {
-      const initialData = this.initialChartCandle.get(key);
-      if (initialData && initialData.close > 0) {
-        candle = {
-          ltp: initialData.close,
-          open: initialData.open,
-          high: initialData.high,
-          low: initialData.low,
-          close: initialData.close,
-          time: Math.floor(Date.now() / 1000),
-          isLive: false
-        };
+  // Handle market closed state - send last known data once, then stop streaming
+  private handleMarketClosed(key: string): void {
+    // Check if we've already sent closed market data to all clients for this key
+    let allClientsSent = true;
+    this.clients.forEach((client) => {
+      const clientKey = `${client.symbol}_${client.symbolToken}`;
+      if (clientKey === key && !client.sentClosedMarketData) {
+        allClientsSent = false;
       }
+    });
+
+    // If all clients have received the closed market data, don't send again
+    if (allClientsSent) {
+      return;
     }
 
+    // Get last known data (don't create new candles with new timestamps)
+    const candle = this.lastSuccessfulCandle.get(key) || this.currentCandle.get(key);
+    
     if (candle && candle.close > 0) {
-      const now = Math.floor(Date.now() / 1000);
-      const updatedCandle: LivePrice = {
+      // Send with original timestamp and isLive: false, isMarketOpen: false
+      const closedMarketCandle: LivePrice = {
         ...candle,
-        time: now,
-        isLive: false
+        isLive: false,
+        isMarketOpen: false
+        // Don't update time - keep original historical timestamp
       };
       
-      this.currentCandle.set(key, updatedCandle);
-      this.broadcastUpdate(key, updatedCandle);
+      // Broadcast to clients who haven't received closed market data yet
+      this.clients.forEach((client) => {
+        const clientKey = `${client.symbol}_${client.symbolToken}`;
+        if (clientKey === key && !client.sentClosedMarketData) {
+          try {
+            client.res.write(`data: ${JSON.stringify(closedMarketCandle)}\n\n`);
+            client.sentClosedMarketData = true;
+            console.log(`🔴 [SSE] Sent closed market data to client for ${client.symbol} (no more streaming until market opens)`);
+          } catch (error) {
+            console.debug(`[SSE] Failed to send closed market data to client`);
+          }
+        }
+      });
     }
   }
 
@@ -228,11 +285,12 @@ class AngelOneLiveStream {
     });
   }
 
-  getStatus(): { activeClients: number; activePolls: number; symbols: string[] } {
+  getStatus(): { activeClients: number; activePolls: number; symbols: string[]; isMarketOpen: boolean } {
     return {
       activeClients: this.clients.size,
       activePolls: this.pollingIntervals.size,
-      symbols: Array.from(this.pollingIntervals.keys())
+      symbols: Array.from(this.pollingIntervals.keys()),
+      isMarketOpen: this.isMarketOpen()
     };
   }
 }

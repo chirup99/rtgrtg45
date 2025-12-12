@@ -53,5 +53,24 @@
 - Updated broker-integrations service to remove Fyers case
 - Updated log messages to reference Angel One instead of Fyers
 
+### Journal Chart Bug Fix (December 12, 2025)
+**Issue**: Journal chart was streaming fake candles when market is closed
+**Root Cause**: Both backend AND frontend were processing new candles regardless of market status
+
+**Backend Fix** (`server/angel-one-real-ticker.ts`):
+- Added early market hours check at the start of WebSocket tick callback
+- When market is closed: sends last known price with `isMarketOpen: false`, `isNewCandle: false`
+- Skips all candle OHLC updates and new candle creation when market is closed
+- Returns early to prevent any candle processing during closed hours
+
+**Frontend Fix** (`client/src/pages/home.tsx` line 6785):
+- Added `isMarketActuallyOpen` check to the new candle addition condition
+- Changed: `} else if (currentCandleStartTime > lastCandleStartTime)`
+- To: `} else if (currentCandleStartTime > lastCandleStartTime && isMarketActuallyOpen)`
+
+**Files Modified**:
+- `server/angel-one-real-ticker.ts` - Backend early exit when market is closed
+- `client/src/pages/home.tsx` - Frontend guard for new candle addition
+
 ### Completion Date
 December 12, 2025

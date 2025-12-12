@@ -183,6 +183,36 @@ class AngelOneRealTicker {
       
       if (ltp <= 0) return; // Skip invalid prices
       
+      
+      // CRITICAL FIX: Check if market is open BEFORE processing candle updates
+      const marketOpenEarly = this.isMarketOpen(client.exchange);
+      
+      // If market is closed, only send last known price - DO NOT create new candles
+      if (!marketOpenEarly) {
+        const closedPrice: RealLivePrice = {
+          symbol: client.symbol,
+          symbolToken: client.symbolToken,
+          exchange: client.exchange,
+          tradingSymbol: client.tradingSymbol,
+          time: currentTime,
+          open: client.candleOhlc.open,
+          high: client.candleOhlc.high,
+          low: client.candleOhlc.low,
+          close: client.candleOhlc.close,
+          ltp: ltp,
+          volume: wsData.volume || 0,
+          isRealTime: false,
+          marketStatus: 'closed',
+          candleStartTime: client.candleOhlc.candleStartTime,
+          isNewCandle: false,
+          isMarketOpen: false
+        } as any;
+        client.lastPrice = closedPrice;
+        if (client.res.writable) {
+          client.res.write(`data: ${JSON.stringify(closedPrice)}\n\n`);
+        }
+        return; // Skip all candle processing when market is closed
+      }
       // Calculate current candle's start time
       const currentCandleStart = Math.floor(currentTime / client.candleOhlc.intervalSeconds) * client.candleOhlc.intervalSeconds;
       

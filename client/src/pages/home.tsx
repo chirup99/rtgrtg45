@@ -6782,9 +6782,9 @@ ${
             }, 50);
             
             console.log(`📊 [UPDATE] Same candle interval, OHLC: O${candleOpen} H${candleHigh} L${candleLow} C${candleClose}`);
-          } else if (currentCandleStartTime > lastCandleStartTime) {
-            // We've crossed into a new candle interval - this means the previous candle is complete
-            console.log('🆕 [NEW CANDLE] New interval detected, adding new candle to chart');
+          } else if (currentCandleStartTime > lastCandleStartTime && isMarketActuallyOpen) {
+            // We've crossed into a new candle interval AND market is open - add new candle
+            console.log('🆕 [NEW CANDLE] New interval detected, adding new candle to chart (market is open)');
             
             // 🔴 CRITICAL: Use the SAVED final OHLC from the previous candle's last update
             // NOT the new candle's data!

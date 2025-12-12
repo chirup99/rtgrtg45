@@ -419,6 +419,7 @@ export function AdvancedCandlestickChart({
 
   // 🔴 Angel One Live Streaming State - 700ms OHLC Updates
   const [liveCandle, setLiveCandle] = useState<CandleData | null>(null);
+  const [isMarketOpen, setIsMarketOpen] = useState<boolean>(false);
 
   // 🔴 Connect to Angel One Live Stream (700ms OHLC updates)
   useEffect(() => {
@@ -451,24 +452,36 @@ export function AdvancedCandlestickChart({
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        // Convert Angel One OHLC data to candle format
-        const newCandle: CandleData = {
-          timestamp: data.time * 1000, // Convert seconds to milliseconds
-          open: data.open,
-          high: data.high,
-          low: data.low,
-          close: data.close,
-          volume: 0 // Angel One doesn't provide volume in live stream
-        };
         
-        setLiveCandle(newCandle);
-        console.log('🔴 [700ms] Live candle update:', {
-          time: new Date(newCandle.timestamp).toLocaleTimeString(),
-          open: newCandle.open,
-          high: newCandle.high,
-          low: newCandle.low,
-          close: newCandle.close
-        });
+        // Check if market is open and data is live - only update candles if market is open
+        const marketOpen = data.isMarketOpen === true || data.isLive === true;
+        setIsMarketOpen(marketOpen);
+        
+        // Only set live candle if market is actually open
+        if (marketOpen) {
+          const newCandle: CandleData = {
+            timestamp: data.time * 1000, // Convert seconds to milliseconds
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close,
+            volume: 0 // Angel One doesn't provide volume in live stream
+          };
+          
+          setLiveCandle(newCandle);
+          console.log('🔴 [700ms] Live candle update:', {
+            time: new Date(newCandle.timestamp).toLocaleTimeString(),
+            open: newCandle.open,
+            high: newCandle.high,
+            low: newCandle.low,
+            close: newCandle.close,
+            marketOpen: true
+          });
+        } else {
+          // Market is closed - don't update live candle (show only historical data)
+          setLiveCandle(null);
+          console.log('🔴 [SSE] Market closed - not streaming new candles');
+        }
       } catch (error) {
         console.error('🔴 [SSE] Parse error:', error);
       }
@@ -1013,8 +1026,8 @@ export function AdvancedCandlestickChart({
     // Then apply hard limit to exact expected count
     const finalCandles = uniqueCandles.slice(0, expectedCandles);
     
-    // 🔴 Append live candle if available (700ms Angel One updates)
-    if (liveCandle && !replayState.isReplayMode) {
+    // 🔴 Append live candle if available (700ms Angel One updates) - ONLY if market is open
+    if (liveCandle && !replayState.isReplayMode && isMarketOpen) {
       // Check if live candle is newer than last historical candle
       const lastHistoricalCandle = finalCandles[finalCandles.length - 1];
       if (!lastHistoricalCandle || liveCandle.timestamp > lastHistoricalCandle.timestamp) {
@@ -1022,7 +1035,8 @@ export function AdvancedCandlestickChart({
         console.log('🔴 [LIVE] Appended live candle to chart:', {
           liveTime: new Date(liveCandle.timestamp).toLocaleTimeString(),
           lastHistoricalTime: lastHistoricalCandle ? new Date(lastHistoricalCandle.timestamp).toLocaleTimeString() : 'none',
-          totalCandles: finalCandles.length
+          totalCandles: finalCandles.length,
+          isMarketOpen: true
         });
       } else if (lastHistoricalCandle && liveCandle.timestamp === lastHistoricalCandle.timestamp) {
         // Update the last candle with live data
@@ -1037,11 +1051,12 @@ export function AdvancedCandlestickChart({
       expected: expectedCandles,
       finalDisplayed: finalCandles.length,
       liveCandle: liveCandle ? 'present' : 'none',
-      status: 'EXACT_MATCH'
+      isMarketOpen: isMarketOpen,
+      status: isMarketOpen ? 'LIVE_STREAMING' : 'MARKET_CLOSED'
     });
     
     return finalCandles;
-  }, [historicalData?.candles, replayState.isReplayMode, replayState.currentIndex, selectedSymbol, selectedTimeframe, calculateExpectedCandles, liveCandle]);
+  }, [historicalData?.candles, replayState.isReplayMode, replayState.currentIndex, selectedSymbol, selectedTimeframe, calculateExpectedCandles, liveCandle, isMarketOpen]);
 
   // Wheel event for zoom
   const handleWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
