@@ -19413,6 +19413,7 @@ ${
                         onClick={() => setHidePositionDetails(!hidePositionDetails)}
                         size="icon"
                         variant="ghost"
+                        className="h-5 w-5"
                         data-testid="button-toggle-position-visibility"
                         title={hidePositionDetails ? "Show details" : "Hide details"}
                       >

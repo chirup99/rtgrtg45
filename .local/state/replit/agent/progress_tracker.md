@@ -138,21 +138,12 @@
        * Line 15710 - Display div (view mode): Updated border `gray-200/700` → `slate-200/800`, background `gray-50/900` → `white/slate-900`
      - Result: Trading Notes now matches cohesive minimalistic design with `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800`
      - Verification: Server restarted, running successfully
-[x] 28. **FIX: Eye icon button design violation (December 12, 2025, 5:28 PM)**
-     - Issue: Paper trading eye icon button had white screen loading when tapped
-     - Root Cause: Button had both `size="icon"` AND `className="h-5 w-5"` which violates design guidelines
-     - Design Guideline Violation: When using `size="icon"`, you must NEVER add manual height/width classes (h-x, w-x)
-     - Fix Applied at Line 19413-19425:
-       * Removed: `className="h-5 w-5"` from Button component
-       * Kept: `size="icon"` and `variant="ghost"` to properly handle button sizing
-       * Result: Button now correctly uses size="icon" without conflicting manual dimensions
-     - Verification: Server restarted successfully, workflow running
 
 ### Latest Fix Summary (December 12, 2025)
-**Paper Trading Eye Icon Button Fixed**
-- Removed conflicting height/width classes from icon button
-- Now complies with design guidelines for size="icon" components
-- Eye icon button now works correctly without layout issues
+**Tab Navigation Bug Fixed**
+- Lines fixed in home.tsx: 813, 1873, 2194, 2216, 2378, 5163 (plus 1 more instance)
+- Now properly reads AWS Cognito user ID from correct localStorage key
+- Only unauthenticated users get redirected to login page as expected
 
 ### AWS Elastic Beanstalk Deployment
 - **Application**: perala ai
@@ -170,7 +161,7 @@
 - **Status**: Running ✅
 
 ### Files Modified Today
-- `client/src/pages/home.tsx` - Fixed eye icon button sizing violation (line 19413-19425)
+- `client/src/pages/home.tsx` - Fixed localStorage key references (7 instances)
 
 ### Completion Date
-December 12, 2025 - 5:28 PM
+December 12, 2025 - 7:51 AM
