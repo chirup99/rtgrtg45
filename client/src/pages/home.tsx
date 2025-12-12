@@ -15775,7 +15775,7 @@ ${
 
                                 {/* Notes content */}
                                 {notesContent ? (
-                                  <pre className="whitespace-pre-wrap font-sans">
+                                  <pre className="font-sans text-xs overflow-x-auto overflow-y-auto max-h-96 whitespace-pre">
                                     {notesContent}
                                   </pre>
                                 ) : (
