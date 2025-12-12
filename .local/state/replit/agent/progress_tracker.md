@@ -30,6 +30,15 @@
      - Auto-fixes: Invalid entries are updated in AWS and replaced with today's date (2025-12-12)
      - Result: Demo heatmap now shows correct dates, P&L calculations use valid dates, trend line calculates correctly
      - Verification: Server restarted with the fix applied
+[x] 16. **FIX: Trading notes text not scrollable (December 12, 2025, 4:31 PM)**
+     - Issue: Trading notes text expanded below the container instead of scrolling vertically
+     - Root Cause: The h-[70%] flex flex-col container holding notes had no overflow property, causing text to expand beyond available space
+     - Fix Applied: Added `overflow-y-auto custom-thin-scrollbar` to the notes container div (line 15227)
+     - Two-part solution:
+       * Previous fix: Made pre element scrollable with overflow-x-auto, overflow-y-auto, max-h-96
+       * This fix: Made parent container scrollable for overall notes section
+     - Result: Trading notes now properly scroll when content exceeds the 70% container height
+     - Verification: Server restarted with both overflow fixes applied
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**
