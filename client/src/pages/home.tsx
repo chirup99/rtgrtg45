@@ -19437,10 +19437,10 @@ ${
                           <th className="px-2 py-1.5 text-left font-medium">Symbol</th>
                           <th className="px-2 py-1.5 text-center font-medium">Order</th>
                           <th className="px-2 py-1.5 text-right font-medium">Qty</th>
-                          {!hidePositionDetails && <th className="px-2 py-1.5 text-right font-medium">Avg</th>}
+                          <th className="px-2 py-1.5 text-right font-medium">Avg</th>
                           <th className="px-2 py-1.5 text-right font-medium">LTP</th>
                           <th className="px-2 py-1.5 text-right font-medium">SL</th>
-                          {!hidePositionDetails && <th className="px-2 py-1.5 text-right font-medium">P&L</th>}
+                          <th className="px-2 py-1.5 text-right font-medium">P&L</th>
                           <th className="px-2 py-1.5 text-right font-medium">%</th>
                           <th className="px-2 py-1.5 text-right font-medium">Duration</th>
                         </tr>
@@ -19547,7 +19547,7 @@ ${
                           <th className="px-2 py-1.5 text-center font-medium">Type</th>
                           <th className="px-2 py-1.5 text-right font-medium">Qty</th>
                           <th className="px-2 py-1.5 text-right font-medium">Price</th>
-                          {!hidePositionDetails && <th className="px-2 py-1.5 text-right font-medium">P&L</th>}
+                          <th className="px-2 py-1.5 text-right font-medium">P&L</th>
                         </tr>
                       </thead>
                       <tbody>
