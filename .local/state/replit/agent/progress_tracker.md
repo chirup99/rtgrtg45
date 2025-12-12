@@ -13,6 +13,8 @@
 [x] 8. Migrate import to Replit environment
 [x] 9. Remove Fyers API completely - using Angel One only
 [x] 10. Final verification - server running on port 5000
+[x] 11. Install tsx package for development mode
+[x] 12. Complete project import
 
 ### AWS Elastic Beanstalk Deployment
 - **Application**: perala ai
@@ -40,6 +42,7 @@
 3. Configured proper port (8080) for EB nginx proxy
 4. Added all required AWS environment variables
 5. Removed Fyers API completely - now using Angel One API only
+6. Installed tsx package for development mode
 
 ### Fyers Removal Summary (December 12, 2025)
 - Removed FYERS_APP_ID from .ebextensions/environment.config
