@@ -56,6 +56,15 @@
      - Result: Text now scrolls vertically within fixed 70% height container
      - Structure now: h-[70%] → CardContent (h-full) → pre (flex-1 overflow-y-auto) = proper vertical scrolling
      - Verification: Server restarted with height constraints applied
+[x] 19. **UI: Compact minimalistic Cancel/Save buttons (December 12, 2025, 4:40 PM)**
+     - Request: Make text edit Cancel/Save buttons match Paper Trading dialog minimalistic style
+     - Changes Applied:
+       * Cancel button: Changed from `size="sm"` to `size="icon"` with `h-7 w-7`
+       * Save button: Changed from `size="sm"` to `size="icon"` with `h-7 w-7`
+       * Removed text labels (only icons shown, matching minimalistic style)
+       * Updated colors to match minimalistic palette
+     - Result: Buttons now compact and match Paper Trading dialog aesthetic
+     - Lines modified: 15669-15688 (Cancel and Save buttons)
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**

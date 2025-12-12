@@ -15667,23 +15667,21 @@ ${
                                 {isEditingNotes ? (
                                   <>
                                     <Button
-                                      size="sm"
+                                      size="icon"
                                       variant="ghost"
                                       onClick={handleCancelNotes}
-                                      className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
+                                      className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                                       data-testid="button-cancel-notes"
                                     >
-                                      <X className="w-3 h-3 md:mr-1" />
-                                      <span className="hidden md:inline">Cancel</span>
+                                      <X className="w-3 h-3" />
                                     </Button>
                                     <Button
-                                      size="sm"
+                                      size="icon"
                                       onClick={handleSaveNotesOnly}
-                                      className="text-xs bg-green-600 hover:bg-green-700 text-white"
+                                      className="h-7 w-7 bg-green-600 hover:bg-green-700 text-white"
                                       data-testid="button-save-notes"
                                     >
-                                      <Check className="w-3 h-3 md:mr-1" />
-                                      <span className="hidden md:inline">Save</span>
+                                      <Check className="w-3 h-3" />
                                     </Button>
                                   </>
                                 ) : (
