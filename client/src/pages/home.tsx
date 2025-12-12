@@ -8185,8 +8185,6 @@ ${
     winRate: true,
     streak: true,
     overtrading: false,
-    planned: false,
-    planned: false,
     topTags: false,
     aiAnalysis: false,
   });
@@ -8194,8 +8192,6 @@ ${
   // Refs for curved line connections from tag block to heatmap dates
   const fomoButtonRef = useRef<HTMLButtonElement>(null);
   const overtradingButtonRef = useRef<HTMLButtonElement>(null);
-  const plannedButtonRef = useRef<HTMLButtonElement>(null);
-  const plannedButtonRef = useRef<HTMLButtonElement>(null);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   
   // Refs for share dialog curved line connections
@@ -8208,7 +8204,7 @@ ${
   
   // Effect to handle scroll updates for curved lines - ULTRA FAST VERSION
   useEffect(() => {
-    if (!activeTagHighlight || (activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading' && activeTagHighlight.tag !== 'planned')) return;
+    if (!activeTagHighlight || (activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading')) return;
     
     const heatmapWrapper = heatmapContainerRef.current;
     if (!heatmapWrapper) return;
@@ -11974,7 +11970,6 @@ ${
                                         <span>Confirm</span>
                                       </>
                                     )}
-                                  </div>
                                   </button>
                                   <button
                                     onClick={() => {
@@ -13664,7 +13659,6 @@ ${
                                       </>
                                     )}
                                   </div>
-                                  </div>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -13842,7 +13836,6 @@ ${
                                     ) : (
                                       searchResults
                                     )}
-                                  </div>
                                   </div>
                                 </div>
                               </div>
@@ -14940,7 +14933,6 @@ ${
                                     ) : (
                                       <RefreshCw className="w-3.5 h-3.5" />
                                     )}
-                                  </div>
                                   </Button>
                                   )}
                                 </div>
@@ -15205,7 +15197,6 @@ ${
                                     {performanceMetrics.totalProfit.toLocaleString(
                                       "en-IN",
                                     )}
-                                  </div>
                                   </span>
                                 </div>
                               </div>
@@ -15227,7 +15218,6 @@ ${
                                     {performanceMetrics.totalLoss.toLocaleString(
                                       "en-IN",
                                     )}
-                                  </div>
                                   </span>
                                 </div>
                               </div>
@@ -16301,14 +16291,14 @@ ${
                         </div>
                         
                         {/* Curved Lines Overlay - connects FOMO tag block to highlighted dates */}
-                        {(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading' || activeTagHighlight?.tag === 'planned') && activeTagHighlight.dates.length > 0 && (() => {
+                        {(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading') && activeTagHighlight.dates.length > 0 && (() => {
                           // Force recalculation on scroll (dependency: scrollTrigger)
                           void scrollTrigger;
                           
                           // Calculate curved paths from FOMO button to each highlighted date cell
                           const paths: JSX.Element[] = [];
                           
-                          const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : (activeTagHighlight?.tag === 'overtrading' ? overtradingButtonRef : plannedButtonRef);
+                          const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : overtradingButtonRef;
                           if (!buttonRef.current || !heatmapContainerRef.current) {
                             return null;
                           }
@@ -16354,7 +16344,7 @@ ${
                                   <path
                                     d={pathD}
                                     fill="none"
-                                    stroke={activeTagHighlight?.tag === 'fomo' ? "url(#curvedLineGradient)" : (activeTagHighlight?.tag === 'overtrading' ? "url(#overtradingLineGradient)" : "url(#plannedLineGradient)")}
+                                    stroke={activeTagHighlight?.tag === 'fomo' ? "url(#curvedLineGradient)" : "url(#overtradingLineGradient)"}
                                     strokeWidth="2.5"
                                     strokeDasharray="6,4"
                                     opacity="0.95"
@@ -16364,14 +16354,14 @@ ${
                                     cx={cellCenterX}
                                     cy={cellCenterY}
                                     r="4"
-                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fcd34d" : (activeTagHighlight?.tag === 'overtrading' ? "#fb923c" : "#06b6d4")}
+                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fcd34d" : "#fb923c"}
                                     opacity="0.9"
                                   />
                                   <circle
                                     cx={cellCenterX}
                                     cy={cellCenterY}
                                     r="3"
-                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fbbf24" : (activeTagHighlight?.tag === 'overtrading' ? "#f97316" : "#0891b2")}
+                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fbbf24" : "#f97316"}
                                     className="animate-pulse"
                                   />
                                 </g>
@@ -16403,16 +16393,6 @@ ${
                                   <stop offset="50%" stopColor="#f97316" stopOpacity="1" />
                                   <stop offset="100%" stopColor="#ea580c" stopOpacity="1" />
                                 </linearGradient>
-                                <linearGradient id="plannedLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="1" />
-                                  <stop offset="50%" stopColor="#0891b2" stopOpacity="1" />
-                                  <stop offset="100%" stopColor="#0e7490" stopOpacity="1" />
-                                </linearGradient>
-                                <linearGradient id="plannedLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="1" />
-                                  <stop offset="50%" stopColor="#0891b2" stopOpacity="1" />
-                                  <stop offset="100%" stopColor="#0e7490" stopOpacity="1" />
-                                </linearGradient>
                               </defs>
                               {paths}
                             </svg>
@@ -16438,10 +16418,6 @@ ${
                             const tagStats: Record<string, any> = {};
                             const tagDates: Record<string, string[]> = {};
                             let overTradingCount = 0;
-                            let plannedCount = 0;
-                            const plannedDates: string[] = [];
-                            let plannedCount = 0;
-                            const plannedDates: string[] = [];
                             
                             dates.sort().forEach(dateKey => {
                               const dayData = filteredData[dateKey];
@@ -16469,15 +16445,6 @@ ${
                                       overTradingCount++;
                                       overTradingDates.push(dateKey);
                                     }
-                                  }
-                                  if (normalizedTags.includes('planned')) {
-                                    plannedCount++;
-                                    plannedDates.push(dateKey);
-                                  }
-                                  // Track planned tag
-                                  if (normalizedTags.includes('planned')) {
-                                    plannedCount++;
-                                    plannedDates.push(dateKey);
                                   }
                                 }
                                 
@@ -16530,7 +16497,7 @@ ${
                               <div className="space-y-2">
                                 {/* Header row with stats and menu */}
                                 <div className="flex justify-between items-center gap-2">
-                                  <div className="grid grid-cols-7 gap-2 text-white flex-1">
+                                  <div className="grid grid-cols-6 gap-2 text-white flex-1">
                                     {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
                                         <div className="text-[10px] opacity-80">P&L</div>
@@ -16580,33 +16547,13 @@ ${
                                           activeTagHighlight?.tag === 'overtrading' ? 'bg-white/30 ring-2 ring-white/50' : ''
                                         }`} 
                                         onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'overtrading' ? null : { tag: 'overtrading', dates: overTradingDates })} 
-                                    )}
                                         data-testid="stat-overtrading"
-
-                                        <div className="text-[10px] opacity-80">OvrTrade</div>
-                                        <div className="text-xs font-bold text-orange-200">{overTradingCount}</div>
-                                      </button>
-                                    )}
-                                    {visibleStats.planned && (
-                                      <button 
-                                        ref={plannedButtonRef}
-                                        className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${
-                                          activeTagHighlight?.tag === 'planned' ? 'bg-white/30 ring-2 ring-white/50' : ''
-                                        }`} 
-                                        onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'planned' ? null : { tag: 'planned', dates: plannedDates })} 
-                                        data-testid="stat-planned"
-                                        title={`Click to ${activeTagHighlight?.tag === 'planned' ? 'hide' : 'show'} planned dates on heatmap`}
-                                      >
-                                        <div className="text-[10px] opacity-80">Planned</div>
-                                        <div className="text-xs font-bold text-cyan-200">{plannedCount}</div>
-                                      </button>
-                                    )}
+                                        title={`Click to ${activeTagHighlight?.tag === 'overtrading' ? 'hide' : 'show'} overtrading dates on heatmap`}
                                       >
                                         <div className="text-[10px] opacity-80">OvrTrade</div>
                                         <div className="text-xs font-bold text-orange-200">{overTradingCount}</div>
                                       </button>
                                     )}
-                                  </div>
                                   </div>
                                   
                                   {/* Share Icon */}
@@ -16653,10 +16600,6 @@ ${
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
                                           <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => setVisibleStats({...visibleStats, overtrading: e.target.checked})} className="rounded" />
                                           Overtrading
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.planned} onChange={(e) => setVisibleStats({...visibleStats, planned: e.target.checked})} className="rounded" />
-                                          Planned
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
                                           <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => setVisibleStats({...visibleStats, topTags: e.target.checked})} className="rounded" />
@@ -17581,7 +17524,6 @@ ${
                                         </p>
                                       </div>
                                     )}
-                                  </div>
                                   </div>
                                 </div>
                               </div>
