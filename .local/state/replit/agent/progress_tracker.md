@@ -72,5 +72,17 @@
 - `server/angel-one-real-ticker.ts` - Backend early exit when market is closed
 - `client/src/pages/home.tsx` - Frontend guard for new candle addition
 
+### Paper Trading NFO Price Streaming Fix (December 12, 2025, 3:53 AM)
+**Issue**: Options and Futures (NFO) paper trading positions were not updating LTP while stocks (NIFTY) were streaming correctly.
+**Root Cause**: Exchange value was not being correctly stored when creating paper positions. For NFO contracts (futures/options), the exchange was defaulting to "NSE" instead of "NFO", causing the live price stream to fail to find the correct instruments from Angel One.
+**Fix Applied** (line 4584 in `client/src/pages/home.tsx`):
+- Changed: `exchange: (selectedPaperTradingInstrument as any)?.exchange || "NSE"`
+- To: `exchange: (selectedPaperTradingInstrument as any)?.exchange || (paperTradeType === 'MCX' ? 'MCX' : paperTradeType === 'FUTURES' || paperTradeType === 'OPTIONS' ? 'NFO' : 'NSE')`
+- Now correctly defaults to:
+  - 'NFO' for FUTURES and OPTIONS (enables proper Angel One NFO price streaming)
+  - 'MCX' for MCX commodities
+  - 'NSE' for STOCK trades
+**Result**: Options and Futures positions will now stream live LTP updates every 700ms from Angel One NFO, just like stocks.
+
 ### Completion Date
 December 12, 2025

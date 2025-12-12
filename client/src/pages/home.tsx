@@ -4581,7 +4581,7 @@ ${
         isOpen: true,
         // Store token and exchange for WebSocket live price streaming
         symbolToken: (selectedPaperTradingInstrument as any)?.token || "0",
-        exchange: (selectedPaperTradingInstrument as any)?.exchange || "NSE",
+        exchange: (selectedPaperTradingInstrument as any)?.exchange || (paperTradeType === 'MCX' ? 'MCX' : paperTradeType === 'FUTURES' || paperTradeType === 'OPTIONS' ? 'NFO' : 'NSE'),
         // Stop Loss settings
         slEnabled: paperTradeSLEnabled,
         slType: paperTradeSLEnabled ? paperTradeSLType : undefined,
