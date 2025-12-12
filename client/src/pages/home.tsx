@@ -4315,7 +4315,7 @@ ${
         }
       });
     }
-  }, [showPaperTradingModal, paperPositions.length]);
+  }, [showPaperTradingModal, paperPositions]);
   // Sort instruments by category: Index -> Futures (near, next, far) -> Options
   const sortInstruments = (instruments: any[]): any[] => {
     const today = new Date();
