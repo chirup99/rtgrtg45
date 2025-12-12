@@ -977,7 +977,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
   };
 
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 select-none overflow-visible">
+    <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
       <div className="flex items-center justify-between relative z-5 px-2 py-1 rounded">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Trading Calendar {selectedRange 

@@ -846,7 +846,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
 
   if (!userId) {
     return (
-      <div className="flex flex-col gap-2 p-6 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex flex-col gap-2 p-6 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="py-12 text-center">
           <p className="text-gray-500 dark:text-gray-400">
             Please log in to view your personal trading heatmap
@@ -867,7 +867,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
   };
 
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 select-none overflow-visible">
+    <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
       <div className="flex items-center justify-between relative z-5 px-2 py-1 rounded">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Personal Trading Calendar {selectedRange 

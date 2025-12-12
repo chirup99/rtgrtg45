@@ -113,6 +113,15 @@
        * Updated both background and border colors to match Trade History exactly
      - Result: Trade Book now has same dark background as Trade History for cohesive appearance
      - Verification: Server restarted and running
+[x] 25. **UI: Heatmap background color matching (December 12, 2025, 4:50 PM)**
+     - Request: Update heatmap components to match same background color as Trade History/Trade Book
+     - Changes Applied:
+       * DemoHeatmap.tsx (Line 980): Updated container styling
+       * PersonalHeatmap.tsx (Lines 849, 870): Updated container styling (2 instances)
+       * Changed from: `border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800`
+       * Changed to: `border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900`
+     - Result: Both Demo and Personal heatmaps now have cohesive styling matching Trade History/Trade Book
+     - Verification: Server restarted and running
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**
