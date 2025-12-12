@@ -1303,7 +1303,7 @@ function ProfileHeader() {
 
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-6">
         {/* Cover Photo */}
-        <div className={`h-48 relative overflow-hidden ${coverPicUrl ? 'bg-black' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
+        <div className={`h-48 relative overflow-visible ${coverPicUrl ? 'bg-black' : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500'}`}>
           {coverPicUrl && (
             <img src={coverPicUrl} alt="Cover" className="w-full h-full object-contain" />
           )}
@@ -1317,7 +1317,7 @@ function ProfileHeader() {
             <Camera className="w-5 h-5" />
           </button>
           {/* Profile Picture - overlapping cover */}
-          <div className="absolute -bottom-16 left-4">
+          <div className="absolute -bottom-16 left-4 z-20">
             <div className="relative group">
               <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-800 overflow-hidden">
                 {profilePicUrl ? (
@@ -1342,7 +1342,7 @@ function ProfileHeader() {
         </div>
 
         {/* Profile Info */}
-        <div className="pt-20 px-4 pb-4">
+        <div className="pt-24 px-4 pb-4">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-gray-900 dark:text-white font-bold text-2xl flex items-center gap-2">
