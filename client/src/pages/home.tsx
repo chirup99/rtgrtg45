@@ -16997,13 +16997,31 @@ ${
                                           >
                                             <stop
                                               offset="0%"
-                                              stopColor="rgb(107, 114, 128)"
-                                              stopOpacity={0.6}
+                                              stopColor="rgb(34, 197, 94)"
+                                              stopOpacity={0.4}
                                             />
                                             <stop
                                               offset="100%"
-                                              stopColor="rgb(107, 114, 128)"
-                                              stopOpacity={0.1}
+                                              stopColor="rgb(34, 197, 94)"
+                                              stopOpacity={0.05}
+                                            />
+                                          </linearGradient>
+                                          <linearGradient
+                                            id="areaGradientNegative"
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                          >
+                                            <stop
+                                              offset="0%"
+                                              stopColor="rgb(239, 68, 68)"
+                                              stopOpacity={0.4}
+                                            />
+                                            <stop
+                                              offset="100%"
+                                              stopColor="rgb(239, 68, 68)"
+                                              stopOpacity={0.05}
                                             />
                                           </linearGradient>
                                         </defs>
@@ -17019,7 +17037,7 @@ ${
                                           tickLine={false}
                                           tick={{
                                             fontSize: 12,
-                                            fill: "#64748b",
+                                            fill: "#94a3b8",
                                           }}
                                           tickFormatter={(value) =>
                                             `${value >= 0 ? "" : "-"}${(
@@ -17041,18 +17059,26 @@ ${
                                             fontSize: "12px",
                                             padding: "8px 12px",
                                           }}
+                                          labelStyle={{
+                                            color: "var(--foreground)",
+                                          }}
                                           formatter={(
                                             value: any,
                                             name: any,
                                             props: any,
-                                          ) => [
-                                            `${
-                                              value >= 0 ? "₹" : "-₹"
-                                            }${Math.abs(
-                                              value,
-                                            ).toLocaleString()}`,
-                                            "Daily P&L",
-                                          ]}
+                                          ) => {
+                                            const textColor = value >= 0 ? "#22c55e" : "#ef4444";
+                                            return [
+                                              <span style={{ color: textColor, fontWeight: 600 }}>
+                                                {`${
+                                                  value >= 0 ? "₹+" : "-₹"
+                                                }${Math.abs(
+                                                  value,
+                                                ).toLocaleString()}`}
+                                              </span>,
+                                              "Daily P&L",
+                                            ];
+                                          }}
                                           labelFormatter={(label, payload) => {
                                             if (
                                               payload &&
@@ -17065,23 +17091,56 @@ ${
                                             return label;
                                           }}
                                         />
-                                        <Area
-                                          type="natural"
-                                          dataKey="value"
-                                          stroke="#000000"
-                                          strokeWidth={3}
-                                          fill="url(#areaGradientPositive)"
-                                          dot={false}
-                                          activeDot={{
-                                            r: 6,
-                                            fill: "#000000",
-                                            stroke: "white",
-                                            strokeWidth: 2,
-                                          }}
-                                          isAnimationActive={true}
-                                          animationDuration={600}
-                                          animationEasing="ease-in-out"
+                                        <ReferenceLine
+                                          y={0}
+                                          stroke="#64748b"
+                                          strokeDasharray="5 5"
+                                          strokeWidth={1}
                                         />
+                                        {chartData.some((d: any) => d.value >= 0) && (
+                                          <Area
+                                            type="natural"
+                                            dataKey="value"
+                                            stroke="#22c55e"
+                                            strokeWidth={3}
+                                            fill="url(#areaGradientPositive)"
+                                            dot={false}
+                                            activeDot={{
+                                              r: 6,
+                                              fill: "#22c55e",
+                                              stroke: "white",
+                                              strokeWidth: 2,
+                                            }}
+                                            isAnimationActive={true}
+                                            animationDuration={600}
+                                            animationEasing="ease-in-out"
+                                            data={chartData.map((d: any) =>
+                                              d.value >= 0 ? d : null
+                                            ).filter(Boolean)}
+                                          />
+                                        )}
+                                        {chartData.some((d: any) => d.value < 0) && (
+                                          <Area
+                                            type="natural"
+                                            dataKey="value"
+                                            stroke="#ef4444"
+                                            strokeWidth={3}
+                                            fill="url(#areaGradientNegative)"
+                                            dot={false}
+                                            activeDot={{
+                                              r: 6,
+                                              fill: "#ef4444",
+                                              stroke: "white",
+                                              strokeWidth: 2,
+                                            }}
+                                            isAnimationActive={true}
+                                            animationDuration={600}
+                                            animationEasing="ease-in-out"
+                                            data={chartData.map((d: any) =>
+                                              d.value < 0 ? d : null
+                                            ).filter(Boolean)}
+                                          />
+                                        )}
                                       </AreaChart>
                                     </ResponsiveContainer>
                                   </div>
