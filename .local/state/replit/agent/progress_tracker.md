@@ -65,6 +65,14 @@
        * Updated colors to match minimalistic palette
      - Result: Buttons now compact and match Paper Trading dialog aesthetic
      - Lines modified: 15669-15688 (Cancel and Save buttons)
+[x] 20. **UI: Light theme support for charts (December 12, 2025, 4:42 PM)**
+     - Request: Make minimalist design match Paper Trading dialog for charts; chart not displaying in light theme
+     - Root Cause: Chart containers had hardcoded dark backgrounds (`bg-slate-900 border-slate-700`)
+     - Changes Applied:
+       * Line 14300 - Main chart container: Changed from `bg-slate-900 border-slate-700` to `bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700`
+       * Line 16543 - PopoverContent: Changed from `bg-slate-900 border-slate-700 text-slate-100` to `bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100`
+     - Result: Charts now display properly in light theme with minimalistic design matching Paper Trading dialog
+     - Verification: Server restarted and running
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**

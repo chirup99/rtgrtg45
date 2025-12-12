@@ -14297,7 +14297,7 @@ ${
                         className={`h-[400px] ${mobileJournalPanel === 0 ? "block" : "hidden"} md:block`}
                       >
                         {/* Professional Visual Chart with Fyers Data - Same as Trading Master */}
-                        <div className="h-full relative bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                        <div className="h-full relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
                           <div className="h-full flex flex-col">
                             <div className="flex items-center justify-between px-2 py-2">
                               <div className="flex items-center gap-1 md:gap-2 flex-wrap">
@@ -16540,7 +16540,7 @@ ${
                                         <MoreVertical className="w-4 h-4" />
                                       </button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-56 p-3 bg-slate-900 border-slate-700 text-slate-100">
+                                    <PopoverContent className="w-56 p-3 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                       <div className="space-y-2">
                                         <div className="text-xs font-semibold text-slate-400 mb-2">Customize Stats</div>
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
