@@ -4597,6 +4597,15 @@ ${
       setPaperPositions(updatedPositions);
       localStorage.setItem("paperPositions", JSON.stringify(updatedPositions));
       
+      // 🔴 CRITICAL: Start live price streaming for the new position
+      const instrumentForStreaming = {
+        symbol: newPosition.symbol,
+        exchange: newPosition.exchange,
+        token: newPosition.symbolToken,
+        name: newPosition.symbol
+      };
+      fetchPaperTradePrice(instrumentForStreaming);
+      
       // Deduct from capital
       const newCapital = paperTradingCapital - tradeValue;
       setPaperTradingCapital(newCapital);

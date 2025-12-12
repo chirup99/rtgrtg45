@@ -110,5 +110,17 @@
 
 **Result**: ✅ Options from option chain will now stream prices at 700ms, same as manually searched instruments. The token flows directly from the backend option chain API to the streaming service.
 
+### Open Positions Price Streaming - FIXED (December 12, 2025, 4:01 AM)
+**Issue**: Options in Open Positions table had frozen LTP (showed entry price), but search bar price was streaming correctly.
+
+**Root Cause**: When executing a trade and creating a new position, NO streaming was started for that position. Streaming only started for instruments searched in the search bar.
+
+**Fix Applied** (line 4607 in `client/src/pages/home.tsx`):
+- After creating a new position (executePaperTrade), immediately call `fetchPaperTradePrice()` 
+- Pass the new position's data (symbol, exchange, token) to start streaming
+- This ensures live prices flow into the Open Positions table in real-time
+
+**Result**: ✅ Open Positions will now show live LTP updates at 700ms intervals for all instruments (stocks, options, futures). Prices update in the table as you execute trades.
+
 ### Completion Date
 December 12, 2025
