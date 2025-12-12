@@ -13002,7 +13002,7 @@ ${
                                                         tickLine={false}
                                                         tick={{
                                                           fontSize: 10,
-                                                          fill: "#64748b",
+                                                          fill: "#a1a5b0",
                                                         }}
                                                         tickFormatter={(
                                                           value,
@@ -16988,24 +16988,33 @@ ${
                                         }}
                                       >
                                         <defs>
-                                          <linearGradient
-                                            id="areaGradientPositive"
-                                            x1="0"
-                                            y1="0"
-                                            x2="0"
-                                            y2="1"
-                                          >
-                                            <stop
-                                              offset="0%"
-                                              stopColor="rgb(107, 114, 128)"
-                                              stopOpacity={0.6}
-                                            />
-                                            <stop
-                                              offset="100%"
-                                              stopColor="rgb(107, 114, 128)"
-                                              stopOpacity={0.1}
-                                            />
+                                          <linearGradient id="areaGradientGreen" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="rgb(34, 197, 94)" stopOpacity={0.6} />
+                                            <stop offset="100%" stopColor="rgb(34, 197, 94)" stopOpacity={0.1} />
                                           </linearGradient>
+                                          <linearGradient id="areaGradientRed" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="rgb(239, 68, 68)" stopOpacity={0.6} />
+                                            <stop offset="100%" stopColor="rgb(239, 68, 68)" stopOpacity={0.1} />
+                                          </linearGradient>
+                                        </defs>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                                         </defs>
                                         <XAxis
                                           dataKey="day"
@@ -17019,7 +17028,7 @@ ${
                                           tickLine={false}
                                           tick={{
                                             fontSize: 12,
-                                            fill: "#64748b",
+                                            fill: "#a1a5b0",
                                           }}
                                           tickFormatter={(value) =>
                                             `${value >= 0 ? "" : "-"}${(
@@ -17064,18 +17073,23 @@ ${
                                             }
                                             return label;
                                           }}
-                                        />
                                         <Area
                                           type="natural"
                                           dataKey="value"
-                                          stroke="#000000"
+                                          stroke={peakData.value >= 0 ? "#22c55e" : "#ef4444"}
                                           strokeWidth={3}
-                                          fill="url(#areaGradientPositive)"
+                                          fill={peakData.value >= 0 ? "url(#areaGradientGreen)" : "url(#areaGradientRed)"}
                                           dot={false}
                                           activeDot={{
                                             r: 6,
-                                            fill: "#000000",
+                                            fill: peakData.value >= 0 ? "#22c55e" : "#ef4444",
                                             stroke: "white",
+                                            strokeWidth: 2,
+                                          }}
+                                          isAnimationActive={true}
+                                          animationDuration={600}
+                                          animationEasing="ease-in-out"
+                                        />
                                             strokeWidth: 2,
                                           }}
                                           isAnimationActive={true}
