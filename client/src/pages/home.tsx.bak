@@ -37,7 +37,7 @@ import { DemoHeatmap } from "@/components/DemoHeatmap";
 import { PersonalHeatmap } from "@/components/PersonalHeatmap";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { cognitoSignOut, getCognitoToken } from "@/cognito";
+import { cognitoSignOut, getCognitoToken, sendEmailVerificationCode, confirmEmailVerification, checkEmailVerified } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
 import { LogOut, ArrowLeft, Save, Clock, Newspaper, TrendingUp, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
 import { parseBrokerTrades, ParseError } from "@/utils/trade-parser";
@@ -134,6 +134,8 @@ import {
   Edit,
   Check,
   X,
+  Mail,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -158,6 +160,7 @@ import {
   Trophy,
   Radio,
   Eye,
+  EyeOff,
   Blocks,
   Hammer,
   Plus,
@@ -1842,16 +1845,30 @@ export default function Home() {
   const [chartTimeframe, setChartTimeframe] = useState<string>("1");
   // Navigation menu state
   const [isNavOpen, setIsNavOpen] = useState(false);
+  // Settings panel state
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [verificationOtp, setVerificationOtp] = useState("");
+  const [verificationSending, setVerificationSending] = useState(false);
+  const [verificationConfirming, setVerificationConfirming] = useState(false);
+  const [verificationCodeSent, setVerificationCodeSent] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
+
+  // Clear old localStorage data - using AWS only now
+  useEffect(() => {
+    localStorage.removeItem("tradingDataByDate");
+    console.log("🧹 Cleared old localStorage tradingDataByDate - using AWS only");
+  }, []);
   
-  // Auth state initialization - wait for Firebase to sync
+  // Auth state initialization - wait for AWS to sync
   const [authInitialized, setAuthInitialized] = useState(false);
   // View-only mode for unauthenticated users - they can view but not interact with protected features
   const [isViewOnlyMode, setIsViewOnlyMode] = useState(false);
 
-  // Get current user data from Firebase
+  // Get current user data from AWS DynamoDB
   const { currentUser } = useCurrentUser();
   
-  // Initialize Firebase auth sync with localStorage - NO AUTOMATIC REDIRECT
+  // Initialize AWS auth sync with localStorage - NO AUTOMATIC REDIRECT
   // Users can view the home screen, redirect only happens when they try to interact with protected content
   useEffect(() => {
     const userId = localStorage.getItem('currentUserId');
@@ -1862,7 +1879,7 @@ export default function Home() {
       setAuthInitialized(true);
       setIsViewOnlyMode(false);
     } else {
-      // Wait for Firebase auth state with timeout - but DON'T redirect, just enable view-only mode
+      // Wait for AWS auth state with timeout - but DON'T redirect, just enable view-only mode
       const timer = setTimeout(() => {
         const finalUserId = localStorage.getItem('currentUserId');
         const finalUserEmail = localStorage.getItem('currentUserEmail');
@@ -1876,13 +1893,64 @@ export default function Home() {
           setAuthInitialized(true);
           setIsViewOnlyMode(false);
         }
-      }, 500); // Wait 500ms for Firebase auth to sync
+      }, 500); // Use AWS Cognito for authentication sync
       
       return () => clearTimeout(timer);
     }
   }, []);
 
   // AI Search state
+
+  // Check email verification status when settings panel opens
+  useEffect(() => {
+    if (showSettingsPanel && currentUser) {
+      checkEmailVerified().then((verified) => {
+        setEmailVerified(verified);
+      }).catch(() => {
+        setEmailVerified(false);
+      });
+    }
+  }, [showSettingsPanel, currentUser]);
+
+  // Handle sending verification OTP
+  const handleSendVerificationOtp = async () => {
+    setVerificationSending(true);
+    setVerificationError("");
+    try {
+      await sendEmailVerificationCode();
+      setVerificationCodeSent(true);
+    } catch (error: any) {
+      setVerificationError(error?.message || "Failed to send verification code");
+    } finally {
+      setVerificationSending(false);
+    }
+  };
+
+  // Handle confirming email verification
+  const handleConfirmVerification = async () => {
+    if (!verificationOtp || verificationOtp.length !== 6) {
+      setVerificationError("Please enter a valid 6-digit code");
+      return;
+    }
+    setVerificationConfirming(true);
+    setVerificationError("");
+    try {
+      await confirmEmailVerification(verificationOtp);
+      setEmailVerified(true);
+      setVerificationCodeSent(false);
+      setVerificationOtp("");
+    } catch (error: any) {
+      if (error?.name === "CodeMismatchException") {
+        setVerificationError("Invalid verification code. Please try again.");
+      } else if (error?.name === "ExpiredCodeException") {
+        setVerificationError("Code expired. Please request a new one.");
+      } else {
+        setVerificationError(error?.message || "Verification failed");
+      }
+    } finally {
+      setVerificationConfirming(false);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchResults, setSearchResults] = useState("");
@@ -2585,7 +2653,7 @@ Use Trading Master for detailed chart analysis with all 14 timeframes and advanc
               mentionedStock ? `- ${mentionedStock.toUpperCase()}` : ""
             }
 
-**🔥 Trending Discussions:**
+**💹 Trending Discussions:**
 ${
   trendingTopics.map((topic) => `• ${topic}`).join("\n") ||
   "• General market discussions"
@@ -3331,11 +3399,8 @@ ${fundamentalInsights}**📈 Essential Analysis Framework:**
         ? await allDatesResponse.json()
         : {};
 
-      // Use localStorage as fallback if API fails
-      const localStorageData = localStorage.getItem("tradingDataByDate");
-      const fallbackData = localStorageData ? JSON.parse(localStorageData) : {};
-      const journalData =
-        Object.keys(allJournalData).length > 0 ? allJournalData : fallbackData;
+      // AWS is the only data source - no localStorage fallback
+      const journalData = allJournalData;
 
       if (Object.keys(journalData).length === 0) {
         setSearchResults(
@@ -3459,7 +3524,7 @@ ${fundamentalInsights}**📈 Essential Analysis Framework:**
 **⚠️ Average Loss:** ₹${avgLoss.toLocaleString("en-IN")}
 
 ### 🧠 **Psychology Analysis**
-**🔥 FOMO Trades:** ${fomoTrades} trades
+**💹 FOMO Trades:** ${fomoTrades} trades
 **🎭 Top Patterns:** ${topPsychologyPatterns || "No patterns identified"}
 
 ### 📈 **Performance Trend (Recent)**
@@ -3861,7 +3926,7 @@ ${
   };
 
 
-  // Load user's saved formats from Firebase when user is authenticated
+  // Load user's saved formats from AWS when user is authenticated
   useEffect(() => {
     const loadUserFormats = async () => {
       console.log("🔄 loadUserFormats triggered, currentUser:", currentUser?.userId ? `userId: ${currentUser.userId}` : "NO USER");
@@ -3893,14 +3958,14 @@ ${
         console.log("📡 Response status:", response.status, response.statusText);
         if (response.ok) {
           const formats = await response.json();
-          console.log("✅ Loaded formats from Firebase:", Object.keys(formats).length, "formats", formats);
+          console.log("✅ Loaded formats from AWS:", Object.keys(formats).length, "formats", formats);
           setSavedFormats(formats);
           if (Object.keys(formats).length > 0) {
             console.log("📦 Formats available in dropdown:", Object.keys(formats).join(", "));
           }
         } else {
           const errorText = await response.text();
-          console.log("📭 No saved formats found in Firebase, status:", response.status, "error:", errorText);
+          console.log("📭 No saved formats found in AWS, status:", response.status, "error:", errorText);
           setSavedFormats({});
         }
       } catch (error) {
@@ -4046,49 +4111,17 @@ ${
   const [saveConfirmationData, setSaveConfirmationData] = useState<any>(null);
 
   // Trade History Data State
-  const [tradeHistoryData, setTradeHistoryData] = useState([
-    {
-      time: "12:41:57 PM",
-      order: "BUY",
-      symbol: "SENSEX NOV 81300 CE BFO",
-      type: "MIS",
-      qty: 40,
-      price: 488.2,
-      pnl: "+₹946",
-      duration: "6m 27s",
-    },
-    {
-      time: "12:48:24 PM",
-      order: "SELL",
-      symbol: "SENSEX NOV 81300 CE BFO",
-      type: "MIS",
-      qty: 40,
-      price: 511.85,
-      pnl: "+₹946",
-      duration: "6m 27s",
-    },
-    {
-      time: "10:15:30 AM",
-      order: "BUY",
-      symbol: "NIFTY 50",
-      type: "LIM",
-      qty: 25,
-      price: 18500.5,
-      pnl: "-",
-      duration: "-",
-    },
-  ]);
-
-  // ============================================
+  const [tradeHistoryData, setTradeHistoryData] = useState([]);
   // PAPER TRADING (DEMO TRADING) STATE - Like TradingView Practice Account
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);
+  const [hidePositionDetails, setHidePositionDetails] = useState(false); // Eye icon toggle
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
-      return stored ? parseFloat(stored) : 1000000; // 10 Lakhs default
+      return stored ? parseFloat(stored) : 1800000; // 18 Lakhs default
     }
-    return 1000000;
+    return 1800000;
   });
   
   // Paper trading position interface
@@ -4171,6 +4204,30 @@ ${
   const paperTradingEventSourcesRef = useRef<Map<string, EventSource>>(new Map());
   const paperTradingLastUpdateRef = useRef<number>(Date.now());
   
+  // 🔴 CRITICAL FIX: Sync live prices from WebSocket stream to paper positions immediately
+  // This ensures that when a new position is opened, its LTP updates instantly as prices stream in
+  useEffect(() => {
+    if (paperTradingLivePrices.size === 0 || paperPositions.length === 0) return;
+    
+    const updatedPositions = paperPositions.map(position => {
+      const livePrice = paperTradingLivePrices.get(position.symbol);
+      if (livePrice && livePrice !== position.currentPrice) {
+        const pnl = (livePrice - position.entryPrice) * position.quantity;
+        const pnlPercent = ((livePrice - position.entryPrice) / position.entryPrice) * 100;
+        return {
+          ...position,
+          currentPrice: livePrice,
+          pnl: position.action === "BUY" ? pnl : -pnl,
+          pnlPercent: position.action === "BUY" ? pnlPercent : -pnlPercent
+        };
+      }
+      return position;
+    });
+    
+    if (JSON.stringify(updatedPositions) !== JSON.stringify(paperPositions)) {
+      setPaperPositions(updatedPositions);
+    }
+  }, [paperTradingLivePrices]);
   // Map paper trade type to exchange segment for filtering
   const getExchangeForTradeType = (type: 'STOCK' | 'FUTURES' | 'OPTIONS' | 'MCX'): string => {
     switch (type) {
@@ -4242,7 +4299,7 @@ ${
       case 'FUTURES':
         return futuresLotSizes[baseSymbol] || 1;
       case 'OPTIONS':
-        return 1; // Options are typically 1 per contract
+        return futuresLotSizes[baseSymbol] || 1; // Options use same lot size as underlying futures
       case 'MCX':
         return mcxLotSizes[baseSymbol] || 1;
       case 'STOCK':
@@ -4416,7 +4473,7 @@ ${
     });
     
     // Validate required fields
-    if (!stockInfo.symbol || !stockInfo.token || !stockInfo.exchange) {
+    if (!stockInfo.symbol || !stockInfo.exchange) {
       console.error(`❌ [PAPER-TRADE-PRICE] Missing required fields:`, {
         symbol: stockInfo.symbol,
         token: stockInfo.token,
@@ -4553,7 +4610,7 @@ ${
         isOpen: true,
         // Store token and exchange for WebSocket live price streaming
         symbolToken: (selectedPaperTradingInstrument as any)?.token || "0",
-        exchange: (selectedPaperTradingInstrument as any)?.exchange || "NSE",
+        exchange: (selectedPaperTradingInstrument as any)?.exchange || (paperTradeType === 'MCX' ? 'MCX' : paperTradeType === 'FUTURES' || paperTradeType === 'OPTIONS' ? 'NFO' : 'NSE'),
         // Stop Loss settings
         slEnabled: paperTradeSLEnabled,
         slType: paperTradeSLEnabled ? paperTradeSLType : undefined,
@@ -4568,6 +4625,15 @@ ${
       const updatedPositions = [...paperPositions, newPosition];
       setPaperPositions(updatedPositions);
       localStorage.setItem("paperPositions", JSON.stringify(updatedPositions));
+      
+      // 🔴 CRITICAL: Start live price streaming for the new position
+      const instrumentForStreaming = {
+        symbol: newPosition.symbol,
+        exchange: newPosition.exchange,
+        token: newPosition.symbolToken,
+        name: newPosition.symbol
+      };
+      fetchPaperTradePrice(instrumentForStreaming);
       
       // Deduct from capital
       const newCapital = paperTradingCapital - tradeValue;
@@ -4679,19 +4745,19 @@ ${
   
   // Reset paper trading account
   const resetPaperTradingAccount = () => {
-    setPaperTradingCapital(1000000);
+    setPaperTradingCapital(1800000);
     setPaperPositions([]);
     setPaperTradeHistory([]);
     setPaperTradeSymbol("");
     setPaperTradeQuantity("");
     setPaperTradeLotInput("");
     setPaperTradeCurrentPrice(null);
-    localStorage.setItem("paperTradingCapital", "1000000");
+    localStorage.setItem("paperTradingCapital", "1800000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
     toast({
       title: "Account Reset",
-      description: "Paper trading account reset to ₹10,00,000"
+      description: "Paper trading account reset to ₹18,00,000"
     });
   };
   
@@ -4706,15 +4772,13 @@ ${
       return;
     }
     
-    // 🔴 AUTO-SWITCH to personal mode if in demo
+    
+    // 🔴 AUTO-SWITCH to personal mode if in demo - record trades immediately in single tap
     if (isDemoMode) {
       console.log("🔄 Auto-switching to personal mode to record trades...");
       setIsDemoMode(false);
-      setTimeout(() => {
-        recordAllPaperTrades();
-      }, 100);
-      return;
     }
+    
     
     console.log("📊 Converting paper trades to journal format...");
     
@@ -4734,7 +4798,7 @@ ${
     const processedData = calculateSimplePnL(convertedTrades);
     
     // 2️⃣ Add to trade history summary (opens the summary window)
-    setTradeHistoryData((prev) => [...processedData, ...prev]);
+    setTradeHistoryData(processedData); // Reset history with new trades only
     
     // 3️⃣ Also record to today's personal heatmap for tracking
     const today = new Date();
@@ -4784,7 +4848,7 @@ ${
     
     // 5️⃣ Close paper trading dialog and show summary
     setShowPaperTradingModal(false);
-    setShowOrderModal(true);
+    setIsDemoMode(false);
     
     toast({
       title: "Trades Recorded",
@@ -4914,8 +4978,8 @@ ${
       const symbolToken = (position as any).symbolToken || "0";
       const exchange = (position as any).exchange || "NSE";
       
-      // 🔶 Use 1-minute interval for live price stream (aggregation happens on display)
-      const sseUrl = `/api/angelone/live-stream-ws?symbol=${position.symbol}&symbolToken=${symbolToken}&exchange=${exchange}&tradingSymbol=${position.symbol}&interval=60`; // 60 seconds = 1 minute
+      // 🔴 Use 700ms live tick stream for instant P&L updates (same as initial price fetch)
+      const sseUrl = `/api/angelone/live-stream-ws?symbol=${position.symbol}&symbolToken=${symbolToken}&exchange=${exchange}&tradingSymbol=${position.symbol}&interval=0`; // 0 = 700ms live tick data
       
       console.log(`📡 [PAPER-TRADING] Subscribing to ${position.symbol} live stream`);
       
@@ -4995,8 +5059,8 @@ ${
   
   // Calculate total unrealized P&L for all open positions
   const paperTradingTotalPnl = useMemo(() => {
-    const openPositions = paperPositions.filter(p => p.isOpen);
-    return openPositions.reduce((total, p) => total + (p.pnl || 0), 0);
+    // Include P&L from BOTH open (unrealized) and closed (realized) positions
+    return paperPositions.reduce((total, p) => total + (p.pnl || 0), 0);
   }, [paperPositions]);
   
   // SL Monitoring Effect - Auto-exit positions when SL is triggered
@@ -5097,10 +5161,10 @@ ${
   // ============================================
 
   // ✅ SIMPLIFIED: TWO SEPARATE HEATMAP DATA STATES - NO localStorage!
-  // Demo heatmap data (Heatmap #1) - loaded directly from Firebase
+  // Demo heatmap data (Heatmap loaded from AWS DynamoDB
   const [demoTradingDataByDate, setDemoTradingDataByDate] = useState<Record<string, any>>({});
 
-  // Personal heatmap data (Heatmap #2) - loaded directly from Firebase
+  // Personal heatmap data (Heatmap loaded from AWS DynamoDB
   const [personalTradingDataByDate, setPersonalTradingDataByDate] = useState<Record<string, any>>({});
 
   // ✅ PERSONAL HEATMAP REVISION: Track updates to force React re-renders
@@ -5150,20 +5214,20 @@ ${
   const setTradingDataByDate = isDemoMode ? setDemoTradingDataByDate : setPersonalTradingDataByDate;
   const getActiveStorageKey = () => isDemoMode ? "demoTradingDataByDate" : "personalTradingDataByDate";
 
-  // Helper function to get Firebase userId from localStorage
-  // Returns null if user is not logged in with Firebase
+  // Helper function to get AWS userId from localStorage
+  // Returns null if user is not logged in with AWS
   const getUserId = (): string | null => {
     if (typeof window === "undefined") return null;
 
-    // Use the actual Firebase user ID from authentication ONLY
-    const firebaseUserId = localStorage.getItem("currentUserId");
-    if (firebaseUserId) {
-      console.log(`🔑 Using Firebase user ID: ${firebaseUserId}`);
-      return firebaseUserId;
+    // Use the actual AWS user ID from authentication ONLY
+    const awsUserId = localStorage.getItem("currentUserId");
+    if (awsUserId) {
+      console.log(`🔑 Using AWS user ID: ${awsUserId}`);
+      return awsUserId;
     }
 
-    // No Firebase user logged in - return null instead of generating random IDs
-    console.log(`⚠️ No Firebase user logged in - getUserId() returns null`);
+    // No AWS user logged in - return null instead of generating random IDs
+    console.log(`⚠️ No AWS user logged in - getUserId() returns null`);
     return null;
   };
 
@@ -5192,8 +5256,8 @@ ${
           return;
         }
 
-        // ALWAYS fetch user-specific data from Firebase (never demo data)
-        console.log("📥 HEATMAP: Fetching user data from Firebase for userId:", userId);
+        // Load user data from AWS DynamoDB
+        console.log("📥 HEATMAP: Fetching user data from AWS for userId:", userId);
         const response = await fetch(getFullApiUrl(`/api/user-journal/${userId}/all`));
         if (response.ok) {
           const personalData = await response.json();
@@ -5202,8 +5266,6 @@ ${
           setTradingDataByDate(personalData);
           setCalendarData(personalData);
 
-          // Save to localStorage for offline access
-          localStorage.setItem("tradingDataByDate", JSON.stringify(personalData));
 
           // Auto-click all available dates to populate heatmap colors - ULTRA FAST
           // This simulates clicking each date to ensure colors appear immediately
@@ -5247,7 +5309,6 @@ ${
               });
               setTradingDataByDate(updatedData);
               setCalendarData(updatedData);
-              localStorage.setItem("tradingDataByDate", JSON.stringify(updatedData));
               console.log(
                 `✅ Ultra-fast PERSONAL heatmap population complete! Loaded ${validResults.length} dates in parallel.`,
               );
@@ -5273,19 +5334,6 @@ ${
         console.error("Error type:", typeof error);
         console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
         console.error("Error stack:", error instanceof Error ? error.stack : 'No stack');
-        // Fallback to localStorage data if Google Cloud is unavailable
-        console.log("🔄 Falling back to localStorage data...");
-        const localStorageData = localStorage.getItem("tradingDataByDate");
-        if (localStorageData) {
-          const parsedLocalData = JSON.parse(localStorageData);
-          console.log(
-            "💾 Emergency fallback - Found localStorage journal data:",
-            Object.keys(parsedLocalData).length,
-            "entries",
-          );
-          setTradingDataByDate(parsedLocalData);
-          setCalendarData(parsedLocalData);
-        }
       } finally {
         setIsLoadingHeatmapData(false);
       }
@@ -5323,44 +5371,34 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
-  const optionIndexPrices: { [key: string]: number } = { NIFTY: 23650, BANKNIFTY: 50480, FINNIFTY: 24820, SENSEX: 78540 };
-  
-  // Get expiry dates from optionChainData (real Angel One NFO data)
-  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
+  // Get expiry dates from optionChainData
+  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
       return [];
     }
-    return optionChainData.expiries.map((expiry: string) => ({
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const expiryDate = new Date(expiry);
+      expiryDate.setHours(0, 0, 0, 0);
+      return expiryDate >= today;
+    });
+    return futureExpiries.slice(0, 4).map((expiry: string) => ({
       value: expiry,
-      label: new Date(expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
-  };
-  
-  // Get call and put option symbols (strike prices with CE/PE) from optionChainData
-  const getOptionSymbols = (): { calls: any[], puts: any[] } => {
-    if (!optionChainData) {
-      return { calls: [], puts: [] };
+
+  // Auto-select first expiry date when option chain data loads
+  useEffect(() => {
+    if (optionChainData && !selectedOptionExpiryDate) {
+      const firstExpiry = getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+      if (firstExpiry) {
+        setSelectedOptionExpiryDate(firstExpiry);
+      }
     }
-    
-    // Filter by selected expiry if set
-    const calls = selectedOptionExpiryDate 
-      ? optionChainData.calls?.filter((c: any) => c.expiryDate === selectedOptionExpiryDate) || []
-      : optionChainData.calls || [];
-    
-    const puts = selectedOptionExpiryDate 
-      ? optionChainData.puts?.filter((p: any) => p.expiryDate === selectedOptionExpiryDate) || []
-      : optionChainData.puts || [];
-    
-    // Sort by strike price
-    calls.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-    puts.sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-    
-    return { calls, puts };
+  }, [optionChainData, selectedOptionIndex]);
   };
-  
-  // List of F&O eligible stocks and indices (that have options trading)
   const foEligibleSymbols = [
-    'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'ASIANPAINT', 'TITAN', 'TATAMOTORS', 'SUNPHARMA', 'WIPRO', 'ULTRACEMCO',
     'TECHM', 'HCLTECH', 'NTPC', 'POWERGRID', 'ONGC', 'COALINDIA', 'M&M',
@@ -5393,8 +5431,12 @@ ${
   };
   
   // Get underlying symbol for option chain
-  const getUnderlyingSymbol = (): string => {
+  const getUnderlyingSymbol = (indexOverride?: string): string => {
     if (!selectedInstrument) {
+    // If an index is explicitly provided (e.g., from option chain dropdown), use it directly
+    if (indexOverride) {
+      return indexOverride;
+    }
     const pt = paperTradeSymbol ? paperTradeSymbol.replace(/-..*$/, "").toUpperCase() : "NIFTY";
     return pt;
   }
@@ -5417,13 +5459,14 @@ ${
   };
   
   // Fetch option chain data
-  const fetchOptionChainData = async () => {
-    const underlying = getUnderlyingSymbol();
+  const fetchOptionChainData = async (indexToFetch?: string, expiryToFetch?: string) => {
+    const underlying = getUnderlyingSymbol(indexToFetch);
     if (!underlying) return;
     
     setOptionChainLoading(true);
     try {
-      const response = await fetch(`/api/options/chain?symbol=${underlying}`);
+      const expiry = expiryToFetch ? `&expiry=${encodeURIComponent(expiryToFetch)}` : '';
+      const response = await fetch(`/api/options/chain?symbol=${underlying}${expiry}`);
       const data = await response.json();
       
       if (data.success && data.data) {
@@ -6670,9 +6713,16 @@ ${
           const remainingSeconds = Math.max(0, nextCandleTime - currentTime);
           const remainingMinutes = Math.floor(remainingSeconds / 60);
           const remainingSecondsDisplay = remainingSeconds % 60;
-          const countdownFormatted = remainingMinutes > 0 
+          
+          // CRITICAL FIX: Check if market is open from SSE response (isMarketOpen or marketStatus)
+          const isMarketActuallyOpen = liveCandle.isMarketOpen === true || liveCandle.marketStatus === 'live' || liveCandle.marketStatus === 'delayed';
+          
+          // Only show countdown if market is open, otherwise show empty
+          const countdownFormatted = isMarketActuallyOpen 
+            ? (remainingMinutes > 0 
             ? `${remainingMinutes}:${remainingSecondsDisplay.toString().padStart(2, '0')}`
-            : `${remainingSeconds}s`;
+            : `${remainingSeconds}s`)
+            : "";
           
           // Update or create price line with LTP and countdown
           if (journalCandlestickSeriesRef.current) {
@@ -6688,7 +6738,7 @@ ${
               lineWidth: 1,
               lineStyle: 2,
               axisLabelVisible: true,
-              title: countdownFormatted,
+              title: isMarketActuallyOpen ? countdownFormatted : '',
             });
           }
           
@@ -6696,9 +6746,9 @@ ${
           setJournalLiveData({
             ltp: liveCandle.close,
             countdown: {
-              remaining: remainingSeconds,
+              remaining: isMarketActuallyOpen ? remainingSeconds : 0,
               total: intervalSeconds,
-              formatted: countdownFormatted
+              formatted: isMarketActuallyOpen ? countdownFormatted : 'Market Closed'
             },
             currentCandle: {
               time: liveCandle.time,
@@ -6708,7 +6758,7 @@ ${
               close: liveCandle.close,
               volume: liveCandle.volume || 0
             },
-            isMarketOpen: true // Assuming market is open if we're receiving data
+            isMarketOpen: isMarketActuallyOpen
           });
           
           // Only update if we're within the same candle interval
@@ -6755,9 +6805,9 @@ ${
             }, 50);
             
             console.log(`📊 [UPDATE] Same candle interval, OHLC: O${candleOpen} H${candleHigh} L${candleLow} C${candleClose}`);
-          } else if (currentCandleStartTime > lastCandleStartTime) {
-            // We've crossed into a new candle interval - this means the previous candle is complete
-            console.log('🆕 [NEW CANDLE] New interval detected, adding new candle to chart');
+          } else if (currentCandleStartTime > lastCandleStartTime && isMarketActuallyOpen) {
+            // We've crossed into a new candle interval AND market is open - add new candle
+            console.log('🆕 [NEW CANDLE] New interval detected, adding new candle to chart (market is open)');
             
             // 🔴 CRITICAL: Use the SAVED final OHLC from the previous candle's last update
             // NOT the new candle's data!
@@ -8366,7 +8416,7 @@ ${
     // ✅ AUTO-SWITCH TO DEMO MODE: Only for new users on initial load (not after manual toggle)
     if (!isDemoMode && getUserId() && !hasManuallyToggledMode) {
       const hasAnyTradeData = Object.values(data).some((dayData: any) => {
-        // Check both wrapped (Firebase) and unwrapped formats
+        // Check both wrapped (AWS) and unwrapped formats
         const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
         const tradeHistory = dayData?.tradingData?.tradeHistory || dayData?.tradeHistory;
         
@@ -8469,7 +8519,7 @@ ${
     const userId = getUserId();
     if (!userId) {
       console.log("⚠️ No user ID found - cannot auto-click personal dates");
-      alert("⚠️ Please log in with your Firebase account to use personal mode");
+      alert("⚠️ Please log in with your AWS account to use personal mode");
       return;
     }
     
@@ -8522,10 +8572,10 @@ ${
           if (response.ok) {
             let journalData = await response.json();
             
-            // CRITICAL FIX: Unwrap Firebase response format (has tradingData wrapper)
+            // CRITICAL FIX: Unwrap AWS response format (has tradingData wrapper)
             if (journalData && journalData.tradingData) {
               journalData = journalData.tradingData;
-              console.log(`📦 Unwrapped Firebase tradingData for ${dateStr}`);
+              console.log(`📦 Unwrapped AWS tradingData for ${dateStr}`);
             }
             
             if (journalData && Object.keys(journalData).length > 0) {
@@ -8613,20 +8663,20 @@ ${
           console.log(`ℹ️ No userId but user manually selected personal mode - respecting choice`);
         }
       } else {
-        // ✅ SIMPLIFIED: Load demo data directly from Firebase - NO localStorage!
-        console.log(`📊 Demo mode - loading from Firebase journal-database...`);
+        // ✅ SIMPLIFIED: Load demo data directly from AWS - NO localStorage!
+        console.log(`📊 Demo mode - loading from AWS DynamoDB journal-database...`);
         (async () => {
           try {
             const response = await fetch(getFullApiUrl('/api/journal/all-dates'));
             if (response.ok) {
-              const firebaseData = await response.json();
-              const dateCount = Object.keys(firebaseData).length;
-              setDemoTradingDataByDate(firebaseData);
-              setCalendarData(firebaseData);
-              console.log(`✅ Loaded ${dateCount} real dates from Firebase`);
+              const awsData = await response.json(); // AWS DynamoDB data
+              const dateCount = Object.keys(awsData).length;
+              setDemoTradingDataByDate(awsData);
+              setCalendarData(awsData);
+              console.log(`✅ Loaded ${dateCount} real dates from AWS`);
             }
           } catch (error) {
-            console.error("❌ Error loading from Firebase:", error);
+            console.error("❌ Error loading from AWS:", error);
           }
         })();
       }
@@ -8679,6 +8729,9 @@ ${
       const updatedData = {
         ...existingData,
         tradingNotes: tempNotesContent,
+        selectedDailyFactors: selectedDailyFactors,
+        selectedIndicators: selectedIndicators,
+        selectedTags: getValidTags(selectedTags),
       };
 
       const response = await fetch(`/api/journal/${selectedDateStr}`, {
@@ -8724,6 +8777,8 @@ ${
 
   const clearAllTags = () => {
     setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
   };
 
   // Calendar handler functions
@@ -8790,7 +8845,7 @@ ${
     return result;
   };
 
-  const handleDateSelect = async (date: Date, firebaseData?: any) => {
+  const handleDateSelect = async (date: Date, awsData?: any) => {
     // 📅 User selected date from heatmap
     const dateString = formatDateKey(date);
     console.log(`📅 DATE SELECTED: ${dateString}`);
@@ -8814,6 +8869,8 @@ ${
     setNotesContent("");
     setTempNotesContent("");
     setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
     setTradeHistoryData([]);
     setTradingImages([]);
     setTradedSymbols([]);
@@ -8822,37 +8879,49 @@ ${
 
     const dateKey = formatDateKey(date);
     
-    // If firebaseData is provided (from PersonalHeatmap), use it directly - NO API FETCH
-    if (firebaseData !== undefined) {
-      console.log(`✅ Using FRESH Firebase data from PersonalHeatmap for ${dateKey}:`, firebaseData);
-      let journalData = firebaseData;
+    // If awsData is provided (from PersonalHeatmap), use it directly - NO API FETCH
+    if (awsData !== undefined) {
+      console.log(`✅ Using FRESH AWS data from PersonalHeatmap for ${dateKey}:`, awsData);
+      let journalData = awsData;
 
-      // Handle Firebase response format (has tradingData wrapper)
+      // Handle AWS response format (has tradingData wrapper)
       if (journalData && journalData.tradingData) {
         journalData = journalData.tradingData;
-        console.log(`📦 Unwrapped Firebase tradingData:`, journalData);
+        console.log(`📦 Unwrapped AWS tradingData:`, journalData);
       }
 
       if (journalData && Object.keys(journalData).length > 0) {
-        console.log("🎯 Populating UI with FRESH Firebase data:", journalData);
+        console.log("🎯 Populating UI with FRESH AWS data:", journalData);
 
         // Load the data into correct state variables
         const notes = journalData.notes || journalData.tradingNotes || journalData.notesContent || "";
         if (notes) {
           setNotesContent(notes);
           setTempNotesContent(notes);
-          console.log("📝 Loaded notes from Firebase:", notes);
+          console.log("📝 Loaded notes from AWS:", notes);
         }
 
         const tags = journalData.tags || journalData.tradingTags || journalData.selectedTags || [];
         if (Array.isArray(tags)) {
           setSelectedTags(tags);
-          console.log("🏷️ Loaded tags from Firebase:", tags);
+        }
+
+        const dailyFactors = journalData.dailyFactors || journalData.selectedDailyFactors || [];
+        if (Array.isArray(dailyFactors)) {
+          setSelectedDailyFactors(dailyFactors);
+          console.log("🌅 Loaded daily factors from AWS:", dailyFactors);
+        }
+
+        const indicators = journalData.indicators || journalData.selectedIndicators || [];
+        if (Array.isArray(indicators)) {
+          setSelectedIndicators(indicators);
+          console.log("📊 Loaded indicators from AWS:", indicators);
+          console.log("🏷️ Loaded tags from AWS:", tags);
         }
 
         if (journalData.tradeHistory && Array.isArray(journalData.tradeHistory)) {
           setTradeHistoryData(journalData.tradeHistory);
-          console.log("📊 Loaded trade history from Firebase:", journalData.tradeHistory.length, "trades");
+          console.log("📊 Loaded trade history from AWS:", journalData.tradeHistory.length, "trades");
           
           // Extract symbols with most trades
           const symbols = extractTradedSymbols(journalData.tradeHistory);
@@ -8873,15 +8942,15 @@ ${
         const images = journalData.images || journalData.tradingImages || [];
         if (Array.isArray(images)) {
           setTradingImages(images);
-          console.log("🖼️ Loaded images from Firebase:", images.length, "images");
+          console.log("🖼️ Loaded images from AWS:", images.length, "images");
         }
 
-        console.log("✅ Successfully loaded all FRESH Firebase data for:", dateKey);
+        console.log("✅ Successfully loaded all FRESH AWS data for:", dateKey);
       } else {
-        console.log(`📭 No Firebase data for: ${dateKey}`);
+        console.log(`📭 No AWS data for: ${dateKey}`);
       }
       setIsLoadingHeatmapData(false);
-      return; // Exit early - we used fresh Firebase data
+      return; // Exit early - we used fresh AWS data
     }
 
     // Load journal data from API
@@ -8902,10 +8971,10 @@ ${
         let journalData = await response.json();
         console.log(`📊 Journal data received:`, journalData);
 
-        // Handle Firebase response format (has tradingData wrapper)
+        // Handle AWS response format (has tradingData wrapper)
         if (journalData && journalData.tradingData) {
           journalData = journalData.tradingData;
-          console.log(`📦 Unwrapped Firebase tradingData:`, journalData);
+          console.log(`📦 Unwrapped AWS tradingData:`, journalData);
         }
 
         // FALLBACK: If user data is empty and we have a userId, try loading shared demo data
@@ -8946,6 +9015,18 @@ ${
             [];
           if (Array.isArray(tags)) {
             setSelectedTags(tags);
+        }
+
+        const dailyFactors = journalData.dailyFactors || journalData.selectedDailyFactors || [];
+        if (Array.isArray(dailyFactors)) {
+          setSelectedDailyFactors(dailyFactors);
+          console.log("🌅 Loaded daily factors from AWS:", dailyFactors);
+        }
+
+        const indicators = journalData.indicators || journalData.selectedIndicators || [];
+        if (Array.isArray(indicators)) {
+          setSelectedIndicators(indicators);
+          console.log("📊 Loaded indicators from AWS:", indicators);
             console.log("🏷️ Loaded tags from journal-database:", tags);
           }
 
@@ -8957,7 +9038,7 @@ ${
           ) {
             setTradeHistoryData(journalData.tradeHistory);
             console.log(
-              "✅ Loaded REAL trade history from Firebase:",
+              "✅ Loaded REAL trade history from AWS:",
               journalData.tradeHistory.length,
               "trades",
             );
@@ -8978,9 +9059,9 @@ ${
               // ✅ DO NOT set selectedJournalSymbol here - manual search chart is independent from heatmap
             }
           } else {
-            // No trade history in Firebase - keep empty state, DO NOT construct fake data
+            // No trade history in AWS - keep empty state, DO NOT construct fake data
             setTradeHistoryData([]);
-            console.log("📭 No trade history in Firebase for this date - showing empty state");
+            console.log("📭 No trade history in AWS for this date - showing empty state");
           }
 
           if (journalData.images && Array.isArray(journalData.images)) {
@@ -9416,12 +9497,12 @@ ${
           body: JSON.stringify(journalData),
         });
       } else {
-        // Switch OFF = Personal mode: Save to Firebase (user-specific)
+        // Switch OFF = Personal mode: Save to AWS (user-specific)
         const userId = getUserId();
         if (!userId) {
-          console.error("❌ Cannot save in personal mode - no Firebase user logged in");
-          alert("⚠️ Please log in with your Firebase account to save personal trading data.\n\nSwitch to Demo mode or log in to continue.");
-          throw new Error("No Firebase user logged in - cannot save to personal mode");
+          console.error("❌ Cannot save in personal mode - no AWS user logged in");
+          alert("⚠️ Please log in with your AWS account to save personal trading data.\n\nSwitch to Demo mode or log in to continue.");
+          throw new Error("No AWS user logged in - cannot save to personal mode");
         }
         console.log(`👤 Saving to user-specific data (userId: ${userId})`);
         response = await fetch(`/api/user-journal`, {
@@ -11625,8 +11706,8 @@ ${
                 </div>
 
                 {/* Angel One Connection Setup */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                  <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Angel One Connection</h3>
@@ -11722,10 +11803,12 @@ ${
                             </button>
                           )}
                           <button
-                            className="w-full px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                            onClick={() => setShowSettingsPanel(true)}
+                            className="w-full px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors text-left flex items-center gap-2"
                             data-testid="nav-settings"
                           >
-                            setting & privacy
+                            <Settings className="h-4 w-4" />
+                            <span>setting & privacy</span>
                           </button>
                           <button
                             onClick={toggleTheme}
@@ -11777,6 +11860,149 @@ ${
                     )}
                   </div>
                 </div>
+
+
+                {/* Settings & Privacy Panel - Email Verification */}
+                {showSettingsPanel && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowSettingsPanel(false)}>
+                    <div 
+                      className="bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl border border-gray-700"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-white">Settings & Privacy</h2>
+                        <button
+                          onClick={() => setShowSettingsPanel(false)}
+                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                          data-testid="button-close-settings"
+                        >
+                          <X className="h-5 w-5 text-gray-400" />
+                        </button>
+                      </div>
+                      
+                      {/* Email Verification Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                          <div className="flex items-center gap-3">
+                            <Mail className="h-5 w-5 text-blue-400" />
+                            <div>
+                              <p className="text-white font-medium">Email Verification</p>
+                              <p className="text-sm text-gray-400">
+                                {currentUser?.email || localStorage.getItem('currentUserEmail') || 'Not available'}
+                              </p>
+                            </div>
+                          </div>
+                          {emailVerified === null ? (
+                            <div className="w-5 h-5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                          ) : emailVerified ? (
+                            <div className="flex items-center gap-1 text-green-400 text-sm">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Verified</span>
+                            </div>
+                          ) : (
+                            <span className="text-yellow-400 text-sm">Not verified</span>
+                          )}
+                        </div>
+                        
+                        {/* Verify Email UI - Only show if not verified */}
+                        {emailVerified === false && (
+                          <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-700/50 space-y-4">
+                            {!verificationCodeSent ? (
+                              <>
+                                <p className="text-sm text-gray-300">
+                                  Verify your email to secure your account and receive important notifications.
+                                </p>
+                                <button
+                                  onClick={handleSendVerificationOtp}
+                                  disabled={verificationSending}
+                                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                  data-testid="button-send-verification"
+                                >
+                                  {verificationSending ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      <span>Sending...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Mail className="h-4 w-4" />
+                                      <span>Verify Email</span>
+                                    </>
+                                  )}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-2 text-green-400 text-sm mb-3">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span>Verification code sent to your email</span>
+                                </div>
+                                <div className="space-y-3">
+                                  <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    maxLength={6}
+                                    placeholder="Enter 6-digit code"
+                                    value={verificationOtp}
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(/\D/g, '');
+                                      setVerificationOtp(value);
+                                    }}
+                                    className="w-full bg-gray-800 border-gray-600 text-white text-center text-lg tracking-widest"
+                                    data-testid="input-verification-code"
+                                  />
+                                  <button
+                                    onClick={handleConfirmVerification}
+                                    disabled={verificationConfirming || verificationOtp.length !== 6}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                    data-testid="button-confirm-verification"
+                                  >
+                                    {verificationConfirming ? (
+                                      <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <span>Verifying...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-4 w-4" />
+                                        <span>Confirm</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setVerificationCodeSent(false);
+                                      setVerificationOtp("");
+                                      setVerificationError("");
+                                    }}
+                                    className="w-full py-2 text-gray-400 hover:text-white text-sm transition-colors"
+                                    data-testid="button-resend-code"
+                                  >
+                                    Resend Code
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                            {verificationError && (
+                              <p className="text-red-400 text-sm text-center">{verificationError}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Success message when verified */}
+                        {emailVerified === true && (
+                          <div className="p-4 bg-green-900/30 rounded-lg border border-green-700/50">
+                            <div className="flex items-center gap-2 text-green-400">
+                              <CheckCircle className="h-5 w-5" />
+                              <span>Your email is verified and secured</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Two-line Hamburger Icon - Mobile only - Theme responsive - Fixed position */}
                 <button
@@ -14072,7 +14298,7 @@ ${
                         className={`h-[400px] ${mobileJournalPanel === 0 ? "block" : "hidden"} md:block`}
                       >
                         {/* Professional Visual Chart with Fyers Data - Same as Trading Master */}
-                        <div className="h-full relative bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                        <div className="h-full relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
                           <div className="h-full flex flex-col">
                             <div className="flex items-center justify-between px-2 py-2">
                               <div className="flex items-center gap-1 md:gap-2 flex-wrap">
@@ -14103,7 +14329,7 @@ ${
                                     align="start"
                                   >
                                     <div className="space-y-3">
-                                      <div className="flex gap-2">
+                                      <div className="flex gap-1.5">
                                         <Input
                                           placeholder={
                                             journalSearchType === 'STOCK'
@@ -14114,7 +14340,7 @@ ${
                                           }
                                           value={stockSearchQuery}
                                           onChange={(e) => setStockSearchQuery(e.target.value)}
-                                          className="text-sm flex-1"
+                                          className="text-xs flex-1 h-7 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700"
                                           data-testid="input-stock-search"
                                         />
                                         <select
@@ -14124,7 +14350,7 @@ ${
                                             setStockSearchQuery('');
                                             setSearchedInstruments([]);
                                           }}
-                                          className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded px-2 text-xs"
+                                          className="h-7 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 rounded px-2 text-xs font-medium"
                                           data-testid="select-journal-type"
                                         >
                                           <option value="STOCK">Stock</option>
@@ -14775,7 +15001,6 @@ ${
                                       </div>
                                       <div className="text-center">
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Loading {getJournalTimeframeLabel(journalChartTimeframe)} chart...</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fetching candles from Angel One API</p>
                                       </div>
                                     </div>
                                   </div>
@@ -15001,7 +15226,7 @@ ${
 
                         {/* Bottom 70% - Notes Section */}
                         <div className="h-[70%] flex flex-col">
-                          <CardContent className="p-2 flex-1 flex flex-col">
+                          <CardContent className="p-2 flex-1 flex flex-col h-full overflow-hidden">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
                                 TRADING NOTES
@@ -15443,23 +15668,21 @@ ${
                                 {isEditingNotes ? (
                                   <>
                                     <Button
-                                      size="sm"
+                                      size="icon"
                                       variant="ghost"
                                       onClick={handleCancelNotes}
-                                      className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
+                                      className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                                       data-testid="button-cancel-notes"
                                     >
-                                      <X className="w-3 h-3 md:mr-1" />
-                                      <span className="hidden md:inline">Cancel</span>
+                                      <X className="w-3 h-3" />
                                     </Button>
                                     <Button
-                                      size="sm"
+                                      size="icon"
                                       onClick={handleSaveNotesOnly}
-                                      className="text-xs bg-green-600 hover:bg-green-700 text-white"
+                                      className="h-7 w-7 bg-green-600 hover:bg-green-700 text-white"
                                       data-testid="button-save-notes"
                                     >
-                                      <Check className="w-3 h-3 md:mr-1" />
-                                      <span className="hidden md:inline">Save</span>
+                                      <Check className="w-3 h-3" />
                                     </Button>
                                   </>
                                 ) : (
@@ -15483,11 +15706,52 @@ ${
                                   setTempNotesContent(e.target.value)
                                 }
                                 placeholder="Write your trading notes, strategies, observations..."
-                                className="flex-1 w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-1 w-full p-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 data-testid="textarea-notes"
                               />
                             ) : (
-                              <div className="flex-1 w-full p-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white overflow-y-auto custom-thin-scrollbar">
+                              <div className="flex-1 w-full p-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-gray-800 dark:text-white overflow-y-auto custom-thin-scrollbar">
+                                {/* Display daily factors inline when they exist */}
+                                {selectedDailyFactors.length > 0 && (
+                                  <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="flex flex-wrap gap-1">
+                                      {selectedDailyFactors.map((factor) => (
+                                        <span
+                                          key={factor}
+                                          className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-700 transition-colors group"
+                                          onClick={() => toggleDailyFactor(factor)}
+                                          title="Click to remove daily factor"
+                                          data-testid={`inline-daily-factor-${factor}`}
+                                        >
+                                          {factor}
+                                          <X className="w-3 h-3 ml-1 opacity-60 group-hover:opacity-100" />
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Display indicators inline when they exist */}
+                                {selectedIndicators.length > 0 && (
+                                  <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="flex flex-wrap gap-1">
+                                      {selectedIndicators.map((indicator) => (
+                                        <span
+                                          key={indicator}
+                                          className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-full cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-700 transition-colors group"
+                                          onClick={() => toggleIndicator(indicator)}
+                                          title="Click to remove indicator"
+                                          data-testid={`inline-indicator-${indicator}`}
+                                        >
+                                          {indicator}
+                                          <X className="w-3 h-3 ml-1 opacity-60 group-hover:opacity-100" />
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Display tags inline when they exist */}
                                 {/* Display tags inline when they exist */}
                                 {getValidTags(selectedTags).length > 0 && (
                                   <div className="mb-2 pb-2 border-b border-gray-300 dark:border-gray-600">
@@ -15510,7 +15774,7 @@ ${
 
                                 {/* Notes content */}
                                 {notesContent ? (
-                                  <pre className="whitespace-pre-wrap font-sans">
+                                  <pre className="font-sans text-xs overflow-y-auto flex-1 whitespace-pre">
                                     {notesContent}
                                   </pre>
                                 ) : (
@@ -15773,8 +16037,8 @@ ${
                     <Card className="hidden md:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 h-[420px]">
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between mb-3 gap-2">
-                          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                            TRADE HISTORY SUMMARY
+                          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                            Trade History
                           </h3>
                           <div className="flex gap-1.5">
                             <Button
@@ -15930,7 +16194,7 @@ ${
 
                     {/* Trade Book - Right Side (Functional Calendar) */}
                     <div className="relative">
-                    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
@@ -15962,6 +16226,8 @@ ${
                                   setNotesContent("");
                                   setTempNotesContent("");
                                   setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
                                   setTradeHistoryData([]);
                                   setTradingImages([]);
                                   
@@ -16212,7 +16478,7 @@ ${
                             return (
                               <div className="space-y-2">
                                 {/* Header row with stats and menu */}
-                                <div className="flex justify-between items-start gap-2">
+                                <div className="flex justify-between items-center gap-2">
                                   <div className="grid grid-cols-5 gap-2 text-white flex-1">
                                     {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
@@ -16275,7 +16541,7 @@ ${
                                         <MoreVertical className="w-4 h-4" />
                                       </button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-56 p-3 bg-slate-900 border-slate-700 text-slate-100">
+                                    <PopoverContent className="w-56 p-3 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                       <div className="space-y-2">
                                         <div className="text-xs font-semibold text-slate-400 mb-2">Customize Stats</div>
                                         <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
@@ -16555,7 +16821,7 @@ ${
                       dates.forEach(dateKey => {
                         const dayData = filteredHeatmapData[dateKey];
                         
-                        // Handle both wrapped (Firebase) and unwrapped formats
+                        // Handle both wrapped (AWS) and unwrapped formats
                         const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
                         
                         if (metrics) {
@@ -16637,7 +16903,7 @@ ${
                           </div>
 
                           {/* Performance Trend Chart - Desktop: Middle */}
-                          <div className="md:col-span-6 bg-white dark:bg-slate-800 rounded-3xl p-4 md:p-8 shadow-lg border border-slate-200 dark:border-slate-700">
+                          <div className="md:col-span-6 bg-white dark:bg-slate-900 rounded-3xl p-4 md:p-8 shadow-lg border border-slate-200 dark:border-slate-800">
                           <div className="flex items-center justify-between mb-6">
                             <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
                               Performance Trend
@@ -16674,7 +16940,7 @@ ${
                                     const date = new Date(dateStr);
                                     const dayData = filteredHeatmapData[dateStr];
                                     
-                                    // Handle both wrapped (Firebase) and unwrapped formats
+                                    // Handle both wrapped (AWS) and unwrapped formats
                                     const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
 
                                     const netPnL = metrics?.netPnL || 0;
@@ -16712,7 +16978,12 @@ ${
                                       width="100%"
                                       height="100%"
                                     >
-                                      <AreaChart
+                                      {(() => {
+                                        const chartStrokeColor = theme === 'dark' ? '#ffffff' : '#000000';
+                                        const tooltipBg = theme === 'dark' ? '#1e293b' : '#ffffff';
+                                        const tooltipText = theme === 'dark' ? '#e2e8f0' : '#1e293b';
+                                        return (
+                                        <AreaChart
                                         data={chartData}
                                         margin={{
                                           top: 40,
@@ -16753,7 +17024,7 @@ ${
                                           tickLine={false}
                                           tick={{
                                             fontSize: 12,
-                                            fill: "#64748b",
+                                            fill: theme === 'dark' ? '#cbd5e1' : '#64748b',
                                           }}
                                           tickFormatter={(value) =>
                                             `${value >= 0 ? "" : "-"}${(
@@ -16768,10 +17039,10 @@ ${
                                         />
                                         <Tooltip
                                           contentStyle={{
-                                            background: "var(--background)",
-                                            border: "1px solid var(--border)",
+                                            background: tooltipBg,
+                                            border: `1px solid ${theme === 'dark' ? '#334155' : '#e2e8f0'}`,
                                             borderRadius: "12px",
-                                            color: "var(--foreground)",
+                                            color: tooltipText,
                                             fontSize: "12px",
                                             padding: "8px 12px",
                                           }}
@@ -16802,13 +17073,13 @@ ${
                                         <Area
                                           type="natural"
                                           dataKey="value"
-                                          stroke="#000000"
+                                          stroke={chartStrokeColor}
                                           strokeWidth={3}
                                           fill="url(#areaGradientPositive)"
                                           dot={false}
                                           activeDot={{
                                             r: 6,
-                                            fill: "#000000",
+                                            fill: chartStrokeColor,
                                             stroke: "white",
                                             strokeWidth: 2,
                                           }}
@@ -16817,6 +17088,8 @@ ${
                                           animationEasing="ease-in-out"
                                         />
                                       </AreaChart>
+                                        );
+                                      })()}
                                     </ResponsiveContainer>
                                   </div>
                                 );
@@ -16833,7 +17106,7 @@ ${
                         </div>
 
                           {/* Top Tags - Desktop: Right side */}
-                          <div className="md:col-span-3 bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-lg border border-slate-200 dark:border-slate-700">
+                          <div className="md:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-lg border border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-3 mb-6">
                               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
                                 <Tag className="w-5 h-5 text-white" />
@@ -18429,7 +18702,7 @@ ${
                                               const newFormats = { ...savedFormats };
                                               delete newFormats[formatId];
                                               setSavedFormats(newFormats);
-                                              await saveFormatsToFirebase(newFormats);
+                                              await saveFormatsToAWS(newFormats);
                                               if (activeFormat === format) {
                                                 setActiveFormat(null);
                                               }
@@ -18799,7 +19072,7 @@ ${
                   <span>Capital: <span className="font-medium text-gray-900 dark:text-gray-100">₹{paperTradingCapital.toLocaleString('en-IN')}</span></span>
                   <span className="text-gray-300 dark:text-gray-600">|</span>
                   <span className={paperTradingTotalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                    P&L: <span className="font-medium" data-testid="paper-trading-total-pnl">{paperTradingTotalPnl >= 0 ? '+' : ''}₹{paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                    P&L: <span className="font-medium" data-testid="paper-trading-total-pnl">{hidePositionDetails ? '***' : (paperTradingTotalPnl >= 0 ? '+' : '') + '₹' + paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                   </span>
                 </div>
               </div>
@@ -18960,7 +19233,7 @@ ${
                   )}
 
                   {/* Price Display */}
-                  <div className="w-24 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
+                  <div className="w-40 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
                     {paperTradePriceLoading ? (
                       <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : paperTradeCurrentPrice ? (
@@ -18970,8 +19243,9 @@ ${
                     )}
                   </div>
 
-                  {/* Buy/Sell Buttons */}
-                  {(() => {
+                  {/* Buy/Sell and SL Buttons - Right Side */}
+                  <div className="flex gap-2 ml-auto">
+                    {(() => {
                     const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                     return (
                       <>
@@ -18998,7 +19272,7 @@ ${
                   })()}
 
                   {/* SL Button with Dropdown - Right Corner */}
-                  <div className="relative ml-auto">
+                  <div className="relative">
                     {(() => {
                       const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                       return (
@@ -19114,6 +19388,7 @@ ${
                       </div>
                     )}
                   </div>
+                  </div>
                 </div>
 
                 {/* Trade Value - Inline */}
@@ -19141,15 +19416,31 @@ ${
                       Open Positions
                       {paperTradingWsStatus === 'connected' && <span className="w-1 h-1 bg-green-500 rounded-full" />}
                     </div>
-                    <Button
-                      onClick={exitAllPaperPositions}
-                      size="sm"
-                      variant="outline"
-                      className="h-5 px-2 text-[10px] text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-700 dark:hover:bg-red-900/20"
-                      data-testid="button-exit-all-positions"
-                    >
-                      Exit All
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => setHidePositionDetails(!hidePositionDetails)}
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5"
+                        data-testid="button-toggle-position-visibility"
+                        title={hidePositionDetails ? "Show details" : "Hide details"}
+                      >
+                        {hidePositionDetails ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        onClick={exitAllPaperPositions}
+                        size="sm"
+                        variant="outline"
+                        className="h-5 px-2 text-[10px] text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-700 dark:hover:bg-red-900/20"
+                        data-testid="button-exit-all-positions"
+                      >
+                        Exit All
+                      </Button>
+                    </div>
                   </div>
                   <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden">
                     <table className="w-full text-[11px]">
@@ -19210,7 +19501,8 @@ ${
                                 </span>
                               </td>
                               <td className="px-2 py-1.5 text-right">{position.quantity}</td>
-                              <td className="px-2 py-1.5 text-right text-gray-500">{position.entryPrice.toFixed(2)}</td>
+                              {!hidePositionDetails && <td className="px-2 py-1.5 text-right text-gray-500">{position.entryPrice.toFixed(2)}</td>}
+                              {hidePositionDetails && <td className="px-2 py-1.5 text-right text-gray-400">***</td>}
                               <td className="px-2 py-1.5 text-right" data-testid={`position-ltp-${position.symbol}`}>
                                 {position.currentPrice.toFixed(2)}
                               </td>
@@ -19223,9 +19515,10 @@ ${
                                   ? `${(position as any).slTimeframe} ${(position as any).slType}`
                                   : '-'}
                               </td>
-                              <td className={`px-2 py-1.5 text-right font-medium ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`position-pnl-${position.symbol}`}>
+                              {!hidePositionDetails && <td className={`px-2 py-1.5 text-right font-medium ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`position-pnl-${position.symbol}`}>
                                 {position.pnl >= 0 ? '+' : ''}{position.pnl.toFixed(0)}
-                              </td>
+                              </td>}
+                              {hidePositionDetails && <td className="px-2 py-1.5 text-right text-gray-400">***</td>}
                               <td className={`px-2 py-1.5 text-right text-[10px] ${position.pnlPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
                               </td>
@@ -19422,45 +19715,49 @@ ${
         </Dialog>
 
         {/* Option Chain Modal */}
-        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(); } }}>
-          <DialogContent className="w-full max-w-2xl">
-            {/* Top Bar with Index Selection, Price, and Expiry */}
-            <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-              {/* Left: Index Dropdown */}
-              <div className="flex items-center gap-3 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Index:</label>
+        <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
+          <DialogContent className="w-full max-w-2xl" showCloseButton={false}>
+            {/* Title - Option Chain */}
+            <div className="text-center mb-2">
+              <h2 className="text-sm font-medium text-gray-900 dark:text-white">Option Chain</h2>
+            </div>
+            {/* Compact Header */}
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
+              {/* Index */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <select
                   value={selectedOptionIndex}
-                  onChange={(e) => setSelectedOptionIndex(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
+                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
                   data-testid="select-option-index"
                 >
                   <option value="NIFTY">NIFTY</option>
                   <option value="BANKNIFTY">BANKNIFTY</option>
-                  <option value="FINNIFTY">FINNIFTY</option>
                   <option value="SENSEX">SENSEX</option>
                 </select>
               </div>
 
-              {/* Middle: Price Display */}
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Price</span>
-                <span className="text-lg font-bold text-green-600 dark:text-green-400" data-testid="text-option-price">
-                  {optionChainData?.spotPrice?.toLocaleString() || optionIndexPrices[selectedOptionIndex]?.toLocaleString() || '-'}
+              {/* Spot Price */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Spot:</span>
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-spot-price">
+                  {(optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
                 </span>
               </div>
 
-              {/* Right: Expiry Dropdown */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry:</label>
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <select
-                  value={selectedOptionExpiryDate}
-                  onChange={(e) => setSelectedOptionExpiryDate(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+                  value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
+                  onChange={(e) => {
+                    const newExpiry = e.target.value;
+                    setSelectedOptionExpiryDate(newExpiry);
+                    // Refetch option chain data for the new expiry date
+                    fetchOptionChainData(selectedOptionIndex, newExpiry);
+                  }}
+                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
                   data-testid="select-option-expiry-date"
                 >
-                  <option value="">Select Expiry</option>
-                  {getOptionExpiryDates().map((date) => (
+                  {getOptionExpiryDates(selectedOptionIndex).map((date) => (
                     <option key={date.value} value={date.value}>
                       {date.label}
                     </option>
@@ -19468,7 +19765,6 @@ ${
                 </select>
               </div>
             </div>
-
             {/* Content Area - Call/Put Options Table */}
             <div className="py-6 space-y-4 max-h-96 overflow-y-auto">
               {optionChainLoading && (
@@ -19478,18 +19774,106 @@ ${
                 </div>
               )}
               
-              {!optionChainLoading && selectedOptionExpiryDate && (() => {
+              {!optionChainLoading && (selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (() => {
+                const getOptionSymbols = () => {
+                  if (!optionChainData?.calls || !optionChainData?.puts) {
+                    return { calls: [], puts: [] };
+                  }
+                  
+                  // Filter calls and puts by selected expiry date
+                  // Filter by expiry date - handle different date formats
+                  const formatExpiryDate = (date: any) => {
+                    if (!date) return null;
+                    if (typeof date === 'string') {
+                      // Try to normalize the date format
+                      const d = new Date(date);
+                      return d.toISOString().split('T')[0];
+                    }
+                    return null;
+                  };
+                  
+                    const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+                  const selectedExpiryFormatted = formatExpiryDate(effectiveExpiryDate);
+                  
+                  const filteredCalls = optionChainData.calls.filter((call: any) => {
+                    // If no expiry field, include it; if has expiry, must match selected
+                    if (!call.expiry) return true;
+                    const callExpiryFormatted = formatExpiryDate(call.expiry);
+                    return callExpiryFormatted === selectedExpiryFormatted;
+                  });
+                  
+                  const filteredPuts = optionChainData.puts.filter((put: any) => {
+                    // If no expiry field, include it; if has expiry, must match selected
+                    if (!put.expiry) return true;
+                    const putExpiryFormatted = formatExpiryDate(put.expiry);
+                    return putExpiryFormatted === selectedExpiryFormatted;
+                  });
+                  
+                  return { calls: filteredCalls, puts: filteredPuts };
+                };
+
                 const { calls, puts } = getOptionSymbols();
-                const maxRows = Math.max(calls.length, puts.length);
-                const currentPrice = optionChainData?.spotPrice || optionIndexPrices[selectedOptionIndex] || 0;
+                const currentPrice = optionChainData?.spotPrice || 0;
+                
+                // Find the single nearest ATM strike
+                const allStrikes = new Set();
+                calls.forEach(c => allStrikes.add(c.strikePrice));
+                puts.forEach(p => allStrikes.add(p.strikePrice));
+                
+                const strikeArray = Array.from(allStrikes) as number[];
+                let atmStrike = null;
+                if (strikeArray.length > 0) {
+                  atmStrike = strikeArray.reduce((nearest, strike) => 
+                    Math.abs(strike - currentPrice) < Math.abs(nearest - currentPrice) ? strike : nearest
+                  );
+                }
+                
+                // Filter calls: 1 ATM + 10 ITM + 10 OTM
+                const filteredCalls = (() => {
+                  const itm = calls.filter(c => c.strikePrice < currentPrice && c.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const oTm = calls.filter(c => c.strikePrice > currentPrice && c.strikePrice !== atmStrike).slice(0, 10);
+                  const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike).slice(0, 1) : [];
+                  return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                // Filter puts: 1 ATM + 10 ITM + 10 OTM
+                const filteredPuts = (() => {
+                  const itm = puts.filter(p => p.strikePrice > currentPrice && p.strikePrice !== atmStrike).slice(0, 10);
+                  const oTm = puts.filter(p => p.strikePrice < currentPrice && p.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike).slice(0, 1) : [];
+                  return [...oTm, ...atm, ...itm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                const maxRows = Math.max(filteredCalls.length, filteredPuts.length);
                 const getOptionStatus = (strike, isCall) => {
-                  const atmThreshold = currentPrice * 0.02;
-                  const diff = Math.abs(strike - currentPrice);
-                  if (diff <= atmThreshold) return 'ATM';
+                  // Find all unique strikes from calls and puts
+                  const allStrikes = new Set();
+                  calls.forEach(c => allStrikes.add(c.strikePrice));
+                  puts.forEach(p => allStrikes.add(p.strikePrice));
+                  
+                  // Find the strike(s) closest to current price
+                  const strikeArray = Array.from(allStrikes);
+                  if (strikeArray.length === 0) return 'OTM';
+                  
+                  // This logic is moved to filteredCalls and filteredPuts
+                  // Mark only the single nearest strike as ATM
+                  if (strike === atmStrike) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
                 };
-                const handleOptionClick = (instrumentSymbol: string, ltp?: number) => {
+  const getExchangeForIndex = (index: string): string => {
+    const exchangeMap: Record<string, string> = {
+      'NIFTY': 'NFO',
+      'BANKNIFTY': 'NFO',
+      'SENSEX': 'BFO',
+      'MIDCPNIFTY': 'NFO'
+    };
+    return exchangeMap[index] || 'NFO';
+  };
+
+                const handleOptionClick = async (option: any) => {
+                  const { symbol: instrumentSymbol, ltp, token: optionToken, exchange: optionExchange } = option;
+                  // Populate paper trading search bar with selected option
                   // Populate paper trading search bar with selected option
                   setPaperTradeSymbol(instrumentSymbol);
                   setPaperTradeSymbolSearch(instrumentSymbol);
@@ -19501,16 +19885,16 @@ ${
                     setPaperTradeCurrentPrice(ltp);
                     setPaperTradePriceLoading(false);
                     
-                    // Create instrument object for paper trading
+                    // Use token directly from option chain data (no API search needed)
                     const optionInstrument = {
                       symbol: instrumentSymbol,
-                      exchange: 'NFO',
-                      token: '',
+                      exchange: optionExchange || getExchangeForIndex(selectedOptionIndex),
+                      token: optionToken || '',
                       name: instrumentSymbol
                     };
                     setSelectedPaperTradingInstrument(optionInstrument);
                     
-                    // Start live price streaming for this instrument
+                    // Start live price streaming with token from option chain
                     fetchPaperTradePrice(optionInstrument);
                   }
                   
@@ -19541,10 +19925,10 @@ ${
                 if (maxRows === 0) {
                   return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
-                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Call (CE)</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">Put (PE)</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{calls[index] ? <div onClick={() => handleOptionClick(calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`, calls[index].ltp)} className={getClasses(calls[index].strikePrice, true)} data-testid={`option-call-${calls[index].strikePrice}`}><span className={getTextClasses(calls[index].strikePrice, true)}>{calls[index].symbol || `${selectedOptionIndex}${calls[index].strikePrice}CE`}</span><div className={getPriceClasses(calls[index].strikePrice, true)}>₹{calls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-3">{puts[index] ? <div onClick={() => handleOptionClick(puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`, puts[index].ltp)} className={getClasses(puts[index].strikePrice, false)} data-testid={`option-put-${puts[index].strikePrice}`}><span className={getTextClasses(puts[index].strikePrice, false)}>{puts[index].symbol || `${selectedOptionIndex}${puts[index].strikePrice}PE`}</span><div className={getPriceClasses(puts[index].strikePrice, false)}>₹{puts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
+                return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index])} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index])} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
               
-              {!optionChainLoading && !selectedOptionExpiryDate && (
+              {!optionChainLoading && !(selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
@@ -20220,30 +20604,27 @@ ${
                   
                   return (
                     <>
-                      {/* Column 1: Total P&L - Red Card */}
-                      <div className={`rounded-lg p-4 text-white ${isProfitable ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-red-500 to-red-600'}`}>
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="text-[11px] opacity-90 uppercase font-semibold">Total P&L</div>
-                          <div className="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center">
-                            <span className="text-[10px]">₹</span>
+                      {/* Column 1: Total P&L - Minimalistic Card */}
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-lg">
+                        <div className="mb-4">
+                          <div className="text-[11px] text-slate-600 dark:text-slate-400 uppercase font-semibold mb-2">Total P&L</div>
+                          <div className={`text-2xl font-bold ${isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {isProfitable ? '+' : ''}₹{(Math.abs(totalPnL) / 1000).toFixed(1)}K
                           </div>
                         </div>
-                        <div className={`text-3xl font-bold mb-3`}>
-                          {isProfitable ? '+' : ''}₹{(Math.abs(totalPnL) / 1000).toFixed(1)}K
-                        </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           <div className="flex justify-between text-[12px]">
-                            <span>Total Trades</span>
-                            <span className="font-semibold">{totalTrades}</span>
+                            <span className="text-slate-600 dark:text-slate-400">Total Trades</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">{totalTrades}</span>
                           </div>
                           <div className="flex justify-between text-[12px]">
-                            <span>Success Rate</span>
-                            <span className="font-semibold">{successRate.toFixed(1)}%</span>
+                            <span className="text-slate-600 dark:text-slate-400">Success Rate</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">{successRate.toFixed(1)}%</span>
                           </div>
-                          <div className="mt-2">
-                            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                          <div className="mt-3">
+                            <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                               <div 
-                                className="h-full bg-white/80 rounded-full transition-all"
+                                className={`h-full rounded-full transition-all ${isProfitable ? 'bg-emerald-500' : 'bg-red-500'}`}
                                 style={{ width: `${successRate}%` }}
                               />
                             </div>
@@ -20252,7 +20633,7 @@ ${
                       </div>
                       
                       {/* Column 2: Performance Trend */}
-                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-lg">
                         <div className="flex items-start justify-between mb-3">
                           <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-semibold">Performance Trend</div>
                           <div className={`text-[10px] px-2 py-1 rounded ${isProfitable ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
@@ -20326,7 +20707,7 @@ ${
                       </div>
                       
                       {/* Column 3: Loss Tags */}
-                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-lg">
                         <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-semibold mb-3">Loss Tags</div>
                         {lossTags.length > 0 ? (
                           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-md p-3 space-y-2 max-h-32 overflow-y-auto">

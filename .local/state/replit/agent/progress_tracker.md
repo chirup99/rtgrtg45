@@ -197,14 +197,28 @@
       * Comment updated from "Default to light mode" to "Default to dark mode"
     - Result: Application now loads with dark theme by default
     - Storage still works: Users can toggle theme and preferences are saved to localStorage
-    - Verification: Pending workflow restart
+    - Verification: Server restarted, dark theme confirmed as default
+[x] 34. **UI: Overtrading button moved to purple bar (December 12, 2025, 6:35 PM)**
+    - Request: Move "Overtrading" button from bottom section to purple bar (on the same row as FOMO button)
+    - Changes Applied to client/src/pages/home.tsx:
+      * Line 16482: Changed grid from `grid-cols-5` to `grid-cols-6` to accommodate 6 stat buttons
+      * Added Overtrading button in grid (after Streak stat) with matching FOMO styling:
+        - Button styling: `flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1`
+        - Active state: `bg-white/30 ring-2 ring-white/50` when selected
+        - Label: "OvrTrade" (text-[10px]) with count in `text-orange-200`
+        - Click functionality: Toggles `activeTagHighlight` for overtrading dates on heatmap
+      * Removed old Overtrading Block section (full-width button below purple bar)
+    - Result: 
+      * Overtrading now appears as a 6th stat button on purple bar next to FOMO, Win%, Streak
+      * Clicking button highlights overtrading dates on heatmap (same as FOMO functionality)
+      * Button shows orange-colored count matching Paper Trading minimalistic aesthetic
+      * Removed the separate "Overtrading Days: X" block that was below the purple bar
+    - Verification: Server restarted and running successfully
 
-### Current Status: ✅ ALL UI/UX IMPROVEMENTS COMPLETE (33 FIXES)
+### Current Status: ✅ ALL UPDATES COMPLETE (34 FIXES)
 - Application running on port 5000
-- All UI/UX improvements implemented and tested
-- Dark theme is now the DEFAULT theme
-- Dark theme visibility optimized
-- Private mode (eye icon) working
-- All dashboard sections unified with minimalistic Paper Trading aesthetic
+- Overtrading button now on purple bar (grid-cols-6) like FOMO button
+- Dark theme is the DEFAULT theme
+- All dashboard sections have consistent styling
 - All windows have consistent styling: `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800`
-- Chart visibility enhanced with proper color variables and tooltip styling
+- Chart visibility enhanced with proper color variables

@@ -16479,7 +16479,7 @@ ${
                               <div className="space-y-2">
                                 {/* Header row with stats and menu */}
                                 <div className="flex justify-between items-center gap-2">
-                                  <div className="grid grid-cols-5 gap-2 text-white flex-1">
+                                  <div className="grid grid-cols-6 gap-2 text-white flex-1">
                                     {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
                                         <div className="text-[10px] opacity-80">P&L</div>
@@ -16521,6 +16521,19 @@ ${
                                         <div className="text-[10px] opacity-80">Streak</div>
                                         <div className="text-xs font-bold">{maxWinStreak}</div>
                                       </div>
+                                    )}
+                                    {visibleStats.overtrading && (
+                                      <button 
+                                        className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${
+                                          activeTagHighlight?.tag === 'overtrading' ? 'bg-white/30 ring-2 ring-white/50' : ''
+                                        }`} 
+                                        onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'overtrading' ? null : { tag: 'overtrading', dates: overTradingDates })} 
+                                        data-testid="stat-overtrading"
+                                        title={`Click to ${activeTagHighlight?.tag === 'overtrading' ? 'hide' : 'show'} overtrading dates on heatmap`}
+                                      >
+                                        <div className="text-[10px] opacity-80">OvrTrade</div>
+                                        <div className="text-xs font-bold text-orange-200">{overTradingCount}</div>
+                                      </button>
                                     )}
                                   </div>
                                   
@@ -16582,16 +16595,7 @@ ${
                                   </Popover>
                                 </div>
                                 
-                                {/* Overtrading Block with Curved Lines */}
-                                {visibleStats.overtrading && (
-                                  <button className={`w-full hover-elevate active-elevate-2 rounded px-2 py-1 text-xs text-white transition-all ${
-                                    activeTagHighlight?.tag === 'overtrading' ? 'bg-white/30 ring-2 ring-white/50' : 'bg-white/10'
-                                  }`} onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'overtrading' ? null : { tag: 'overtrading', dates: overTradingDates })} data-testid="stat-overtrading-block">
-                                    <span className="opacity-80">Overtrading Days: </span>
-                                    <span className="font-semibold text-orange-200">{overTradingCount}</span>
-                                  </button>
-                                )}
-                                
+
                                 {/* Top Tags Block with Curved Lines */}
                                 {visibleStats.topTags && topTags.length > 0 && (
                                   <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
