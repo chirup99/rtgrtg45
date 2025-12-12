@@ -19055,7 +19055,7 @@ ${
                   <span>Capital: <span className="font-medium text-gray-900 dark:text-gray-100">₹{paperTradingCapital.toLocaleString('en-IN')}</span></span>
                   <span className="text-gray-300 dark:text-gray-600">|</span>
                   <span className={paperTradingTotalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                    P&L: <span className="font-medium" data-testid="paper-trading-total-pnl">{paperTradingTotalPnl >= 0 ? '+' : ''}₹{paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                    P&L: <span className="font-medium" data-testid="paper-trading-total-pnl">{hidePositionDetails ? '***' : (paperTradingTotalPnl >= 0 ? '+' : '') + '₹' + paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                   </span>
                 </div>
               </div>
