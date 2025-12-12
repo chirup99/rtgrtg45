@@ -209,6 +209,8 @@ class AngelOneRealTicker {
       }
       
       // Send candle data with properly tracked OHLC (not day's OHLC)
+      // CRITICAL FIX: Check if market is actually open before marking as 'live'
+      const marketOpen = this.isMarketOpen(client.exchange);
       const livePrice: RealLivePrice = {
         symbol: client.symbol,
         symbolToken: client.symbolToken,
@@ -221,11 +223,12 @@ class AngelOneRealTicker {
         close: client.candleOhlc.close,
         ltp: ltp,
         volume: wsData.volume || 0,
-        isRealTime: true,
-        marketStatus: 'live',
+        isRealTime: marketOpen,
+        marketStatus: marketOpen ? 'live' : 'closed',
         // Include candle timing info for frontend
         candleStartTime: client.candleOhlc.candleStartTime,
-        isNewCandle: isNewCandle
+        isNewCandle: isNewCandle,
+        isMarketOpen: marketOpen
       } as any;
       
       client.lastPrice = livePrice;
@@ -269,6 +272,8 @@ class AngelOneRealTicker {
         try {
           // If no live price yet, use fallback data (will be overridden by WebSocket)
           if (!client.lastPrice) {
+            // CRITICAL FIX: Include isMarketOpen in fallback data too
+            const marketOpen = this.isMarketOpen(client.exchange);
             const fallbackPrice: RealLivePrice = {
               symbol: client.symbol,
               symbolToken: client.symbolToken,
@@ -282,8 +287,9 @@ class AngelOneRealTicker {
               ltp: client.initialOhlc.close,
               volume: client.initialOhlc.volume,
               isRealTime: false,
-              marketStatus: this.isMarketOpen(client.exchange) ? 'delayed' : 'closed'
-            };
+              marketStatus: marketOpen ? 'delayed' : 'closed',
+              isMarketOpen: marketOpen
+            } as any;
 
             client.fallbackCount++;
             if (client.fallbackCount === 1) {

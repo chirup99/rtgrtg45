@@ -6690,9 +6690,16 @@ ${
           const remainingSeconds = Math.max(0, nextCandleTime - currentTime);
           const remainingMinutes = Math.floor(remainingSeconds / 60);
           const remainingSecondsDisplay = remainingSeconds % 60;
-          const countdownFormatted = remainingMinutes > 0 
+          
+          // CRITICAL FIX: Check if market is open from SSE response (isMarketOpen or marketStatus)
+          const isMarketActuallyOpen = liveCandle.isMarketOpen === true || liveCandle.marketStatus === 'live' || liveCandle.marketStatus === 'delayed';
+          
+          // Only show countdown if market is open, otherwise show empty
+          const countdownFormatted = isMarketActuallyOpen 
+            ? (remainingMinutes > 0 
             ? `${remainingMinutes}:${remainingSecondsDisplay.toString().padStart(2, '0')}`
-            : `${remainingSeconds}s`;
+            : `${remainingSeconds}s`)
+            : "";
           
           // Update or create price line with LTP and countdown
           if (journalCandlestickSeriesRef.current) {
@@ -6708,7 +6715,7 @@ ${
               lineWidth: 1,
               lineStyle: 2,
               axisLabelVisible: true,
-              title: countdownFormatted,
+              title: isMarketActuallyOpen ? countdownFormatted : '',
             });
           }
           
@@ -6716,9 +6723,9 @@ ${
           setJournalLiveData({
             ltp: liveCandle.close,
             countdown: {
-              remaining: remainingSeconds,
+              remaining: isMarketActuallyOpen ? remainingSeconds : 0,
               total: intervalSeconds,
-              formatted: countdownFormatted
+              formatted: isMarketActuallyOpen ? countdownFormatted : 'Market Closed'
             },
             currentCandle: {
               time: liveCandle.time,
@@ -6728,7 +6735,7 @@ ${
               close: liveCandle.close,
               volume: liveCandle.volume || 0
             },
-            isMarketOpen: true // Assuming market is open if we're receiving data
+            isMarketOpen: isMarketActuallyOpen
           });
           
           // Only update if we're within the same candle interval
