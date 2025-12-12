@@ -85,6 +85,14 @@
        * Gap spacing: Changed from `gap-2` to `gap-1.5` for more compact layout
      - Result: Search bar now matches Paper Trading dialog minimalistic aesthetic
      - Verification: Server restarted and running
+[x] 22. **UI: Fixed tradebook stats icon alignment (December 12, 2025, 4:46 PM)**
+     - Issue: On tradebook purple bar, last two icons (Share and 3-dot menu) were not aligned equally with other stats icons
+     - Root Cause: Parent container used `items-start` instead of `items-center`, causing misalignment when SVG trend element had varying height
+     - Fix Applied at Line 16481:
+       * Changed from: `flex justify-between items-start gap-2`
+       * Changed to: `flex justify-between items-center gap-2`
+     - Result: All icons (P&L, Trend, FOMO, Win%, Streak, Share, 3-dot menu) now align vertically at center
+     - Verification: Server restarted and running
 
 ### Latest Fix Summary (December 12, 2025)
 **Tab Navigation Bug Fixed**

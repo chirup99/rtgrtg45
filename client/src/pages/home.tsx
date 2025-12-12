@@ -16477,7 +16477,7 @@ ${
                             return (
                               <div className="space-y-2">
                                 {/* Header row with stats and menu */}
-                                <div className="flex justify-between items-start gap-2">
+                                <div className="flex justify-between items-center gap-2">
                                   <div className="grid grid-cols-5 gap-2 text-white flex-1">
                                     {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
