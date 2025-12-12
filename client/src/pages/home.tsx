@@ -4298,15 +4298,24 @@ ${
         return 'Search instruments...';
     }
   };
-  // 🔴 FIX: Restart price streaming when dialog opens with existing instrument
-  // This ensures first-time open shows streaming prices (not just on reopen)
+  // 🔴 FIX: Stream prices for ALL open positions when dialog opens
+  // This ensures first-time trades show streaming prices
   useEffect(() => {
-    if (showPaperTradingModal && selectedPaperTradingInstrument) {
-      console.log(`🔄 [PAPER-TRADE] Dialog opened with instrument: ${selectedPaperTradingInstrument.symbol}`);
-      fetchPaperTradePrice(selectedPaperTradingInstrument);
+    if (showPaperTradingModal && paperPositions.length > 0) {
+      console.log(`🔄 [PAPER-TRADE] Streaming prices for ${paperPositions.filter(p => p.isOpen).length} open positions`);
+      paperPositions.filter(p => p.isOpen).forEach(position => {
+        const instrumentForStreaming = {
+          symbol: position.symbol,
+          exchange: (position as any).exchange || 'NSE',
+          token: (position as any).symbolToken || '0',
+          name: position.symbol
+        };
+        if (!paperTradingEventSourcesRef.current.has(position.symbol)) {
+          fetchPaperTradePrice(instrumentForStreaming);
+        }
+      });
     }
-  }, [showPaperTradingModal]);
-
+  }, [showPaperTradingModal, paperPositions.length]);
   // Sort instruments by category: Index -> Futures (near, next, far) -> Options
   const sortInstruments = (instruments: any[]): any[] => {
     const today = new Date();
