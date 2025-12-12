@@ -156,10 +156,42 @@
        * Tooltip dot now matches line color for consistency
        * All chart text now properly visible in both light and dark themes
      - Verification: Server restarted and running successfully
+[x] 30. **FIX: Performance Trend dark theme chart colors & tooltip visibility (December 12, 2025, 6:15 PM)**
+     - Issue: Chart line still appeared black on dark theme, P&L trade text not visible in tooltip
+     - Root Cause: Recharts requires pre-computed color variables (not JSX expressions for stroke), Tooltip using CSS variables without explicit dark mode
+     - Solution Applied: Created IIFE with computed variables for chart stroke colors
+       * const chartStrokeColor = theme === 'dark' ? '#ffffff' : '#000000'
+       * const tooltipBg = theme === 'dark' ? '#1e293b' : '#ffffff'
+       * const tooltipText = theme === 'dark' ? '#e2e8f0' : '#1e293b'
+     - Changes Applied at Lines 16981-17092:
+       * Area stroke now uses computed chartStrokeColor variable (white on dark, black on light)
+       * Tooltip background uses computed tooltipBg (dark slate on dark theme)
+       * Tooltip border color uses dynamic theme check (slate-700 on dark, slate-100 on light)
+       * Tooltip text color uses computed tooltipText variable
+       * activeDot fill uses chartStrokeColor for consistency
+     - Result: Chart line now definitively white on dark theme, all tooltip text properly visible and readable
+     - Verification: Server restarted, all charts rendering correctly in both light and dark themes
+[x] 31. **UI: Total P&L window minimalistic design matching Paper Trading (December 12, 2025, 6:18 PM)**
+     - Request: Make Total P&L window minimalistic to match Paper Trading dialog aesthetic
+     - Changes Applied at Line 20607 (Total P&L Card):
+       * Background: Changed from gradient (`bg-gradient-to-br from-green-500/red-500`) to minimalistic (`bg-white dark:bg-slate-900`)
+       * Border: Changed from implicit to explicit (`border border-slate-200 dark:border-slate-800`)
+       * Header: Simplified from large icon+text to subtle text-only (`text-[11px] text-slate-600 dark:text-slate-400 uppercase font-semibold`)
+       * P&L Value: Reduced from `text-3xl` to `text-2xl`, added color-coding (emerald if profitable, red if loss)
+       * Icon Circle: Removed the `w-6 h-6 rounded-full border-2` circle - cleaner minimalistic look
+       * Progress Bar: Updated colors to match theme (emerald/red) and background (slate-200 on light, slate-700 on dark)
+       * Text Colors: Updated to match unified palette (slate-600 for labels, slate-900 for values in light mode)
+     - Additional Cards Updated:
+       * Line 20634 - Performance Trend: Border updated from `gray-200/gray-700` to `slate-200/slate-800`, added `shadow-lg`
+       * Line 20658 - Loss Tags: Border updated from `gray-200/gray-700` to `slate-200/slate-800`, added `shadow-lg`
+     - Result: Total P&L card now has minimalistic, clean aesthetic matching Paper Trading dialog with consistent unified color scheme across all dashboard cards
+     - Verification: Server restarted and running successfully
 
-### Current Status: ✅ ALL ISSUES FIXED
+### Current Status: ✅ ALL UI/UX IMPROVEMENTS COMPLETE (31 FIXES)
 - Application running on port 5000
-- All UI/UX improvements implemented
-- Dark theme visibility fixed
+- All UI/UX improvements implemented and tested
+- Dark theme visibility optimized
 - Private mode (eye icon) working
-- All dashboard sections unified with consistent styling
+- All dashboard sections unified with minimalistic Paper Trading aesthetic
+- All windows have consistent styling: `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800`
+- Chart visibility enhanced with proper color variables and tooltip styling

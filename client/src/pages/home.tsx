@@ -20604,30 +20604,27 @@ ${
                   
                   return (
                     <>
-                      {/* Column 1: Total P&L - Red Card */}
-                      <div className={`rounded-lg p-4 text-white ${isProfitable ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-red-500 to-red-600'}`}>
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="text-[11px] opacity-90 uppercase font-semibold">Total P&L</div>
-                          <div className="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center">
-                            <span className="text-[10px]">₹</span>
+                      {/* Column 1: Total P&L - Minimalistic Card */}
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-lg">
+                        <div className="mb-4">
+                          <div className="text-[11px] text-slate-600 dark:text-slate-400 uppercase font-semibold mb-2">Total P&L</div>
+                          <div className={`text-2xl font-bold ${isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {isProfitable ? '+' : ''}₹{(Math.abs(totalPnL) / 1000).toFixed(1)}K
                           </div>
                         </div>
-                        <div className={`text-3xl font-bold mb-3`}>
-                          {isProfitable ? '+' : ''}₹{(Math.abs(totalPnL) / 1000).toFixed(1)}K
-                        </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           <div className="flex justify-between text-[12px]">
-                            <span>Total Trades</span>
-                            <span className="font-semibold">{totalTrades}</span>
+                            <span className="text-slate-600 dark:text-slate-400">Total Trades</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">{totalTrades}</span>
                           </div>
                           <div className="flex justify-between text-[12px]">
-                            <span>Success Rate</span>
-                            <span className="font-semibold">{successRate.toFixed(1)}%</span>
+                            <span className="text-slate-600 dark:text-slate-400">Success Rate</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">{successRate.toFixed(1)}%</span>
                           </div>
-                          <div className="mt-2">
-                            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                          <div className="mt-3">
+                            <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                               <div 
-                                className="h-full bg-white/80 rounded-full transition-all"
+                                className={`h-full rounded-full transition-all ${isProfitable ? 'bg-emerald-500' : 'bg-red-500'}`}
                                 style={{ width: `${successRate}%` }}
                               />
                             </div>
@@ -20636,7 +20633,7 @@ ${
                       </div>
                       
                       {/* Column 2: Performance Trend */}
-                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-lg">
                         <div className="flex items-start justify-between mb-3">
                           <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-semibold">Performance Trend</div>
                           <div className={`text-[10px] px-2 py-1 rounded ${isProfitable ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
@@ -20710,7 +20707,7 @@ ${
                       </div>
                       
                       {/* Column 3: Loss Tags */}
-                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-lg">
                         <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-semibold mb-3">Loss Tags</div>
                         {lossTags.length > 0 ? (
                           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-md p-3 space-y-2 max-h-32 overflow-y-auto">
