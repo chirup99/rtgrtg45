@@ -214,10 +214,42 @@
       * Button shows orange-colored count matching Paper Trading minimalistic aesthetic
       * Removed the separate "Overtrading Days: X" block that was below the purple bar
     - Verification: Server restarted and running successfully
+[x] 35. **FIX: Overtrading count showing 0 (December 12, 2025, 6:32 PM)**
+    - Issue: Overtrading button was displaying 0 count while FOMO button showed correct count
+    - Root Cause: Overtrading was only counting days with > 10 trades (threshold may not match data), but FOMO counted by 'fomo' TAG
+    - Fix Applied:
+      * Updated overtrading logic to track both automatic detection (> 10 trades) AND manual 'overtrading' tag
+      * Now counts any date with > 10 trades OR with 'overtrading' tag added
+      * No duplicate counting - same date won't be counted twice
+    - Changes Applied to home.tsx (Line 16419-16439):
+      * Added tag-based counting: if normalizedTags.includes('overtrading'), increment overTradingCount
+      * Maintains backward compatibility with trade count threshold detection
+    - Result: Overtrading count now updates correctly whether detected by trade count or by tag
+    - Verification: Server restarted, count now displays correctly
+[x] 36. **FIX: Overtrading curved lines not displaying on heatmap (December 12, 2025, 6:40 PM)**
+    - Issue: Clicking Overtrading button didn't show curved lines to heatmap dates like FOMO button does
+    - Root Cause: Curved line rendering was hardcoded to only work for 'fomo' tag
+    - Fix Applied to home.tsx:
+      * Line 8194: Added `const overtradingButtonRef = useRef<HTMLButtonElement>(null);`
+      * Line 16545: Added `ref={overtradingButtonRef}` to Overtrading button
+      * Line 16293: Updated condition from `activeTagHighlight?.tag === 'fomo'` to `(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading')`
+      * Line 16301: Added dynamic button ref selection: `const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : overtradingButtonRef;`
+      * Lines 16347-16352: Updated stroke color and dots to use different colors for overtrading (orange) vs FOMO (purple/yellow)
+      * Lines 16391-16397: Added new orange gradient definition `overtradingLineGradient` with orange color stops (#fb923c, #f97316, #ea580c)
+    - Colors Used:
+      * FOMO curves: Purple → Pink → Yellow gradient with yellow pulsing dots
+      * Overtrading curves: Orange gradient with orange pulsing dots
+    - Result: 
+      * Clicking Overtrading button now displays curved lines from button to each overtrading date on heatmap
+      * Lines match FOMO functionality and animation style
+      * Orange color scheme matches the orange "OvrTrade" count display on button
+    - Verification: Server restarted and running successfully
 
-### Current Status: ✅ ALL UPDATES COMPLETE (34 FIXES)
+### Current Status: ✅ ALL UPDATES COMPLETE (36 FIXES)
 - Application running on port 5000
 - Overtrading button now on purple bar (grid-cols-6) like FOMO button
+- Overtrading count now displays correctly (tracks both trade count > 10 and 'overtrading' tag)
+- Overtrading curved lines now display on heatmap when button clicked (orange gradient matching FOMO functionality)
 - Dark theme is the DEFAULT theme
 - All dashboard sections have consistent styling
 - All windows have consistent styling: `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800`

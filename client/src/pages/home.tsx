@@ -8191,6 +8191,7 @@ ${
   
   // Refs for curved line connections from tag block to heatmap dates
   const fomoButtonRef = useRef<HTMLButtonElement>(null);
+  const overtradingButtonRef = useRef<HTMLButtonElement>(null);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   
   // Refs for share dialog curved line connections
@@ -16290,14 +16291,15 @@ ${
                         </div>
                         
                         {/* Curved Lines Overlay - connects FOMO tag block to highlighted dates */}
-                        {activeTagHighlight?.tag === 'fomo' && activeTagHighlight.dates.length > 0 && (() => {
+                        {(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading') && activeTagHighlight.dates.length > 0 && (() => {
                           // Force recalculation on scroll (dependency: scrollTrigger)
                           void scrollTrigger;
                           
                           // Calculate curved paths from FOMO button to each highlighted date cell
                           const paths: JSX.Element[] = [];
                           
-                          if (!fomoButtonRef.current || !heatmapContainerRef.current) {
+                          const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : overtradingButtonRef;
+                          if (!buttonRef.current || !heatmapContainerRef.current) {
                             return null;
                           }
                           
@@ -16309,7 +16311,7 @@ ${
                           
                           // Get positions relative to the heatmap's scrollable content
                           const containerRect = heatmapContainerRef.current.getBoundingClientRect();
-                          const buttonRect = fomoButtonRef.current.getBoundingClientRect();
+                          const buttonRect = buttonRef.current!.getBoundingClientRect();
                           
                           // Calculate button position relative to scrollable content
                           const buttonCenterX = buttonRect.left - containerRect.left + scrollLeft + buttonRect.width / 2;
@@ -16342,7 +16344,7 @@ ${
                                   <path
                                     d={pathD}
                                     fill="none"
-                                    stroke="url(#curvedLineGradient)"
+                                    stroke={activeTagHighlight?.tag === 'fomo' ? "url(#curvedLineGradient)" : "url(#overtradingLineGradient)"}
                                     strokeWidth="2.5"
                                     strokeDasharray="6,4"
                                     opacity="0.95"
@@ -16352,14 +16354,14 @@ ${
                                     cx={cellCenterX}
                                     cy={cellCenterY}
                                     r="4"
-                                    fill="#fcd34d"
+                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fcd34d" : "#fb923c"}
                                     opacity="0.9"
                                   />
                                   <circle
                                     cx={cellCenterX}
                                     cy={cellCenterY}
                                     r="3"
-                                    fill="#fbbf24"
+                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fbbf24" : "#f97316"}
                                     className="animate-pulse"
                                   />
                                 </g>
@@ -16385,6 +16387,11 @@ ${
                                   <stop offset="0%" stopColor="#c084fc" stopOpacity="1" />
                                   <stop offset="50%" stopColor="#f472b6" stopOpacity="1" />
                                   <stop offset="100%" stopColor="#fbbf24" stopOpacity="1" />
+                                </linearGradient>
+                                <linearGradient id="overtradingLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="#fb923c" stopOpacity="1" />
+                                  <stop offset="50%" stopColor="#f97316" stopOpacity="1" />
+                                  <stop offset="100%" stopColor="#ea580c" stopOpacity="1" />
                                 </linearGradient>
                               </defs>
                               {paths}
@@ -16535,6 +16542,7 @@ ${
                                     )}
                                     {visibleStats.overtrading && (
                                       <button 
+                                        ref={overtradingButtonRef}
                                         className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${
                                           activeTagHighlight?.tag === 'overtrading' ? 'bg-white/30 ring-2 ring-white/50' : ''
                                         }`} 
