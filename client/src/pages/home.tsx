@@ -14988,7 +14988,6 @@ ${
                                       </div>
                                       <div className="text-center">
                                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Loading {getJournalTimeframeLabel(journalChartTimeframe)} chart...</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fetching candles from Angel One API</p>
                                       </div>
                                     </div>
                                   </div>

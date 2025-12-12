@@ -138,5 +138,14 @@
 
 **Result**: ✅ Switching expiry dates in the option chain modal now properly loads and displays options for that expiry. No more empty tables when changing from 16 Dec → 23 Dec → 30 Dec, etc.
 
+### Journal Chart Loading Text - REMOVED (December 12, 2025, 4:06 AM)
+**Issue**: Loading state displayed "Fetching candles from Angel One API" text below the spinner.
+
+**Fix Applied**:
+- Removed the text line from journal chart loading state (line 14991)
+- Kept the spinner animation - only shows visual loading indicator
+
+**Result**: ✅ Journal chart now shows clean loading spinner without text while fetching candles.
+
 ### Completion Date
 December 12, 2025
