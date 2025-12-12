@@ -10,6 +10,7 @@
 [x] 5. Deploy to AWS Elastic Beanstalk
 [x] 6. Configure environment variables on AWS
 [x] 7. Verify AWS deployment is healthy
+[x] 8. Migrate import to Replit environment
 
 ### AWS Elastic Beanstalk Deployment
 - **Application**: perala ai
@@ -39,4 +40,4 @@
 4. Added all required AWS environment variables
 
 ### Completion Date
-December 11, 2025
+December 12, 2025
