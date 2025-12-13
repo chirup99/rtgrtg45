@@ -16245,6 +16245,55 @@ ${
                             </Button>
                           </div>
                         </div>
+
+                        {/* ✅ NEW CLEAN HEATMAP IMPLEMENTATION - Separate components for Demo & Personal */}
+                        <div className="relative">
+                         <div ref={heatmapContainerRef} className="pt-0.5">
+                          {isDemoMode ? (
+                            <DemoHeatmap 
+                              onDateSelect={handleDateSelect}
+                              selectedDate={selectedDate}
+                              tradingDataByDate={tradingDataByDate}
+                              onDataUpdate={(data) => {
+                                handleHeatmapDataUpdate(data);
+                                // Scroll to latest data for demo mode
+                                setTimeout(() => {
+                                  if (heatmapContainerRef.current) {
+                                    const scrollContainer = heatmapContainerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
+                                    if (scrollContainer) {
+                                      scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+                                      console.log("🎯 Demo heatmap: Scrolled to latest data view");
+                                    }
+                                  }
+                                }, 300);
+                              }}
+                              onRangeChange={handleDateRangeChange}
+                              highlightedDates={activeTagHighlight}
+                              onSelectDateForHeatmap={(symbol, date) => {
+                                console.log(`📊 [HOME] Switching to heatmap mode - Symbol: ${symbol}, Date: ${date}`);
+                                setJournalChartMode('heatmap');
+                                fetchHeatmapChartData(symbol, date);
+                              }}
+                            />
+                          ) : (
+                            <PersonalHeatmap
+                              userId={getUserId()}
+                              onDateSelect={handleDateSelect}
+                              selectedDate={selectedDate}
+                              onDataUpdate={handleHeatmapDataUpdate}
+                              onRangeChange={handleDateRangeChange}
+                              highlightedDates={activeTagHighlight}
+                            />
+                          )}
+                        </div>
+                        
+                        {/* Curved Lines Overlay - connects FOMO tag block to highlighted dates */}
+                        {(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading' || activeTagHighlight?.tag === 'planned') && activeTagHighlight.dates.length > 0 && (() => {
+                          // Force recalculation on scroll (dependency: scrollTrigger)
+                          void scrollTrigger;
+                          
+                          // Calculate curved paths from FOMO button to each highlighted date cell
+                          const paths: JSX.Element[] = [];
                           
                           const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : activeTagHighlight?.tag === 'overtrading' ? overtradingButtonRef : plannedButtonRef;
                           if (!buttonRef.current || !heatmapContainerRef.current) {
