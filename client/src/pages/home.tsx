@@ -16596,7 +16596,8 @@ ${
                                           const selectedCount = Object.values(visibleStats).filter(v => v).length;
                                           const isAtLimit = selectedCount >= 6;
                                           const handleCheckChange = (field: string, checked: boolean) => {
-                                            if (checked && isAtLimit) return;
+                                            const currentCount = Object.values(visibleStats).filter(v => v).length;
+                                            if (checked && currentCount >= 6) return;
                                             setVisibleStats({...visibleStats, [field]: checked});
                                           };
                                           return (
@@ -16642,12 +16643,6 @@ ${
                                           );
                                         })()}
                                       </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                </div>
-                                
-
-                                {/* Top Tags Block with Curved Lines */}
                                 {visibleStats.topTags && topTags.length > 0 && (
                                   <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
                                     <div className="opacity-80 mb-1">Top Tags:</div>
