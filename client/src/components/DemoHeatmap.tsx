@@ -1026,7 +1026,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 50,
+                  zIndex: 5,
                 }}
               >
                 <defs>
@@ -1091,7 +1091,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 10,
+                  zIndex: 5,
                 }}
               >
                 <defs>
@@ -1128,7 +1128,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 10,
+                  zIndex: 5,
                 }}
               >
                 <defs>
@@ -1170,7 +1170,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
             );
           })()}
 
-          <div className="flex gap-3 pb-2 select-none" style={{ minWidth: 'fit-content', position: 'relative', zIndex: 1 }}>
+          <div className="flex gap-3 pb-2 select-none" style={{ minWidth: 'fit-content', position: 'relative', zIndex: 100 }}>
             {months.map((month, monthIndex) => (
               <div key={monthIndex} className="flex flex-col gap-0.5">
                 <div 
