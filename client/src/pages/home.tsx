@@ -17301,11 +17301,11 @@ ${
                             return metrics.map((metric) => (
                               <div
                                 key={metric.label}
-                                className="bg-slate-900/30 dark:bg-slate-800/30 rounded-lg p-4 md:p-5 border border-dashed border-slate-400 dark:border-slate-600"
+                                className="bg-white dark:bg-slate-800 rounded-2xl p-3 md:p-6 shadow-lg border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300"
                               >
-                                <div className="flex flex-col items-center text-center gap-2">
+                                <div className="flex md:flex-col items-center md:items-start gap-3 md:gap-0">
                                   <div
-                                    className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${metric.color} rounded-lg flex items-center justify-center shadow-md`}
+                                    className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${metric.color} rounded-xl flex items-center justify-center md:mb-4 shadow-lg flex-shrink-0`}
                                   >
                                     <metric.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                                   </div>
