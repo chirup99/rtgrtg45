@@ -16497,7 +16497,7 @@ ${
                               <div className="space-y-2">
                                 {/* Header row with stats and menu */}
                                 <div className="flex justify-between items-center gap-2">
-                                  <div className="grid grid-cols-6 gap-2 text-white flex-1">
+                                  <div className={`text-white flex-1 flex ${Object.values(visibleStats).filter(v => v).length === 1 ? 'justify-center' : 'justify-around'} items-stretch gap-2`}>
                                     {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
                                         <div className="text-[10px] opacity-80">P&L</div>
