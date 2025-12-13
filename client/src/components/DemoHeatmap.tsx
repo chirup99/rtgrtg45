@@ -977,27 +977,25 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
   };
 
   return (
-    <div className="flex flex-col p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none h-full">
-      {/* Heatmap Container with integrated header */}
-      <div className="flex flex-col gap-2 overflow-visible relative">
-        {/* Header at top of heatmap */}
-        <div className="flex items-center justify-between px-2 py-2 rounded border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Trading Calendar {selectedRange 
-              ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
-              : currentDate.getFullYear()
-            }
-          </h3>
-          <span className="text-xs text-gray-500">
-            {isLoading ? "Loading..." : selectedRange 
-              ? `${countDatesWithData(filteredData)} of ${countDatesWithData(heatmapData)} dates in range`
-              : `${countDatesWithData(heatmapData)} dates with data`
-            }
-          </span>
-        </div>
+    <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
+      <div className="flex items-center justify-between relative z-5 px-2 py-1 rounded">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          Trading Calendar {selectedRange 
+            ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
+            : currentDate.getFullYear()
+          }
+        </h3>
+        <span className="text-xs text-gray-500">
+          {isLoading ? "Loading..." : selectedRange 
+            ? `${countDatesWithData(filteredData)} of ${countDatesWithData(heatmapData)} dates in range`
+            : `${countDatesWithData(heatmapData)} dates with data`
+          }
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-2 overflow-visible">
         <div className="overflow-x-auto thin-scrollbar" ref={heatmapContainerRef} style={{ position: 'relative', zIndex: 10 }}>
-          
-          {/* SVG overlay for range selector line - positioned INSIDE to scroll with calendar */}
+          {/* SVG overlay for range selector line (pointing to month labels) */}
           {rangeLinePositions && selectedRange && !isEditMode && (() => {
             const { x1, y1, x2, y2 } = rangeLinePositions;
             const dx = x2 - x1;
@@ -1026,7 +1024,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 5,
+                  zIndex: 10,
                 }}
               >
                 <defs>
@@ -1091,7 +1089,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 5,
+                  zIndex: 10,
                 }}
               >
                 <defs>
@@ -1128,7 +1126,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 5,
+                  zIndex: 10,
                 }}
               >
                 <defs>
@@ -1170,7 +1168,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
             );
           })()}
 
-          <div className="flex gap-3 pb-2 select-none" style={{ minWidth: 'fit-content', position: 'relative', zIndex: 100 }}>
+          <div className="flex gap-3 pb-2 select-none" style={{ minWidth: 'fit-content', position: 'relative', zIndex: 1 }}>
             {months.map((month, monthIndex) => (
               <div key={monthIndex} className="flex flex-col gap-0.5">
                 <div 
@@ -1367,7 +1365,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                         top: '-8px',
                         width: '100%', 
                         height: `calc(${badgePositions.containerHeight}px + 20px)`,
-                        zIndex: 100 
+                        zIndex: 0 
                       }}
                     >
                       <defs>
