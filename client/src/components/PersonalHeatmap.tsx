@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, MoreVertical, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -839,15 +839,6 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
     );
   }
 
-  const handleShareHeatmap = () => {
-    if (!userId) return;
-    const shareUrl = `${window.location.origin}/share/heatmap/${userId}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: "Link copied!",
-      description: "Share this link to showcase your trading calendar",
-    });
-  };
 
   return (
     <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
@@ -858,26 +849,12 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
             : currentDate.getFullYear()
           }
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-600 dark:text-gray-400">
-            {isLoading ? "Loading..." : selectedRange 
-              ? `${countDatesWithData(filteredHeatmapData)} of ${countDatesWithData(heatmapData)} dates`
-              : `${countDatesWithData(heatmapData)} dates`
-            }
-          </span>
-          {!isPublicView && userId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShareHeatmap}
-              className="h-7 w-7 hover-elevate"
-              title="Share your trading calendar"
-              data-testid="button-share-heatmap"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
+        <span className="text-[10px] text-gray-600 dark:text-gray-400">
+          {isLoading ? "Loading..." : selectedRange 
+            ? `${countDatesWithData(filteredHeatmapData)} of ${countDatesWithData(heatmapData)} dates`
+            : `${countDatesWithData(heatmapData)} dates`
+          }
+        </span>
       </div>
 
       <div className="flex flex-col gap-2 overflow-visible">
