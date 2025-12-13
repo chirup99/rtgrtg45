@@ -978,24 +978,23 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
 
   return (
     <div className="flex flex-col p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none h-full">
-      {/* Sticky Header - Fixed at top */}
-      <div className="sticky top-0 flex items-center justify-between px-2 py-2 rounded bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Trading Calendar {selectedRange 
-            ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
-            : currentDate.getFullYear()
-          }
-        </h3>
-        <span className="text-xs text-gray-500">
-          {isLoading ? "Loading..." : selectedRange 
-            ? `${countDatesWithData(filteredData)} of ${countDatesWithData(heatmapData)} dates in range`
-            : `${countDatesWithData(heatmapData)} dates with data`
-          }
-        </span>
-      </div>
-
-      {/* Scrollable Heatmap Container */}
-      <div className="flex flex-col gap-2 overflow-visible relative mt-2">
+      {/* Heatmap Container with integrated header */}
+      <div className="flex flex-col gap-2 overflow-visible relative">
+        {/* Header at top of heatmap */}
+        <div className="flex items-center justify-between px-2 py-2 rounded border-b border-slate-200 dark:border-slate-800">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Trading Calendar {selectedRange 
+              ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
+              : currentDate.getFullYear()
+            }
+          </h3>
+          <span className="text-xs text-gray-500">
+            {isLoading ? "Loading..." : selectedRange 
+              ? `${countDatesWithData(filteredData)} of ${countDatesWithData(heatmapData)} dates in range`
+              : `${countDatesWithData(heatmapData)} dates with data`
+            }
+          </span>
+        </div>
         {/* SVG overlay for range selector line - positioned OUTSIDE overflow to appear on top */}
         {rangeLinePositions && selectedRange && !isEditMode && (() => {
           const { x1, y1, x2, y2 } = rangeLinePositions;
