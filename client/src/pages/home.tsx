@@ -16199,51 +16199,37 @@ ${
                     <div className="relative">
                     <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between gap-2">
+                          <div>Trade Book</div>
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                              trade book
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 mr-2">
-                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {isDemoMode ? "Preview" : "Personal"}
-                              </span>
-                              <Switch
-                                checked={isDemoMode}
-                                onCheckedChange={(checked) => {
-                                  console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
-                                  
-                                  // Mark that user has manually toggled (prevents auto-switching)
-                                  setHasManuallyToggledMode(true);
-                                  localStorage.setItem("hasManuallyToggledMode", "true");
-                                  
-                                  // Simple toggle - just flip the mode
-                                  setIsDemoMode(checked);
-                                  localStorage.setItem("tradingJournalDemoMode", String(checked));
-                                  
-                                  // Clear current selection - heatmap will handle its own data loading
-                                  setSelectedDate(null);
-                                  setNotesContent("");
-                                  setTempNotesContent("");
-                                  setSelectedTags([]);
-    setSelectedDailyFactors([]);
-    setSelectedIndicators([]);
-                                  setTradeHistoryData([]);
-                                  setTradingImages([]);
-                                  
-                                  console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
-                                }}
-                                data-testid="switch-demo-mode"
-                              />
-                            </div>
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {isDemoMode ? "Preview" : "Personal"}
+                            </span>
+                            <Switch
+                              checked={isDemoMode}
+                              onCheckedChange={(checked) => {
+                                console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
+                                setHasManuallyToggledMode(true);
+                                localStorage.setItem("hasManuallyToggledMode", "true");
+                                setIsDemoMode(checked);
+                                localStorage.setItem("tradingJournalDemoMode", String(checked));
+                                setSelectedDate(null);
+                                setNotesContent("");
+                                setTempNotesContent("");
+                                setSelectedTags([]);
+                                setSelectedDailyFactors([]);
+                                setSelectedIndicators([]);
+                                setTradeHistoryData([]);
+                                setTradingImages([]);
+                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
+                              }}
+                              data-testid="switch-demo-mode"
+                            />
                             <Button
-                              variant="outline"
-                              size="sm"
                               onClick={saveAllTradingData}
-                              className="h-8 px-3 bg-black dark:bg-black border-black dark:border-black hover:bg-gray-800 dark:hover:bg-gray-800 text-white dark:text-white"
+                              size="sm"
+                              variant="outline"
+                              className="h-5 px-2 text-[10px] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700"
                               data-testid="button-save-trade-book"
                             >
                               Save
