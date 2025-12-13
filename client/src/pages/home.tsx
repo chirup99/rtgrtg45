@@ -16668,12 +16668,40 @@ ${
                                   </div>
                                 )}
                                 
-                                {/* AI Analysis Block - Static Text Only */}
+                                {/* AI Analysis Block - Real Recommendations */}
                                 {visibleStats.aiAnalysis && (
                                   <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
                                     <span className="opacity-80">AI Insight: </span>
                                     <span className="italic text-blue-200">
-                                      {totalTrades > 0 ? (winRate > 60 ? "Strong performance detected" : winRate > 50 ? "Balanced trading pattern" : "Risk management recommended") : "No data yet"}
+                                      {(() => {
+                                        if (heatmapMetrics.totalTrades === 0) {
+                                          return "No data yet - start trading to get insights";
+                                        }
+                                        
+                                        const winRate = heatmapMetrics.winRate;
+                                        const isProfitable = totalPnL >= 0;
+                                        
+                                        // Priority-based recommendations
+                                        if (winRate < 40) {
+                                          return "Win rate < 40% - Review entry signals and stop placement immediately";
+                                        }
+                                        if (!isProfitable && fomoTrades > 3) {
+                                          return "Reduce FOMO trades - Focus on planned, high-probability setups";
+                                        }
+                                        if (isProfitable && overTradingCount > Math.ceil(heatmapMetrics.totalTrades * 0.3)) {
+                                          return `Profitable but overtrading - Reduce frequency to improve consistency`;
+                                        }
+                                        if (heatmapMetrics.totalTrades < 5) {
+                                          return "Need more trades for pattern analysis - Continue building your dataset";
+                                        }
+                                        if (winRate > 65) {
+                                          return "Strong win rate - Focus on position sizing to maximize wins";
+                                        }
+                                        if (winRate > 50 && winRate <= 65) {
+                                          return "Solid performance - Increase trade size on highest conviction setups";
+                                        }
+                                        return "Balanced results - Maintain discipline and track best performing setups";
+                                      })()}
                                     </span>
                                   </div>
                                 )}
