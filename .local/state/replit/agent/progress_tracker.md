@@ -68,8 +68,17 @@
       * Now matches DemoHeatmap styling for consistent curved line visibility
     - Result: Personal heatmap range selection curved line now displays properly with adequate top padding
     - Verification: Changes saved, ready for workflow restart
+[x] 41. **FIX: Display all calendar months in Personal Heatmap (December 13, 2025, 4:31 AM)**
+    - Issue: Personal heatmap only showed months within selected range, not all 12 months like demo heatmap
+    - Root Cause: `generateMonthsData()` function was filtering months based on selectedRange
+    - Fix Applied to PersonalHeatmap.tsx (lines 730-779):
+      * Removed range-based month filtering logic
+      * Now always displays all 12 months (Jan-Dec) of current year
+      * Matches DemoHeatmap behavior: complete calendar regardless of range selection
+      * Date graying (dates outside range show gray) already implemented and working
+    - Result: Personal heatmap now displays all calendar months with range-filtered dates grayed out
 
-### Current Status: ALL UPDATES COMPLETE (40 ITEMS)
+### Current Status: ALL UPDATES COMPLETE (41 ITEMS)
 - Application running on port 5000
 - Dark theme is the DEFAULT theme
 - All dashboard sections have consistent styling
