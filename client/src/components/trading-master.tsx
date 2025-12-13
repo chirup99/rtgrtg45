@@ -788,7 +788,7 @@ function AtmOhlcDisplay({ optionChainData, selectedStrike, onStrikeChange, selec
             {/* Call and Put Options Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Call Option */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-green-600">{selectedStrike} CE</h4>
                   <Badge variant="outline" className="text-green-600 border-green-600">CALL</Badge>
@@ -813,7 +813,7 @@ function AtmOhlcDisplay({ optionChainData, selectedStrike, onStrikeChange, selec
               </div>
 
               {/* Put Option */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-red-600">{selectedStrike} PE</h4>
                   <Badge variant="outline" className="text-red-600 border-red-600">PUT</Badge>
@@ -840,7 +840,7 @@ function AtmOhlcDisplay({ optionChainData, selectedStrike, onStrikeChange, selec
           </>
         ) : (
           /* Detailed Candle View */
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-gray-800 dark:text-white">
                 ATM Options Analysis
@@ -5731,7 +5731,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
         <div className="xl:col-span-2">
           <Card className="h-80 bg-slate-900 dark:bg-slate-900 border-slate-700">
             <CardContent className="p-6">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Chart Header */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -5875,7 +5875,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
           {/* OHLC Data Window Below Chart */}
           <Card className="bg-slate-900 dark:bg-slate-900 border-slate-700 mt-4">
             <CardContent className="p-4">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* OHLC Header */}
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -9764,7 +9764,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
             </div>
 
             {/* Strategy Grid */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               {/* Symbol, Timeframe, Date Controls */}
               <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
                 {/* Symbol Selection */}
@@ -11773,7 +11773,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
                         <span className="text-sm font-bold text-cyan-600">Live Analysis</span>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="text-center p-3 bg-green-100 dark:bg-green-900/30 rounded">
                             <div className="text-xs text-gray-600 dark:text-gray-400">CE Breakeven</div>
@@ -12962,14 +12962,14 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
 
       {/* 🚀 REVOLUTIONARY PATTERN SAVE DIALOG */}
       <Dialog open={showPatternSaveDialog} onOpenChange={setShowPatternSaveDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-96 overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
               Save Pattern for AI Recognition
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <Label htmlFor="pattern-name" className="text-sm font-medium">
                 Pattern Name
@@ -13047,14 +13047,14 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
 
       {/* 🗑️ PATTERN DELETE CONFIRMATION DIALOG */}
       <Dialog open={!!patternToDelete} onOpenChange={(open) => !open && setPatternToDelete(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-96 overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
               Delete Pattern
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {patternToDelete && (() => {
               const pattern = savedPatterns.find(p => p.id === patternToDelete);
               return pattern ? (
@@ -13103,27 +13103,27 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
 
       {/* Trade History Dialog */}
       <Dialog open={showTradeHistory} onOpenChange={setShowTradeHistory}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-96 overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-gray-800 dark:text-white">TRADE HISTORY SUMMARY</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <Table>
               <TableHeader className="bg-gray-800">
                 <TableRow className="border-gray-600">
-                  <TableHead className="text-white text-xs p-2">Symbol</TableHead>
-                  <TableHead className="text-white text-xs p-2">Action</TableHead>
-                  <TableHead className="text-white text-xs p-2">Qty</TableHead>
-                  <TableHead className="text-white text-xs p-2">Entry</TableHead>
+                  <TableHead className="text-white text-xs p-1">Symbol</TableHead>
+                  <TableHead className="text-white text-xs p-1">Action</TableHead>
+                  <TableHead className="text-white text-xs p-1">Qty</TableHead>
+                  <TableHead className="text-white text-xs p-1">Entry</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tradeHistoryData.map((trade, index) => (
                   <TableRow key={index} className="border-gray-200 dark:border-gray-700" data-testid={`row-trade-${index}`}>
-                    <TableCell className="text-xs p-2 text-gray-800 dark:text-white">{trade.symbol}</TableCell>
-                    <TableCell className="text-xs p-2 text-gray-800 dark:text-white">{trade.action}</TableCell>
-                    <TableCell className="text-xs p-2 text-gray-800 dark:text-white">{trade.qty}</TableCell>
-                    <TableCell className="text-xs p-2 text-gray-800 dark:text-white">{trade.entry}</TableCell>
+                    <TableCell className="text-xs p-1 text-gray-800 dark:text-white">{trade.symbol}</TableCell>
+                    <TableCell className="text-xs p-1 text-gray-800 dark:text-white">{trade.action}</TableCell>
+                    <TableCell className="text-xs p-1 text-gray-800 dark:text-white">{trade.qty}</TableCell>
+                    <TableCell className="text-xs p-1 text-gray-800 dark:text-white">{trade.entry}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -13452,7 +13452,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-2">
             {testResults.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <div className="mb-4">
@@ -13572,7 +13572,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Strategy Code</span>
@@ -13622,7 +13622,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-2">
             {/* Feature Highlights */}
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">🚀 Advanced Features Implemented:</h3>
@@ -14015,7 +14015,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
               </Button>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-2">
               {/* Common Period Input for SMA, EMA, MA, RSI, Bollinger */}
               {(['sma', 'ema', 'ma', 'rsi', 'bollinger'].includes(selectedIndicatorForEdit)) && (
                 <div>
