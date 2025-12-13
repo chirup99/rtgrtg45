@@ -16200,45 +16200,40 @@ ${
                     <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
                         <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                            trade book
+                          </h3>
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                              trade book
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 mr-2">
-                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {isDemoMode ? "Preview" : "Personal"}
-                              </span>
-                              <Switch
-                                checked={isDemoMode}
-                                onCheckedChange={(checked) => {
-                                  console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
-                                  
-                                  // Mark that user has manually toggled (prevents auto-switching)
-                                  setHasManuallyToggledMode(true);
-                                  localStorage.setItem("hasManuallyToggledMode", "true");
-                                  
-                                  // Simple toggle - just flip the mode
-                                  setIsDemoMode(checked);
-                                  localStorage.setItem("tradingJournalDemoMode", String(checked));
-                                  
-                                  // Clear current selection - heatmap will handle its own data loading
-                                  setSelectedDate(null);
-                                  setNotesContent("");
-                                  setTempNotesContent("");
-                                  setSelectedTags([]);
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {isDemoMode ? "Preview" : "Personal"}
+                            </span>
+                            <Switch
+                              checked={isDemoMode}
+                              onCheckedChange={(checked) => {
+                                console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
+                                
+                                // Mark that user has manually toggled (prevents auto-switching)
+                                setHasManuallyToggledMode(true);
+                                localStorage.setItem("hasManuallyToggledMode", "true");
+                                
+                                // Simple toggle - just flip the mode
+                                setIsDemoMode(checked);
+                                localStorage.setItem("tradingJournalDemoMode", String(checked));
+                                
+                                // Clear current selection - heatmap will handle its own data loading
+                                setSelectedDate(null);
+                                setNotesContent("");
+                                setTempNotesContent("");
+                                setSelectedTags([]);
     setSelectedDailyFactors([]);
     setSelectedIndicators([]);
-                                  setTradeHistoryData([]);
-                                  setTradingImages([]);
-                                  
-                                  console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
-                                }}
-                                data-testid="switch-demo-mode"
-                              />
-                            </div>
+                                setTradeHistoryData([]);
+                                setTradingImages([]);
+                                
+                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
+                              }}
+                              data-testid="switch-demo-mode"
+                            />
                             <Button
                               variant="outline"
                               size="sm"
@@ -16250,55 +16245,6 @@ ${
                             </Button>
                           </div>
                         </div>
-
-                        {/* ✅ NEW CLEAN HEATMAP IMPLEMENTATION - Separate components for Demo & Personal */}
-                        <div className="relative">
-                         <div ref={heatmapContainerRef} className="pt-0.5">
-                          {isDemoMode ? (
-                            <DemoHeatmap 
-                              onDateSelect={handleDateSelect}
-                              selectedDate={selectedDate}
-                              tradingDataByDate={tradingDataByDate}
-                              onDataUpdate={(data) => {
-                                handleHeatmapDataUpdate(data);
-                                // Scroll to latest data for demo mode
-                                setTimeout(() => {
-                                  if (heatmapContainerRef.current) {
-                                    const scrollContainer = heatmapContainerRef.current.querySelector('[style*="overflow"]') as HTMLElement;
-                                    if (scrollContainer) {
-                                      scrollContainer.scrollLeft = scrollContainer.scrollWidth;
-                                      console.log("🎯 Demo heatmap: Scrolled to latest data view");
-                                    }
-                                  }
-                                }, 300);
-                              }}
-                              onRangeChange={handleDateRangeChange}
-                              highlightedDates={activeTagHighlight}
-                              onSelectDateForHeatmap={(symbol, date) => {
-                                console.log(`📊 [HOME] Switching to heatmap mode - Symbol: ${symbol}, Date: ${date}`);
-                                setJournalChartMode('heatmap');
-                                fetchHeatmapChartData(symbol, date);
-                              }}
-                            />
-                          ) : (
-                            <PersonalHeatmap
-                              userId={getUserId()}
-                              onDateSelect={handleDateSelect}
-                              selectedDate={selectedDate}
-                              onDataUpdate={handleHeatmapDataUpdate}
-                              onRangeChange={handleDateRangeChange}
-                              highlightedDates={activeTagHighlight}
-                            />
-                          )}
-                        </div>
-                        
-                        {/* Curved Lines Overlay - connects FOMO tag block to highlighted dates */}
-                        {(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading' || activeTagHighlight?.tag === 'planned') && activeTagHighlight.dates.length > 0 && (() => {
-                          // Force recalculation on scroll (dependency: scrollTrigger)
-                          void scrollTrigger;
-                          
-                          // Calculate curved paths from FOMO button to each highlighted date cell
-                          const paths: JSX.Element[] = [];
                           
                           const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : activeTagHighlight?.tag === 'overtrading' ? overtradingButtonRef : plannedButtonRef;
                           if (!buttonRef.current || !heatmapContainerRef.current) {
