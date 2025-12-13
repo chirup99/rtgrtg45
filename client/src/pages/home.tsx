@@ -16201,30 +16201,29 @@ ${
                       <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
                         <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between gap-2">
                           <div>Trade Book</div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              {isDemoMode ? "Preview" : "Personal"}
-                            </span>
-                            <Switch
-                              checked={isDemoMode}
-                              onCheckedChange={(checked) => {
-                                console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
-                                setHasManuallyToggledMode(true);
-                                localStorage.setItem("hasManuallyToggledMode", "true");
-                                setIsDemoMode(checked);
-                                localStorage.setItem("tradingJournalDemoMode", String(checked));
-                                setSelectedDate(null);
-                                setNotesContent("");
-                                setTempNotesContent("");
-                                setSelectedTags([]);
-                                setSelectedDailyFactors([]);
-                                setSelectedIndicators([]);
-                                setTradeHistoryData([]);
-                                setTradingImages([]);
-                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
-                              }}
-                              data-testid="switch-demo-mode"
-                            />
+                          <div className="flex items-center gap-1">
+                            <div title={isDemoMode ? "Preview Mode" : "Personal Mode"}>
+                              <Switch
+                                checked={isDemoMode}
+                                onCheckedChange={(checked) => {
+                                  console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
+                                  setHasManuallyToggledMode(true);
+                                  localStorage.setItem("hasManuallyToggledMode", "true");
+                                  setIsDemoMode(checked);
+                                  localStorage.setItem("tradingJournalDemoMode", String(checked));
+                                  setSelectedDate(null);
+                                  setNotesContent("");
+                                  setTempNotesContent("");
+                                  setSelectedTags([]);
+                                  setSelectedDailyFactors([]);
+                                  setSelectedIndicators([]);
+                                  setTradeHistoryData([]);
+                                  setTradingImages([]);
+                                  console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
+                                }}
+                                data-testid="switch-demo-mode"
+                              />
+                            </div>
                             <Button
                               onClick={saveAllTradingData}
                               size="sm"
