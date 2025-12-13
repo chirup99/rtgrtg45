@@ -16588,44 +16588,59 @@ ${
                                     </PopoverTrigger>
                                     <PopoverContent className="w-56 p-3 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                       <div className="space-y-2">
-                                        <div className="text-xs font-semibold text-slate-400 mb-2">Customize Magic Bar</div>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => setVisibleStats({...visibleStats, pnl: e.target.checked})} className="rounded" />
-                                          P&L
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.trend} onChange={(e) => setVisibleStats({...visibleStats, trend: e.target.checked})} className="rounded" />
-                                          Trend
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.fomo} onChange={(e) => setVisibleStats({...visibleStats, fomo: e.target.checked})} className="rounded" />
-                                          FOMO
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.winRate} onChange={(e) => setVisibleStats({...visibleStats, winRate: e.target.checked})} className="rounded" />
-                                          Win Rate
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.streak} onChange={(e) => setVisibleStats({...visibleStats, streak: e.target.checked})} className="rounded" />
-                                          Streak
-                                        </label>
-                                        <div className="border-t border-slate-700 my-2"></div>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => setVisibleStats({...visibleStats, overtrading: e.target.checked})} className="rounded" />
-                                          Overtrading
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.planned} onChange={(e) => setVisibleStats({...visibleStats, planned: e.target.checked})} className="rounded" />
-                                          Planned
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => setVisibleStats({...visibleStats, topTags: e.target.checked})} className="rounded" />
-                                          Top Tags
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
-                                          <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => setVisibleStats({...visibleStats, aiAnalysis: e.target.checked})} className="rounded" />
-                                          AI Analysis
-                                        </label>
+                                        <div className="text-xs font-semibold text-slate-400 mb-2 flex items-center justify-between">
+                                          <span>Customize Magic Bar</span>
+                                          <span className="text-xs opacity-70">{Object.values(visibleStats).filter(v => v).length}/6</span>
+                                        </div>
+                                        {(() => {
+                                          const selectedCount = Object.values(visibleStats).filter(v => v).length;
+                                          const isAtLimit = selectedCount >= 6;
+                                          const handleCheckChange = (field: string, checked: boolean) => {
+                                            if (checked && isAtLimit) return;
+                                            setVisibleStats({...visibleStats, [field]: checked});
+                                          };
+                                          return (
+                                            <>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.pnl && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!visibleStats.pnl && isAtLimit} className="rounded" />
+                                                P&L
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.trend && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.trend} onChange={(e) => handleCheckChange('trend', e.target.checked)} disabled={!visibleStats.trend && isAtLimit} className="rounded" />
+                                                Trend
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.fomo && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.fomo} onChange={(e) => handleCheckChange('fomo', e.target.checked)} disabled={!visibleStats.fomo && isAtLimit} className="rounded" />
+                                                FOMO
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.winRate && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.winRate} onChange={(e) => handleCheckChange('winRate', e.target.checked)} disabled={!visibleStats.winRate && isAtLimit} className="rounded" />
+                                                Win Rate
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.streak && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.streak} onChange={(e) => handleCheckChange('streak', e.target.checked)} disabled={!visibleStats.streak && isAtLimit} className="rounded" />
+                                                Streak
+                                              </label>
+                                              <div className="border-t border-slate-700 my-2"></div>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.overtrading && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => handleCheckChange('overtrading', e.target.checked)} disabled={!visibleStats.overtrading && isAtLimit} className="rounded" />
+                                                Overtrading
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.planned && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.planned} onChange={(e) => handleCheckChange('planned', e.target.checked)} disabled={!visibleStats.planned && isAtLimit} className="rounded" />
+                                                Planned
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.topTags && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => handleCheckChange('topTags', e.target.checked)} disabled={!visibleStats.topTags && isAtLimit} className="rounded" />
+                                                Top Tags
+                                              </label>
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.aiAnalysis && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} disabled={!visibleStats.aiAnalysis && isAtLimit} className="rounded" />
+                                                AI Analysis
+                                              </label>
+                                            </>
+                                          );
+                                        })()}
                                       </div>
                                     </PopoverContent>
                                   </Popover>
