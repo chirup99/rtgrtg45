@@ -851,18 +851,18 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
 
   return (
     <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
-      <div className="flex items-center justify-between relative z-5 px-2 py-1 rounded">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+      <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between gap-2">
+        <div>
           Personal Trading Calendar {selectedRange 
             ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
             : currentDate.getFullYear()
           }
-        </h3>
+        </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-[10px] text-gray-600 dark:text-gray-400">
             {isLoading ? "Loading..." : selectedRange 
-              ? `${countDatesWithData(filteredHeatmapData)} of ${countDatesWithData(heatmapData)} dates in range`
-              : `${countDatesWithData(heatmapData)} dates with data`
+              ? `${countDatesWithData(filteredHeatmapData)} of ${countDatesWithData(heatmapData)} dates`
+              : `${countDatesWithData(heatmapData)} dates`
             }
           </span>
           {!isPublicView && userId && (
