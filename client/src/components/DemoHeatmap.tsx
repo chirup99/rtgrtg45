@@ -978,19 +978,14 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
 
   return (
     <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
-      <div className="flex items-center justify-between relative z-5 px-2 py-1 rounded">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Trading Calendar {selectedRange 
-            ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
-            : currentDate.getFullYear()
-          }
-        </h3>
-        <span className="text-xs text-gray-500">
-          {isLoading ? "Loading..." : selectedRange 
-            ? `${countDatesWithData(filteredData)} of ${countDatesWithData(heatmapData)} dates in range`
-            : `${countDatesWithData(heatmapData)} dates with data`
-          }
-        </span>
+      <div className="text-xs text-gray-600 dark:text-gray-400 pb-1">
+        Trading Calendar {selectedRange 
+          ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
+          : currentDate.getFullYear()
+        } • {isLoading ? "Loading..." : selectedRange 
+          ? `${countDatesWithData(filteredData)} of ${countDatesWithData(heatmapData)} dates in range`
+          : `${countDatesWithData(heatmapData)} dates with data`
+        }
       </div>
 
       <div className="flex flex-col gap-2 overflow-visible">
