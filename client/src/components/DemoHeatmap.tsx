@@ -978,7 +978,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
 
   return (
     <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
-      <div className="flex items-center justify-between relative z-0 px-2 py-1 rounded">
+      <div className="flex items-center justify-between relative z-0 px-2 py-1 rounded bg-transparent">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Trading Calendar {selectedRange 
             ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
