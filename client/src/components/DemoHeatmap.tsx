@@ -995,58 +995,58 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
             }
           </span>
         </div>
-        {/* SVG overlay for range selector line - positioned OUTSIDE overflow to appear on top */}
-        {rangeLinePositions && selectedRange && !isEditMode && (() => {
-          const { x1, y1, x2, y2 } = rangeLinePositions;
-          const dx = x2 - x1;
-          const dy = y2 - y1;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          // Create single smooth curve path
-          const curveAmount = Math.min(distance * 0.3, 50);
-          const angle = Math.atan2(dy, dx);
-          const perpAngle = angle - Math.PI / 2;
-          const midX = (x1 + x2) / 2;
-          const midY = (y1 + y2) / 2;
-          const controlX = midX + Math.cos(perpAngle) * curveAmount;
-          const controlY = midY + Math.sin(perpAngle) * curveAmount;
-          const pathD = `M ${x1} ${y1} Q ${controlX} ${controlY}, ${x2} ${y2}`;
-          
-          const scrollWidth = heatmapContainerRef.current?.scrollWidth || 0;
-          const scrollHeight = heatmapContainerRef.current?.scrollHeight || 0;
-          
-          return (
-            <svg
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: `${scrollWidth}px`,
-                height: `${scrollHeight}px`,
-                pointerEvents: 'none',
-                zIndex: 50,
-              }}
-            >
-              <defs>
-                <linearGradient id="demo-rangeLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 0.7 }} />
-                  <stop offset="100%" style={{ stopColor: 'rgb(147, 51, 234)', stopOpacity: 0.7 }} />
-                </linearGradient>
-              </defs>
-              <path
-                d={pathD}
-                stroke="url(#demo-rangeLineGradient)"
-                strokeWidth="3"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ filter: 'drop-shadow(0 2px 6px rgba(59, 130, 246, 0.4))' }}
-              />
-            </svg>
-          );
-        })()}
-        
         <div className="overflow-x-auto thin-scrollbar" ref={heatmapContainerRef} style={{ position: 'relative', zIndex: 10 }}>
+          
+          {/* SVG overlay for range selector line - positioned INSIDE to scroll with calendar */}
+          {rangeLinePositions && selectedRange && !isEditMode && (() => {
+            const { x1, y1, x2, y2 } = rangeLinePositions;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Create single smooth curve path
+            const curveAmount = Math.min(distance * 0.3, 50);
+            const angle = Math.atan2(dy, dx);
+            const perpAngle = angle - Math.PI / 2;
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            const controlX = midX + Math.cos(perpAngle) * curveAmount;
+            const controlY = midY + Math.sin(perpAngle) * curveAmount;
+            const pathD = `M ${x1} ${y1} Q ${controlX} ${controlY}, ${x2} ${y2}`;
+            
+            const scrollWidth = heatmapContainerRef.current?.scrollWidth || 0;
+            const scrollHeight = heatmapContainerRef.current?.scrollHeight || 0;
+            
+            return (
+              <svg
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: `${scrollWidth}px`,
+                  height: `${scrollHeight}px`,
+                  pointerEvents: 'none',
+                  zIndex: 50,
+                }}
+              >
+                <defs>
+                  <linearGradient id="demo-rangeLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 0.7 }} />
+                    <stop offset="100%" style={{ stopColor: 'rgb(147, 51, 234)', stopOpacity: 0.7 }} />
+                  </linearGradient>
+                </defs>
+                <path
+                  d={pathD}
+                  stroke="url(#demo-rangeLineGradient)"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ filter: 'drop-shadow(0 2px 6px rgba(59, 130, 246, 0.4))' }}
+                />
+              </svg>
+            );
+          })()}
 
           {/* SVG overlay for connecting line between selected dates */}
           {linePositions && isEditMode && (() => {
