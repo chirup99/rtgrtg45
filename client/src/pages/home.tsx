@@ -16590,22 +16590,13 @@ ${
                                       <div className="space-y-2">
                                         <div className="text-xs font-semibold text-slate-400 mb-2 flex items-center justify-between">
                                           <span>Customize Magic Bar</span>
-                                          <span className="text-xs opacity-70">{(() => {
-                                            const baseItems = Object.entries(visibleStats).filter(([k]) => k !== 'aiAnalysis').filter(([,v]) => v).length;
-                                            return `${baseItems}/6`;
-                                          })()}</span>
+                                          <span className="text-xs opacity-70">{Object.values(visibleStats).filter(v => v).length}/6</span>
                                         </div>
                                         {(() => {
-                                          const baseStats = Object.entries(visibleStats).filter(([k]) => k !== 'aiAnalysis');
-                                          const selectedCount = baseStats.filter(([,v]) => v).length;
+                                          const selectedCount = Object.values(visibleStats).filter(v => v).length;
                                           const isAtLimit = selectedCount >= 6;
                                           const handleCheckChange = (field: string, checked: boolean) => {
-                                            if (field === 'aiAnalysis') {
-                                              setVisibleStats({...visibleStats, [field]: checked});
-                                              return;
-                                            }
-                                            const currentCount = baseStats.filter(([,v]) => v).length;
-                                            if (checked && currentCount >= 6) return;
+                                            if (checked && isAtLimit) return;
                                             setVisibleStats({...visibleStats, [field]: checked});
                                           };
                                           return (
@@ -16643,8 +16634,8 @@ ${
                                                 <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => handleCheckChange('topTags', e.target.checked)} disabled={!visibleStats.topTags && isAtLimit} className="rounded" />
                                                 Top Tags
                                               </label>
-                                              <label className="flex items-center gap-2 text-sm p-1.5 rounded cursor-pointer hover:bg-slate-800/50">
-                                                <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.aiAnalysis && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} disabled={!visibleStats.aiAnalysis && isAtLimit} className="rounded" />
                                                 AI Analysis
                                               </label>
                                             </>
@@ -16676,6 +16667,29 @@ ${
                                     </div>
                                   </div>
                                 )}
+                                
+                                {/* AI Analysis Block - Static Text Only */}
+                                {visibleStats.aiAnalysis && (
+                                  <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
+                                    <span className="opacity-80">AI Insight: </span>
+                                    <span className="italic text-blue-200">
+                                      {totalTrades > 0 ? (winRate > 60 ? "Strong performance detected" : winRate > 50 ? "Balanced trading pattern" : "Risk management recommended") : "No data yet"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    </div>
+                  </div>
+                </div>
+                {/* End of Main Journal Content */}
+
+                {/* Ranking Tab Content - Mobile only, shown when ranking tab is active */}
+                {mobileBottomTab === "ranking" && (
                   <div className="md:hidden mt-6 space-y-6">
                     <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 border-amber-200 dark:border-amber-800">
                       <CardHeader>
