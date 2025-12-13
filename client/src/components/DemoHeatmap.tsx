@@ -1024,7 +1024,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   width: `${scrollWidth}px`,
                   height: `${scrollHeight}px`,
                   pointerEvents: 'none',
-                  zIndex: 10,
+                  zIndex: 50,
                 }}
               >
                 <defs>
