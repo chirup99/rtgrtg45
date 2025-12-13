@@ -16667,6 +16667,45 @@ ${
                                     </div>
                                   </div>
                                 )}
+                    const filteredHeatmapData = getFilteredHeatmapData();
+                    const insights = calculateTradingInsights(); // Keep for other sections that still need it
+                    
+                    // Calculate metrics from filtered heatmap data - only include dates with actual trading (non-zero P&L)
+                    const calculateHeatmapMetrics = () => {
+                      const dates = Object.keys(filteredHeatmapData);
+                      let totalPnL = 0;
+                      let totalTrades = 0;
+                      let winningTrades = 0;
+                      let datesWithTrading = 0;
+                      
+                      dates.forEach(dateKey => {
+                        const dayData = filteredHeatmapData[dateKey];
+                        
+                        // Handle both wrapped (AWS) and unwrapped formats
+                        const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+                        
+                        if (metrics) {
+                          const netPnL = metrics.netPnL || 0;
+                          
+                          // Only include dates with actual trading activity (non-zero P&L)
+                          if (netPnL !== 0) {
+                            totalPnL += netPnL;
+                            totalTrades += metrics.totalTrades || 0;
+                            winningTrades += metrics.winningTrades || 0;
+                            datesWithTrading++;
+                          }
+                        }
+                      });
+                      
+                      const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+                      
+                      return { totalPnL, totalTrades, winRate, datesCount: datesWithTrading };
+                    };
+                    
+                    const heatmapMetrics = calculateHeatmapMetrics();
+                    const totalPnL = heatmapMetrics.totalPnL;
+                    const isProfitable = totalPnL >= 0;
+
                                 
                                 {/* AI Analysis Block - Real Recommendations */}
                                 {visibleStats.aiAnalysis && (
@@ -16890,44 +16929,6 @@ ${
                     };
 
                     // ✅ NEW: Use filtered heatmap data directly instead of complex insights
-                    const filteredHeatmapData = getFilteredHeatmapData();
-                    const insights = calculateTradingInsights(); // Keep for other sections that still need it
-                    
-                    // Calculate metrics from filtered heatmap data - only include dates with actual trading (non-zero P&L)
-                    const calculateHeatmapMetrics = () => {
-                      const dates = Object.keys(filteredHeatmapData);
-                      let totalPnL = 0;
-                      let totalTrades = 0;
-                      let winningTrades = 0;
-                      let datesWithTrading = 0;
-                      
-                      dates.forEach(dateKey => {
-                        const dayData = filteredHeatmapData[dateKey];
-                        
-                        // Handle both wrapped (AWS) and unwrapped formats
-                        const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
-                        
-                        if (metrics) {
-                          const netPnL = metrics.netPnL || 0;
-                          
-                          // Only include dates with actual trading activity (non-zero P&L)
-                          if (netPnL !== 0) {
-                            totalPnL += netPnL;
-                            totalTrades += metrics.totalTrades || 0;
-                            winningTrades += metrics.winningTrades || 0;
-                            datesWithTrading++;
-                          }
-                        }
-                      });
-                      
-                      const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
-                      
-                      return { totalPnL, totalTrades, winRate, datesCount: datesWithTrading };
-                    };
-                    
-                    const heatmapMetrics = calculateHeatmapMetrics();
-                    const totalPnL = heatmapMetrics.totalPnL;
-                    const isProfitable = totalPnL >= 0;
                     
                     console.log(`📊 Performance Trend using ${selectedDateRange ? 'FILTERED' : 'ALL'} heatmap data: ${heatmapMetrics.datesCount} dates, Total P&L: ₹${totalPnL.toFixed(2)}`);
 
