@@ -1366,7 +1366,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                         top: '-8px',
                         width: '100%', 
                         height: `calc(${badgePositions.containerHeight}px + 20px)`,
-                        zIndex: 0 
+                        zIndex: 100 
                       }}
                     >
                       <defs>
