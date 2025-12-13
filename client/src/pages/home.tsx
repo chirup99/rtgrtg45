@@ -16070,8 +16070,8 @@ ${
                           </div>
                         </div>
 
-                        <div className="max-h-96 overflow-auto custom-thin-scrollbar">
-                          <table className="w-full text-xs">
+                        <div className="max-h-96 overflow-y-auto overflow-x-auto custom-thin-scrollbar">
+                          <table className="text-xs" style={{minWidth: "100%"}}>
                             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                               <tr>
                                 <th className="px-2 py-2 text-left text-slate-600 dark:text-slate-400 font-medium min-w-[60px]">Time</th>

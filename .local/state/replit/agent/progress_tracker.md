@@ -109,8 +109,17 @@
     - All services initialized successfully
     - Application UI verified via screenshot
     - Project import completed
+[x] 47. **FIX: Trade History table extending outside window (December 13, 2025, 7:20 AM)**
+    - Issue: Trade history table with columns (Time, Order, Symbol, Type, Qty, Price, P&L, %, Duration) was extending beyond the window boundary
+    - Root Cause: Table container didn't properly handle horizontal overflow despite min-width properties on columns
+    - Fix Applied to home.tsx (lines 16073-16074):
+      * Changed container className from `"max-h-96 overflow-auto custom-thin-scrollbar"` to `"max-h-96 overflow-y-auto overflow-x-auto custom-thin-scrollbar"`
+      * Changed table className from `"w-full text-xs"` to use inline style: `style={{minWidth: "100%"}}`
+      * This enables proper horizontal scrolling within the fixed window
+    - Result: Trade history table now scrolls horizontally within the window without extending outside
+    - Verification: Workflow restarted, server running on port 5000
 
-### Current Status: ALL UPDATES COMPLETE (46 ITEMS)
+### Current Status: ALL UPDATES COMPLETE (47 ITEMS)
 - Application running on port 5000
 - Dark theme is the DEFAULT theme
 - All dashboard sections have consistent styling
@@ -118,4 +127,5 @@
 - Chart visibility enhanced with proper color variables
 - All three stat button tags (FOMO, Overtrading, Planned) working with curved lines that sync to heatmap scroll
 - Personal heatmap top padding now matches demo heatmap for curved line visibility
+- Trade history table now scrolls horizontally within window boundaries
 - Project import COMPLETE
