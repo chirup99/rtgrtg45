@@ -17301,7 +17301,7 @@ ${
                             return metrics.map((metric) => (
                               <div
                                 key={metric.label}
-                                className="bg-white dark:bg-slate-800 rounded-2xl p-3 md:p-6 shadow-lg border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300"
+                                className="bg-slate-900/30 dark:bg-slate-800/30 rounded-lg p-4 md:p-5 border border-dashed border-slate-400 dark:border-slate-600"
                               >
                                 <div className="flex md:flex-col items-center md:items-start gap-3 md:gap-0">
                                   <div
