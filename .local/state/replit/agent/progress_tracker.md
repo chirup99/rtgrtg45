@@ -89,8 +89,14 @@
     - Header now displays: "Personal Trading Calendar [year]" with only date count on the right
     - Matches Demo Heatmap header styling and layout
     - Simplified header with cleaner appearance
+[x] 44. **Removed "Trading Calendar" text from Demo Heatmap header (December 13, 2025, 6:16 AM)**
+    - Changed header from "Trading Calendar 2025" to just "2025"
+    - Header now displays only the year
+    - Matches user request for preview calendar with year only
+    - Applied to DemoHeatmap.tsx line 986-989
+    - Workflow restarted successfully
 
-### Current Status: ALL UPDATES COMPLETE (43 ITEMS)
+### Current Status: ALL UPDATES COMPLETE (44 ITEMS)
 - Application running on port 5000
 - Dark theme is the DEFAULT theme
 - All dashboard sections have consistent styling
