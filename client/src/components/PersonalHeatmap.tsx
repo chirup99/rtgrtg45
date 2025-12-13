@@ -898,7 +898,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
       </div>
 
       <div className="flex flex-col gap-2 overflow-visible">
-        <div className="overflow-x-auto thin-scrollbar" ref={heatmapContainerRef} style={{ position: 'relative', zIndex: 10 }}>
+        <div className="overflow-x-auto thin-scrollbar" ref={heatmapContainerRef} style={{ position: 'relative', zIndex: 10, paddingTop: '20px' }}>
           {/* SVG overlay for range selector line (pointing to month labels) */}
           {rangeLinePositions && selectedRange && !isEditMode && (() => {
             const { x1, y1, x2, y2 } = rangeLinePositions;
