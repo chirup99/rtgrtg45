@@ -8528,14 +8528,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // END OF SOCIAL MEDIA FEATURES
   // ==========================
 
-  // DISABLED: Auto-reconnection system - blocks manual token connection
-  // User will manually paste token via Dashboard UI
-  console.log('🔄 Server starting - auto-reconnection DISABLED (manual connection only)');
-  // setTimeout(async () => {
-  //   console.log('⏰ Auto-reconnection check starting...');
-  //   const reconnected = await attemptAutoReconnection();
-  //   console.log(`🔌 Auto-reconnection result: ${reconnected ? 'SUCCESS' : 'FAILED'}`);
-  // }, 2000); // Wait 2 seconds for storage to initialize
+  // ========================================
+  // ANGEL ONE AUTO-RECONNECTION SYSTEM
+  // ========================================
+  
+  // Function to auto-connect Angel One using environment credentials
+  const autoConnectAngelOne = async (): Promise<boolean> => {
+    try {
+      const clientCode = process.env.ANGEL_ONE_CLIENT_CODE;
+      const pin = process.env.ANGEL_ONE_PIN;
+      const apiKey = process.env.ANGEL_ONE_API_KEY;
+      const totpSecret = process.env.ANGEL_ONE_TOTP_SECRET;
+
+      if (!clientCode || !pin || !apiKey || !totpSecret) {
+        console.log('⚠️ [AUTO-CONNECT] Missing Angel One environment credentials');
+        return false;
+      }
+
+      // Check if already connected
+      if (angelOneApi.isConnected()) {
+        console.log('✅ [AUTO-CONNECT] Angel One already connected');
+        return true;
+      }
+
+      console.log('🔶 [AUTO-CONNECT] Auto-connecting Angel One with environment credentials...');
+      
+      angelOneApi.setCredentials({
+        clientCode: clientCode.trim(),
+        pin: pin.trim(),
+        apiKey: apiKey.trim(),
+        totpSecret: totpSecret.trim()
+      });
+
+      const session = await angelOneApi.generateSession();
+
+      if (session) {
+        console.log('✅ [AUTO-CONNECT] Angel One auto-connected successfully!');
+        
+        // Notify live price streamer
+        liveWebSocketStreamer.onAngelOneAuthenticated();
+        
+        await safeAddActivityLog({
+          type: "success",
+          message: "Angel One auto-connected successfully"
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error('❌ [AUTO-CONNECT] Angel One auto-connection failed:', error.message);
+      await safeAddActivityLog({
+        type: "error",
+        message: `Angel One auto-connection failed: ${error.message}`
+      });
+      return false;
+    }
+  };
+
+  // Schedule daily Angel One re-authentication before market open (8:45 AM IST)
+  const scheduleMarketOpenReconnection = () => {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const nowIST = new Date(now.getTime() + istOffset);
+    
+    // Target: 8:45 AM IST (15 minutes before market opens at 9:15 AM)
+    const targetTime = new Date(nowIST);
+    targetTime.setHours(8, 45, 0, 0);
+    
+    // If it's already past 8:45 AM today, schedule for tomorrow
+    if (nowIST >= targetTime) {
+      targetTime.setDate(targetTime.getDate() + 1);
+    }
+    
+    const msUntilReconnect = targetTime.getTime() - nowIST.getTime();
+    const hoursUntil = Math.floor(msUntilReconnect / 1000 / 60 / 60);
+    const minutesUntil = Math.floor((msUntilReconnect / 1000 / 60) % 60);
+    
+    console.log(`🌅 [SCHEDULER] Angel One auto-reconnection scheduled for 8:45 AM IST (in ${hoursUntil}h ${minutesUntil}m)`);
+    
+    setTimeout(async () => {
+      console.log('🌅 [SCHEDULER] Market open reconnection starting...');
+      
+      // First try to refresh existing session
+      const refreshed = await angelOneApi.refreshSession();
+      
+      if (refreshed) {
+        console.log('✅ [SCHEDULER] Angel One session refreshed successfully');
+        await safeAddActivityLog({
+          type: "success",
+          message: "Angel One session refreshed for new trading day"
+        });
+        liveWebSocketStreamer.onAngelOneAuthenticated();
+      } else {
+        // If refresh fails, do a full reconnection
+        console.log('⚠️ [SCHEDULER] Session refresh failed, attempting full reconnection...');
+        await autoConnectAngelOne();
+      }
+      
+      // Schedule next day's reconnection
+      scheduleMarketOpenReconnection();
+    }, msUntilReconnect);
+  };
+
+  // Auto-connect at server startup after 3 seconds (allow other services to initialize)
+  console.log('🔄 [STARTUP] Angel One auto-reconnection ENABLED');
+  setTimeout(async () => {
+    console.log('⏰ [STARTUP] Attempting Angel One auto-connection...');
+    const connected = await autoConnectAngelOne();
+    console.log(`🔌 [STARTUP] Angel One auto-connection: ${connected ? 'SUCCESS' : 'WAITING FOR MANUAL CONNECTION'}`);
+  }, 3000);
+
+  // Start the market open reconnection scheduler
+  scheduleMarketOpenReconnection();
 
   // Daily cleanup job - runs at midnight to delete expired tokens
   const scheduleDailyCleanup = () => {

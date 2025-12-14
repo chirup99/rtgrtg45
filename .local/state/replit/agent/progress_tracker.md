@@ -11,126 +11,43 @@
 [x] 11. Install tsx package for development mode
 [x] 12. Complete project import
 [x] 13. Final Replit environment migration - workflow configured with webview output
-[x] 14. **FIX: Tab navigation redirect bug (December 12, 2025, 7:51 AM)**
-    - Issue: Clicking any tab returned to landing page even when authenticated
-    - Root Cause: Code was looking for localStorage key 'awsUserId' but App.tsx was storing 'currentUserId'
-    - Fix: Replaced all 7 instances of `localStorage.getItem('awsUserId')` with `localStorage.getItem('currentUserId')` in client/src/pages/home.tsx
-    - Result: Authenticated users can now navigate between tabs (Trading Home, Journal, Social Feed, etc.) without redirecting to login
-    - Verification: Server restarted and running on port 5000
-[x] 15. **FIX: Invalid date in demo heatmap (December 12, 2025, 2:53 PM)**
-    - Issue: Invalid date entry with 6 trades and ₹78,815 P&L found on demo heatmap
-    - Root Cause: AWS DynamoDB had a journal entry with invalid/malformed date key
-    - Fix: Added date validation in getAllJournalData() function in aws-dynamodb-service.ts
-    - Implementation: Detects invalid date formats (non-YYYY-MM-DD) and automatically replaces them with today's date
-    - Auto-fixes: Invalid entries are updated in AWS and replaced with today's date (2025-12-12)
-    - Result: Demo heatmap now shows correct dates, P&L calculations use valid dates, trend line calculates correctly
-    - Verification: Server restarted with the fix applied
-[x] 36. **FIX: Overtrading curved lines not displaying on heatmap (December 12, 2025, 6:40 PM)**
-    - Issue: Clicking Overtrading button didn't show curved lines to heatmap dates like FOMO button does
-    - Root Cause: Curved line rendering was hardcoded to only work for 'fomo' tag
-    - Fix Applied to home.tsx:
-      * Line 8194: Added `const overtradingButtonRef = useRef<HTMLButtonElement>(null);`
-      * Line 16545: Added `ref={overtradingButtonRef}` to Overtrading button
-      * Line 16293: Updated condition from `activeTagHighlight?.tag === 'fomo'` to `(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading')`
-      * Line 16301: Added dynamic button ref selection: `const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : overtradingButtonRef;`
-      * Lines 16347-16352: Updated stroke color and dots to use different colors for overtrading (orange) vs FOMO (purple/yellow)
-      * Lines 16391-16397: Added new orange gradient definition `overtradingLineGradient` with orange color stops (#fb923c, #f97316, #ea580c)
-    - Colors Used:
-      * FOMO curves: Purple → Pink → Yellow gradient with yellow pulsing dots
-      * Overtrading curves: Orange gradient with orange pulsing dots
+[x] 14. FIX: Tab navigation redirect bug (December 12, 2025)
+[x] 15. FIX: Invalid date in demo heatmap (December 12, 2025)
+[x] 36. FIX: Overtrading curved lines not displaying on heatmap (December 12, 2025)
+[x] 38. FIX: Planned button curved lines scroll sync (December 13, 2025)
+[x] 39. Re-installed tsx package (December 13, 2025)
+[x] 40. FIX: Add top padding to Personal Heatmap (December 13, 2025)
+[x] 41. FIX: Display all calendar months in Personal Heatmap (December 13, 2025)
+[x] 42. Migration to Replit environment completed (December 13, 2025)
+[x] 43. Updated Personal Heatmap header to match Demo Heatmap (December 13, 2025)
+[x] 44. Removed "Trading Calendar" text from Demo Heatmap header (December 13, 2025)
+[x] 45. Fixed workflow webview configuration (December 13, 2025)
+[x] 46. Final project import verification (December 13, 2025)
+[x] 47. FIX: Trade History table extending outside window (December 13, 2025)
+[x] 48. Re-installed tsx package (December 14, 2025)
+[x] 49. **FIX: Angel One API token auto-refresh (December 14, 2025, 4:24 AM)**
+    - Issue: Angel One API stops fetching data after 1 day due to token expiration
+    - Root Cause: Tokens expire daily (~24 hours), no auto-refresh mechanism existed
+    - Fix Applied to server/routes.ts:
+      * Added `autoConnectAngelOne()` function that uses environment credentials to auto-connect
+      * Added `scheduleMarketOpenReconnection()` that schedules daily re-authentication at 8:45 AM IST
+      * Enabled auto-connection at server startup (3 seconds after boot)
+      * Uses `refreshSession()` method first, falls back to full reconnection if refresh fails
+    - Environment credentials used:
+      * ANGEL_ONE_CLIENT_CODE
+      * ANGEL_ONE_PIN
+      * ANGEL_ONE_API_KEY
+      * ANGEL_ONE_TOTP_SECRET
     - Result: 
-      * Clicking Overtrading button now displays curved lines from button to each overtrading date on heatmap
-      * Lines match FOMO functionality and animation style
-      * Orange color scheme matches the orange "OvrTrade" count display on button
-    - Verification: Server restarted and running successfully
-[x] 38. **FIX: Planned button curved lines scroll sync (December 13, 2025, 3:37 AM)**
-    - Issue: Planned button curved lines were not moving according to heatmap scroll (unlike FOMO and Overtrading which worked correctly)
-    - Root Cause: Scroll effect hook at line 8209 had condition checking only for 'fomo' and 'overtrading' tags, excluding 'planned'
-    - Fix Applied to home.tsx:
-      * Line 8209: Updated condition from `(activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading')` to `(activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading' && activeTagHighlight.tag !== 'planned')`
-      * This ensures the scroll listener is active when Planned button is selected
-      * Planned gradient already defined at lines 16398-16405 with green color scheme (#4ade80, #22c55e, #16a34a)
-      * Button ref (plannedButtonRef) already configured for dynamic selection at line 16303
-    - Result: 
-      * Planned button curved lines now properly sync with heatmap scroll
-      * Lines move smoothly with horizontal scroll like FOMO and Overtrading buttons
-      * Green color scheme visible and matches button styling
-    - Verification: Server restarted, application running on port 5000, no errors
-[x] 39. **Re-installed tsx package (December 13, 2025, 4:26 AM)**
-    - Issue: Workflow was stuck waiting for confirmation to install tsx
-    - Fix: Installed tsx package using the package installer
-    - Result: Server running successfully on port 5000
-[x] 40. **FIX: Add top padding to Personal Heatmap for select range curved line visibility (December 13, 2025, 4:28 AM)**
-    - Issue: Personal heatmap didn't have adequate top padding for visible curved line when selecting date range
-    - Root Cause: Demo heatmap had `paddingTop: '20px'` added to the container, but Personal heatmap didn't
-    - Fix Applied to PersonalHeatmap.tsx:
-      * Line 904: Added `paddingTop: '20px'` to the heatmapContainerRef div inline style
-      * Now matches DemoHeatmap styling for consistent curved line visibility
-    - Result: Personal heatmap range selection curved line now displays properly with adequate top padding
-    - Verification: Changes saved, ready for workflow restart
-[x] 41. **FIX: Display all calendar months in Personal Heatmap (December 13, 2025, 4:31 AM)**
-    - Issue: Personal heatmap only showed months within selected range, not all 12 months like demo heatmap
-    - Root Cause: `generateMonthsData()` function was filtering months based on selectedRange
-    - Fix Applied to PersonalHeatmap.tsx (lines 730-779):
-      * Removed range-based month filtering logic
-      * Now always displays all 12 months (Jan-Dec) of current year
-      * Matches DemoHeatmap behavior: complete calendar regardless of range selection
-      * Date graying (dates outside range show gray) already implemented and working
-    - Result: Personal heatmap now displays all calendar months with range-filtered dates grayed out
-[x] 42. **Migration to Replit environment completed (December 13, 2025, 6:02 AM)**
-    - Verified workflow running on port 5000 with webview output
-    - All services initialized: Angel One API, WebSocket, NLP Agent, Gemini AI
-    - CORS configured for Replit dev domain
-    - Application fully functional
-[x] 43. **Updated Personal Heatmap header to match Demo Heatmap (December 13, 2025, 6:12 AM)**
-    - Removed Share2 icon button from header
-    - Removed handleShareHeatmap() function
-    - Removed Share2 icon from imports
-    - Header now displays: "Personal Trading Calendar [year]" with only date count on the right
-    - Matches Demo Heatmap header styling and layout
-    - Simplified header with cleaner appearance
-[x] 44. **Removed "Trading Calendar" text from Demo Heatmap header (December 13, 2025, 6:16 AM)**
-    - Changed header from "Trading Calendar 2025" to just "2025"
-    - Header now displays only the year
-    - Matches user request for preview calendar with year only
-    - Applied to DemoHeatmap.tsx line 986-989
-    - Workflow restarted successfully
-[x] 45. **Fixed workflow webview configuration (December 13, 2025, 6:15 AM)**
-    - Removed previous workflow configuration
-    - Reconfigured "Start application" workflow with proper webview output type
-    - Command: npm run dev
-    - Port: 5000
-    - Output Type: webview
-    - Workflow now running and web app should display in preview
-    - Server initialized successfully at 6:15:18 AM
-[x] 46. **Final project import verification (December 13, 2025, 7:13 AM)**
-    - Re-installed tsx package to fix workflow startup
-    - Server running on port 5000
-    - All services initialized successfully
-    - Application UI verified via screenshot
-    - Project import completed
-[x] 47. **FIX: Trade History table extending outside window (December 13, 2025, 7:20 AM)**
-    - Issue: Trade history table with columns (Time, Order, Symbol, Type, Qty, Price, P&L, %, Duration) was extending beyond the window boundary
-    - Root Cause: Table container didn't properly handle horizontal overflow despite min-width properties on columns
-    - Fix Applied to home.tsx (lines 16073-16074):
-      * Changed container className from `"max-h-96 overflow-auto custom-thin-scrollbar"` to `"max-h-96 overflow-y-auto overflow-x-auto custom-thin-scrollbar"`
-      * Changed table className from `"w-full text-xs"` to use inline style: `style={{minWidth: "100%"}}`
-      * This enables proper horizontal scrolling within the fixed window
-    - Result: Trade history table now scrolls horizontally within the window without extending outside
-    - Verification: Workflow restarted, server running on port 5000
-[x] 48. **Re-installed tsx package (December 14, 2025, 4:15 AM)**
-    - Issue: Workflow was stuck waiting for confirmation to install tsx
-    - Fix: Installed tsx package using the package installer
-    - Result: Server running successfully on port 5000
-    - All services initialized: Angel One API, WebSocket, NLP Agent, Gemini AI, AWS DynamoDB
+      * Server now auto-connects to Angel One on startup
+      * Daily re-authentication scheduled 15 minutes before market opens (8:45 AM IST)
+      * Tokens automatically refresh using the refreshToken mechanism
+      * No more manual connection required each day
+    - Verification: Server logs show successful auto-connection and WebSocket streaming active
 
-### Current Status: ALL UPDATES COMPLETE (48 ITEMS)
+### Current Status: ALL UPDATES COMPLETE (49 ITEMS)
 - Application running on port 5000
-- Dark theme is the DEFAULT theme
-- All dashboard sections have consistent styling
-- All windows have consistent styling: `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800`
-- Chart visibility enhanced with proper color variables
-- All three stat button tags (FOMO, Overtrading, Planned) working with curved lines that sync to heatmap scroll
-- Personal heatmap top padding now matches demo heatmap for curved line visibility
-- Trade history table now scrolls horizontally within window boundaries
+- Angel One auto-reconnection ENABLED
+- Daily token refresh scheduled for 8:45 AM IST
+- WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
 - Project import COMPLETE
