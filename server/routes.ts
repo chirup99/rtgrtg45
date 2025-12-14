@@ -8587,61 +8587,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // Schedule daily Angel One re-authentication before market open (8:45 AM IST)
-  const scheduleMarketOpenReconnection = () => {
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const nowIST = new Date(now.getTime() + istOffset);
-    
-    // Target: 8:45 AM IST (15 minutes before market opens at 9:15 AM)
-    const targetTime = new Date(nowIST);
-    targetTime.setHours(8, 45, 0, 0);
-    
-    // If it's already past 8:45 AM today, schedule for tomorrow
-    if (nowIST >= targetTime) {
-      targetTime.setDate(targetTime.getDate() + 1);
-    }
-    
-    const msUntilReconnect = targetTime.getTime() - nowIST.getTime();
-    const hoursUntil = Math.floor(msUntilReconnect / 1000 / 60 / 60);
-    const minutesUntil = Math.floor((msUntilReconnect / 1000 / 60) % 60);
-    
-    console.log(`🌅 [SCHEDULER] Angel One auto-reconnection scheduled for 8:45 AM IST (in ${hoursUntil}h ${minutesUntil}m)`);
-    
-    setTimeout(async () => {
-      console.log('🌅 [SCHEDULER] Market open reconnection starting...');
-      
-      // First try to refresh existing session
-      const refreshed = await angelOneApi.refreshSession();
-      
-      if (refreshed) {
-        console.log('✅ [SCHEDULER] Angel One session refreshed successfully');
-        await safeAddActivityLog({
-          type: "success",
-          message: "Angel One session refreshed for new trading day"
-        });
-        liveWebSocketStreamer.onAngelOneAuthenticated();
-      } else {
-        // If refresh fails, do a full reconnection
-        console.log('⚠️ [SCHEDULER] Session refresh failed, attempting full reconnection...');
-        await autoConnectAngelOne();
-      }
-      
-      // Schedule next day's reconnection
-      scheduleMarketOpenReconnection();
-    }, msUntilReconnect);
-  };
 
   // Auto-connect at server startup after 3 seconds (allow other services to initialize)
-  console.log('🔄 [STARTUP] Angel One auto-reconnection ENABLED');
+  console.log('🔄 [STARTUP] Angel One auto-reconnection ENABLED (on-demand)');
   setTimeout(async () => {
     console.log('⏰ [STARTUP] Attempting Angel One auto-connection...');
     const connected = await autoConnectAngelOne();
     console.log(`🔌 [STARTUP] Angel One auto-connection: ${connected ? 'SUCCESS' : 'WAITING FOR MANUAL CONNECTION'}`);
   }, 3000);
-
-  // Start the market open reconnection scheduler
-  scheduleMarketOpenReconnection();
 
   // Daily cleanup job - runs at midnight to delete expired tokens
   const scheduleDailyCleanup = () => {

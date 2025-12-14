@@ -84,6 +84,7 @@ class AngelOneAPI {
   private session: AngelOneSession | null = null;
   private isAuthenticated: boolean = false;
   private profileData: AngelOneProfile | null = null;
+  private sessionGeneratedAt: Date | null = null;
   
   private activityLogs: AngelOneActivityLog[] = [];
   private logIdCounter: number = 1;
@@ -294,6 +295,7 @@ class AngelOneAPI {
 
       this.isAuthenticated = true;
       this.connectionStartTime = new Date();
+      this.sessionGeneratedAt = new Date();
       this.trackRequest(true, Date.now() - startTime);
       this.addActivityLog('success', 'Session generated successfully!');
 
@@ -329,6 +331,30 @@ class AngelOneAPI {
     }
   }
 
+  // Check if token will expire soon (within 5 minutes) and auto-refresh if needed
+  private async ensureTokenFreshness(): Promise<boolean> {
+    if (!this.session || !this.sessionGeneratedAt) {
+      return false;
+    }
+
+    const now = new Date();
+    const sessionAgeMs = now.getTime() - this.sessionGeneratedAt.getTime();
+    const sessionAgeMinutes = sessionAgeMs / 1000 / 60;
+    
+    // Angel One JWT tokens typically last 24 hours
+    // If session is older than 1410 minutes (23.5 hours), refresh it
+    const TOKEN_LIFESPAN_MINUTES = 24 * 60; // 24 hours
+    const REFRESH_BUFFER_MINUTES = 5; // Refresh 5 minutes before expiry
+    
+    if (sessionAgeMinutes > (TOKEN_LIFESPAN_MINUTES - REFRESH_BUFFER_MINUTES)) {
+      console.log(`⏰ [Angel One] Token expiring soon (${Math.round(TOKEN_LIFESPAN_MINUTES - sessionAgeMinutes)} minutes left), auto-refreshing...`);
+      const refreshed = await this.refreshSession();
+      return !!refreshed;
+    }
+    
+    return true;
+  }
+
   // Refresh session using refresh token
   async refreshSession(): Promise<AngelOneSession | null> {
     if (!this.session?.refreshToken) {
@@ -345,8 +371,9 @@ class AngelOneAPI {
           jwtToken: response.data.jwtToken,
           refreshToken: response.data.refreshToken
         };
-        this.addActivityLog('success', 'Session refreshed');
-        console.log('🔶 [Angel One] Session refreshed successfully');
+        this.sessionGeneratedAt = new Date();
+        this.addActivityLog('success', 'Session refreshed (on-demand)');
+        console.log('✅ [Angel One] Session refreshed successfully (on-demand)');
         return this.session;
       }
     } catch (error: any) {
@@ -361,6 +388,9 @@ class AngelOneAPI {
     if (!this.isAuthenticated || !this.smartApi) {
       throw new Error('Not authenticated');
     }
+
+    // Check if token is expiring soon and auto-refresh
+    await this.ensureTokenFreshness();
 
     const startTime = Date.now();
     try {
@@ -380,7 +410,9 @@ class AngelOneAPI {
       if (error.response?.status === 403 || error.response?.status === 401) {
         this.isAuthenticated = false;
         this.session = null;
-        this.addActivityLog('error', 'Session expired - please reconnect');
+        this.addActivityLog('error', 'Session expired - auto-refreshing...');
+        // Auto-refresh on auth error
+        await this.refreshSession();
       }
       throw error;
     }
@@ -391,6 +423,9 @@ class AngelOneAPI {
     if (!this.isAuthenticated) {
       return null;
     }
+
+    // Check if token is expiring soon and auto-refresh
+    await this.ensureTokenFreshness();
 
     try {
       const response = await this.smartApi.ltpData(exchange, tradingSymbol, symbolToken);
@@ -435,6 +470,9 @@ class AngelOneAPI {
       throw new Error('Not authenticated');
     }
 
+    // Check if token is expiring soon and auto-refresh
+    await this.ensureTokenFreshness();
+
     const startTime = Date.now();
     try {
       const response = await this.smartApi.getCandleData({
@@ -464,6 +502,8 @@ class AngelOneAPI {
       if (error.response?.status === 403 || error.response?.status === 401) {
         this.isAuthenticated = false;
         this.session = null;
+        // Auto-refresh on auth error
+        await this.refreshSession();
       }
       throw error;
     }
