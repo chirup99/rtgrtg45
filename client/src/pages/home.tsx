@@ -13525,7 +13525,7 @@ ${
                                   await handleSearch();
                                 }
                               }}
-                              className="w-full h-12 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 pr-24 text-xs rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg mt-[12px] mb-[12px]"
+                              className="w-full h-12 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 pr-24 text-xs rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg mt-[0px] mb-[0px]"
                             />
                             {searchQuery && (
                               <Button
