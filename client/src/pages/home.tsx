@@ -13507,7 +13507,7 @@ ${
                       </div>
 
                       {/* Trading Tools Section - White container with centered cards */}
-                      <div className={`${searchResults ? 'bg-transparent' : 'bg-white'} md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full`}>
+                      <div className={`${searchResults ? 'bg-transparent' : 'bg-white'} md:pt-4 md:pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 w-full mt-[21px] mb-[21px] pt-[32px] pb-[16px] ml-[0px] mr-[0px] pl-[0px] pr-[0px]`}>
                         {/* Mobile Search Bar - Fully visible at top */}
                         <div className="md:hidden absolute -top-3 left-4 right-4 z-50">
                           <div className="relative">
