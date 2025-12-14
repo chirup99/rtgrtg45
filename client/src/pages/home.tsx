@@ -13556,10 +13556,22 @@ ${
                             </Button>
                           </div>
 
+                          {/* Mobile backdrop - tap outside to close search */}
+                          {isSearchActive && !searchResults && (
+                            <div
+                              className="md:hidden fixed inset-0 z-40"
+                              onClick={() => {
+                                setSearchQuery("");
+                                setIsSearchActive(false);
+                                setSearchResults("");
+                              }}
+                            />
+                          )}
+
                           {/* Mobile Quick Suggestion Buttons - Horizontal scroll when search is active */}
                           {isSearchActive && (
                             <div
-                              className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide pb-2"
+                              className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide pb-2 relative z-50"
                               style={{
                                 scrollbarWidth: "none",
                                 msOverflowStyle: "none",
