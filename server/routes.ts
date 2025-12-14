@@ -8587,6 +8587,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  // Function to check and auto-refresh token if expired
+  const checkAndRefreshToken = async (): Promise<void> => {
+    try {
+      const apiStatus = await safeGetApiStatus();
+      
+      if (!apiStatus?.tokenExpiry) {
+        return; // No token set yet
+      }
+
+      const now = new Date();
+      const expiryDate = new Date(apiStatus.tokenExpiry);
+      const msUntilExpiry = expiryDate.getTime() - now.getTime();
+      const hoursUntilExpiry = msUntilExpiry / (1000 * 60 * 60);
+
+      // Auto-refresh if token expires within 1 hour or is already expired
+      if (hoursUntilExpiry <= 1) {
+        console.log(`⚠️ [TOKEN-EXPIRY] Token expires in ${Math.round(hoursUntilExpiry * 60)} minutes - AUTO-REFRESHING...`);
+        
+        const refreshed = await autoConnectAngelOne();
+        
+        if (refreshed) {
+          console.log('✅ [TOKEN-EXPIRY] Token auto-refreshed successfully!');
+          await safeAddActivityLog({
+            type: "success",
+            message: "Token auto-refreshed successfully"
+          });
+        } else {
+          console.log('❌ [TOKEN-EXPIRY] Token auto-refresh failed - will retry in 30 minutes');
+          await safeAddActivityLog({
+            type: "warning",
+            message: "Token auto-refresh failed - will retry later"
+          });
+        }
+      } else {
+        console.log(`✅ [TOKEN-CHECK] Token is valid, expires in ${Math.round(hoursUntilExpiry)} hours`);
+      }
+    } catch (error: any) {
+      console.error('❌ [TOKEN-EXPIRY] Error checking token expiry:', error.message);
+    }
+  };
+
+  // Schedule token expiry check every 30 minutes
+  const scheduleTokenExpiryCheck = () => {
+    const CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+    
+    // First check after 2 minutes
+    setTimeout(() => {
+      checkAndRefreshToken();
+      
+      // Then check every 30 minutes
+      setInterval(checkAndRefreshToken, CHECK_INTERVAL);
+    }, 2 * 60 * 1000);
+
+    console.log('⏰ [TOKEN-EXPIRY] Token expiry auto-refresh scheduler ENABLED (checks every 30 minutes)');
+  };
 
   // Auto-connect at server startup after 3 seconds (allow other services to initialize)
   console.log('🔄 [STARTUP] Angel One auto-reconnection ENABLED (on-demand)');
@@ -8595,6 +8650,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const connected = await autoConnectAngelOne();
     console.log(`🔌 [STARTUP] Angel One auto-connection: ${connected ? 'SUCCESS' : 'WAITING FOR MANUAL CONNECTION'}`);
   }, 3000);
+
+  // Enable token expiry auto-refresh scheduler
+  scheduleTokenExpiryCheck();
 
   // Daily cleanup job - runs at midnight to delete expired tokens
   const scheduleDailyCleanup = () => {

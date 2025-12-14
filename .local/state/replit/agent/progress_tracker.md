@@ -80,9 +80,32 @@
    - Vite HMR warning (cosmetic, not affecting functionality)
    - All 53 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (53 ITEMS)
+[x] 54. **FEATURE: Automatic Token Expiry Refresh (December 14, 2025, 5:41 PM)**
+   - Issue: Token expires after 24 hours, manual reconnection would be needed
+   - Solution: Implemented automatic token expiry detection and refresh
+   - How it works:
+     * System checks token expiry status every 30 minutes
+     * First check runs 2 minutes after server startup
+     * If token expires within 1 hour OR is already expired:
+       - Automatically triggers `autoConnectAngelOne()` function
+       - Generates fresh token using environment credentials
+       - Logs success/failure to activity logs
+     * No manual intervention required - tokens auto-refresh seamlessly
+   - Features:
+     * Continuous monitoring of token expiry time
+     * Auto-refresh when token within 1 hour of expiry
+     * Graceful fallback if refresh fails (retries in 30 minutes)
+     * Detailed logging: Token validity hours, refresh success/failure
+     * No service interruption during token refresh
+   - Verification:
+     * Server logs show: "⏰ [TOKEN-EXPIRY] Token expiry auto-refresh scheduler ENABLED (checks every 30 minutes)"
+     * Token-Check logs: "✅ [TOKEN-CHECK] Token is valid, expires in X hours"
+     * Auto-Refresh logs: "✅ [TOKEN-EXPIRY] Token auto-refreshed successfully!"
+
+### Current Status: ALL UPDATES COMPLETE (54 ITEMS)
 - Application running on port 5000
-- Angel One auto-reconnection ENABLED
-- Daily token refresh scheduled for 8:45 AM IST
+- Angel One auto-reconnection ENABLED (startup + scheduled)
+- Token expiry auto-refresh ENABLED (every 30 minutes)
 - WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
 - Project import COMPLETE
+- Auto token generation when expired: IMPLEMENTED
