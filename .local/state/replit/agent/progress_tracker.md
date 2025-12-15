@@ -235,11 +235,40 @@
    - Vite HMR WebSocket warning (cosmetic, does not affect functionality)
    - All 63 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (63 ITEMS)
+[x] 64. **FEATURE: Mobile Paper Trading Wallet-Style UI Redesign (December 15, 2025, 6:47 PM)**
+   - Issue: Paper trading dialog on mobile had poor UX, requested card-based design like wallet app
+   - Solution: Completely redesigned mobile paper trading with wallet-style layout
+   - Changes to client/src/pages/home.tsx:
+     * Added dark gradient hero section with large balance display (₹18,00,000)
+     * P&L indicator prominently displayed below balance
+     * Quick stats (Positions, Trades) in hero section
+     * Hide/show balance toggle button
+     * Card-based trade entry form with rounded corners
+     * Larger, more prominent BUY/SELL buttons (h-12 rounded-xl)
+     * Open positions displayed as individual cards (not table)
+     * Trade history as clean list with circular action badges (B/S)
+     * Footer with Reset Account and Demo mode indicator
+   - Mobile-only design (sm:hidden), desktop unchanged (hidden sm:block)
+   - All existing paper trading functions preserved:
+     * Instrument search with dropdown
+     * Type selector (Stock/Futures/Options/MCX)
+     * Quantity/Lots input with price display
+     * Option Chain button
+     * Exit All positions
+     * Record trades
+     * Reset account
+   - Visual improvements:
+     * Dark gradient hero (gray-900 to gray-950)
+     * Rounded card sections (rounded-xl)
+     * Better spacing and padding
+     * Cleaner typography hierarchy
+     * Live status indicator in hero
+
+### Current Status: ALL UPDATES COMPLETE (64 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)
 - WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
 - Project import COMPLETE
-- Mobile Paper Trading UI: IMPLEMENTED (full-screen tab view)
+- Mobile Paper Trading UI: REDESIGNED with wallet-style card layout
 - Paper Trade button: HIDDEN on mobile, VISIBLE on desktop
