@@ -5407,10 +5407,10 @@ ${
 
   // Auto-fetch option chain data when dialog opens (mobile fix)
   useEffect(() => {
-    if (showOptionChain && selectedOptionIndex && !optionChainData) {
+    if (showOptionChain && selectedOptionIndex) {
       fetchOptionChainData(selectedOptionIndex);
     }
-  }, [showOptionChain, selectedOptionIndex, optionChainData]);
+  }, [showOptionChain, selectedOptionIndex]);
   const foEligibleSymbols = [
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'ASIANPAINT', 'TITAN', 'TATAMOTORS', 'SUNPHARMA', 'WIPRO', 'ULTRACEMCO',
