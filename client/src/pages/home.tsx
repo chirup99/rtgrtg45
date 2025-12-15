@@ -39,7 +39,7 @@ import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cognitoSignOut, getCognitoToken, sendEmailVerificationCode, confirmEmailVerification, checkEmailVerified } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
-import { LogOut, ArrowLeft, Save, Clock, Newspaper, TrendingUp, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
+import { LogOut, ArrowLeft, Save, Clock, Newspaper, TrendingUp, RefreshCw, ExternalLink, Loader2, Banknote } from "lucide-react";
 import { parseBrokerTrades, ParseError } from "@/utils/trade-parser";
 
 // Global window type declaration for audio control
@@ -6203,7 +6203,7 @@ ${
 
   // Mobile bottom navigation state (home, insight, ranking)
   const [mobileBottomTab, setMobileBottomTab] = useState<
-    "home" | "insight" | "ranking"
+    "home" | "insight" | "ranking" | "paper-trade"
   >("home");
 
   // Mobile trade history dropdown state
@@ -20197,6 +20197,18 @@ ${
                   data-testid="mobile-tab-ranking"
                 >
                   <Trophy className={`h-5 w-5 ${mobileBottomTab === "ranking" ? "fill-current" : ""}`} />
+                </button>
+                {/* Paper Trade Tab */}
+                <button
+                  onClick={() => setMobileBottomTab("paper-trade")}
+                  className={`flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 ${
+                    mobileBottomTab === "paper-trade"
+                      ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                  data-testid="mobile-tab-paper-trade"
+                >
+                  <Banknote className={`h-5 w-5 ${mobileBottomTab === "paper-trade" ? "fill-current" : ""}`} />
                 </button>
               </div>
             </div>
