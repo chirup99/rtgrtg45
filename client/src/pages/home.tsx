@@ -15913,16 +15913,7 @@ ${
                                 <Upload className="h-3 w-3 mr-1" />
                                 Import
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowPaperTradingModal(true)}
-                                className="h-7 text-xs px-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300"
-                                data-testid="button-demo-trade-mobile"
-                              >
-                                <TrendingUp className="h-3 w-3 mr-1" />
-                                Paper Trade
-                              </Button>
+
                             </div>
                             <div className="max-h-80 overflow-auto border border-slate-200 dark:border-slate-700 custom-thin-scrollbar">
                               <table className="w-full text-xs">
@@ -16077,16 +16068,6 @@ ${
                               data-testid="button-import-pnl"
                             >
                               Import
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowPaperTradingModal(true)}
-                              className="h-7 px-2 text-xs hidden md:block"
-                              data-testid="button-paper-trade"
-                            >
-                              <TrendingUp className="h-4 w-4 mr-1" />
-                              Paper Trade
                             </Button>
                             <div className="h-7 px-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-300">
                               <Timer className="h-4 w-4 mr-1.5" />
@@ -16714,8 +16695,15 @@ ${
                 {/* End of Main Journal Content */}
                 {/* Ranking Tab Content - Mobile only - Empty placeholder */}
                 {mobileBottomTab === "ranking" && (
-                  <div className="md:hidden">
-                    {/* Empty ranking tab */}
+                  <div className="md:hidden flex flex-col items-center justify-center py-12">
+                    <Button
+                      onClick={() => setShowPaperTradingModal(true)}
+                      className="gap-2"
+                      data-testid="button-paper-trade-ranking"
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      Start Paper Trading
+                    </Button>
                   </div>
                 )}
 
