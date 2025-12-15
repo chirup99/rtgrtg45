@@ -5387,30 +5387,17 @@ ${
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
-  };
 
-  // Auto-select first expiry date when option chain data loads (mobile fix)
+  // Auto-select first expiry date when option chain data loads
   useEffect(() => {
-    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
-        const expiryDate = new Date(expiry);
-        expiryDate.setHours(0, 0, 0, 0);
-        return expiryDate >= today;
-      });
-      if (futureExpiries.length > 0) {
-        setSelectedOptionExpiryDate(futureExpiries[0]);
+    if (optionChainData && !selectedOptionExpiryDate) {
+      const firstExpiry = getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+      if (firstExpiry) {
+        setSelectedOptionExpiryDate(firstExpiry);
       }
     }
-  }, [optionChainData, selectedOptionExpiryDate]);
-
-  // Auto-fetch option chain data when dialog opens (mobile fix)
-  useEffect(() => {
-    if (showOptionChain && selectedOptionIndex) {
-      fetchOptionChainData(selectedOptionIndex);
-    }
-  }, [showOptionChain, selectedOptionIndex]);
+  }, [optionChainData, selectedOptionIndex]);
+  };
   const foEligibleSymbols = [
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'ASIANPAINT', 'TITAN', 'TATAMOTORS', 'SUNPHARMA', 'WIPRO', 'ULTRACEMCO',
@@ -8200,13 +8187,10 @@ ${
     overtrading: false,
     topTags: false,
     aiAnalysis: false,
-    planned: false,
   });
   
   // Refs for curved line connections from tag block to heatmap dates
   const fomoButtonRef = useRef<HTMLButtonElement>(null);
-  const overtradingButtonRef = useRef<HTMLButtonElement>(null);
-  const plannedButtonRef = useRef<HTMLButtonElement>(null);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   
   // Refs for share dialog curved line connections
@@ -8219,7 +8203,7 @@ ${
   
   // Effect to handle scroll updates for curved lines - ULTRA FAST VERSION
   useEffect(() => {
-    if (!activeTagHighlight || (activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading' && activeTagHighlight.tag !== 'planned')) return;
+    if (!activeTagHighlight || activeTagHighlight.tag !== 'fomo') return;
     
     const heatmapWrapper = heatmapContainerRef.current;
     if (!heatmapWrapper) return;
@@ -12060,7 +12044,7 @@ ${
                   )}
 
                   {/* Mobile Greeting - Visible only on mobile */}
-                  <div className="w-full md:hidden bg-blue-900 px-4 py-3 flex justify-center pt-[1px] pb-[1px] pt-[1px] pb-[1px]">
+                  <div className="w-full md:hidden bg-blue-900 px-4 py-3 flex justify-center">
                     <div className="text-center">
                       {isViewOnlyMode ? (
                         <div className="flex items-center justify-center gap-2">
@@ -13520,7 +13504,7 @@ ${
                       </div>
 
                       {/* Trading Tools Section - White container with centered cards */}
-                      <div className={`${searchResults ? 'bg-transparent' : 'bg-white'} md:pt-4 md:pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 w-full mt-[21px] mb-[21px] pt-[32px] pb-[16px] ml-[0px] mr-[0px] pl-[0px] pr-[0px]`}>
+                      <div className={`${searchResults ? 'bg-transparent' : 'bg-white'} md:pt-4 pt-4 md:pb-4 pb-4 md:rounded-3xl rounded-3xl relative pointer-events-auto touch-pan-y flex-shrink-0 mt-0 w-full`}>
                         {/* Mobile Search Bar - Fully visible at top */}
                         <div className="md:hidden absolute -top-3 left-4 right-4 z-50">
                           <div className="relative">
@@ -13538,7 +13522,7 @@ ${
                                   await handleSearch();
                                 }
                               }}
-                              className="w-full h-12 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 pr-24 text-xs rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg mt-[0px] mb-[0px]"
+                              className="w-full h-12 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 pr-24 text-xs rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
                             />
                             {searchQuery && (
                               <Button
@@ -13569,22 +13553,10 @@ ${
                             </Button>
                           </div>
 
-                          {/* Mobile backdrop - tap outside to close search */}
-                          {isSearchActive && !searchResults && (
-                            <div
-                              className="md:hidden fixed inset-0 z-40"
-                              onClick={() => {
-                                setSearchQuery("");
-                                setIsSearchActive(false);
-                                setSearchResults("");
-                              }}
-                            />
-                          )}
-
                           {/* Mobile Quick Suggestion Buttons - Horizontal scroll when search is active */}
                           {isSearchActive && (
                             <div
-                              className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide pb-2 relative z-50"
+                              className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide pb-2"
                               style={{
                                 scrollbarWidth: "none",
                                 msOverflowStyle: "none",
@@ -16078,6 +16050,16 @@ ${
                             >
                               Import
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowPaperTradingModal(true)}
+                              className="h-7 px-2 text-xs"
+                              data-testid="button-paper-trade"
+                            >
+                              <TrendingUp className="h-4 w-4 mr-1" />
+                              Paper Trade
+                            </Button>
                             <div className="h-7 px-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-300">
                               <Timer className="h-4 w-4 mr-1.5" />
                               {calculateTotalDuration(tradeHistoryData)}
@@ -16085,8 +16067,8 @@ ${
                           </div>
                         </div>
 
-                        <div className="max-h-80 overflow-y-auto overflow-x-auto custom-thin-scrollbar">
-                          <table className="text-xs" style={{minWidth: "100%"}}>
+                        <div className="max-h-80 overflow-auto custom-thin-scrollbar">
+                          <table className="w-full text-xs">
                             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                               <tr>
                                 <th className="px-2 py-2 text-left text-slate-600 dark:text-slate-400 font-medium min-w-[60px]">Time</th>
@@ -16214,38 +16196,51 @@ ${
                     <div className="relative">
                     <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
-                        <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between gap-2">
-                          <div>Trade Book</div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-600 dark:text-gray-400">
-                              {isDemoMode ? "Preview" : "Personal"}
-                            </span>
-                            <Switch
-                              checked={isDemoMode}
-                              onCheckedChange={(checked) => {
-                                console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
-                                setHasManuallyToggledMode(true);
-                                localStorage.setItem("hasManuallyToggledMode", "true");
-                                setIsDemoMode(checked);
-                                localStorage.setItem("tradingJournalDemoMode", String(checked));
-                                setSelectedDate(null);
-                                setNotesContent("");
-                                setTempNotesContent("");
-                                setSelectedTags([]);
-                                setSelectedDailyFactors([]);
-                                setSelectedIndicators([]);
-                                setTradeHistoryData([]);
-                                setTradingImages([]);
-                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
-                              }}
-                              data-testid="switch-demo-mode"
-                              className="scale-75"
-                            />
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                              trade book
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 mr-2">
+                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {isDemoMode ? "Preview" : "Personal"}
+                              </span>
+                              <Switch
+                                checked={isDemoMode}
+                                onCheckedChange={(checked) => {
+                                  console.log(`🔄 Demo mode toggle: ${checked ? 'ON (Preview)' : 'OFF (Personal)'}`);
+                                  
+                                  // Mark that user has manually toggled (prevents auto-switching)
+                                  setHasManuallyToggledMode(true);
+                                  localStorage.setItem("hasManuallyToggledMode", "true");
+                                  
+                                  // Simple toggle - just flip the mode
+                                  setIsDemoMode(checked);
+                                  localStorage.setItem("tradingJournalDemoMode", String(checked));
+                                  
+                                  // Clear current selection - heatmap will handle its own data loading
+                                  setSelectedDate(null);
+                                  setNotesContent("");
+                                  setTempNotesContent("");
+                                  setSelectedTags([]);
+    setSelectedDailyFactors([]);
+    setSelectedIndicators([]);
+                                  setTradeHistoryData([]);
+                                  setTradingImages([]);
+                                  
+                                  console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
+                                }}
+                                data-testid="switch-demo-mode"
+                              />
+                            </div>
                             <Button
-                              onClick={saveAllTradingData}
-                              size="sm"
                               variant="outline"
-                              className="h-5 px-2 text-[10px] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700"
+                              size="sm"
+                              onClick={saveAllTradingData}
+                              className="h-8 px-3 bg-black dark:bg-black border-black dark:border-black hover:bg-gray-800 dark:hover:bg-gray-800 text-white dark:text-white"
                               data-testid="button-save-trade-book"
                             >
                               Save
@@ -16295,15 +16290,14 @@ ${
                         </div>
                         
                         {/* Curved Lines Overlay - connects FOMO tag block to highlighted dates */}
-                        {(activeTagHighlight?.tag === 'fomo' || activeTagHighlight?.tag === 'overtrading' || activeTagHighlight?.tag === 'planned') && activeTagHighlight.dates.length > 0 && (() => {
+                        {activeTagHighlight?.tag === 'fomo' && activeTagHighlight.dates.length > 0 && (() => {
                           // Force recalculation on scroll (dependency: scrollTrigger)
                           void scrollTrigger;
                           
                           // Calculate curved paths from FOMO button to each highlighted date cell
                           const paths: JSX.Element[] = [];
                           
-                          const buttonRef = activeTagHighlight?.tag === 'fomo' ? fomoButtonRef : activeTagHighlight?.tag === 'overtrading' ? overtradingButtonRef : plannedButtonRef;
-                          if (!buttonRef.current || !heatmapContainerRef.current) {
+                          if (!fomoButtonRef.current || !heatmapContainerRef.current) {
                             return null;
                           }
                           
@@ -16315,7 +16309,7 @@ ${
                           
                           // Get positions relative to the heatmap's scrollable content
                           const containerRect = heatmapContainerRef.current.getBoundingClientRect();
-                          const buttonRect = buttonRef.current!.getBoundingClientRect();
+                          const buttonRect = fomoButtonRef.current.getBoundingClientRect();
                           
                           // Calculate button position relative to scrollable content
                           const buttonCenterX = buttonRect.left - containerRect.left + scrollLeft + buttonRect.width / 2;
@@ -16348,7 +16342,7 @@ ${
                                   <path
                                     d={pathD}
                                     fill="none"
-                                    stroke={activeTagHighlight?.tag === 'fomo' ? "url(#curvedLineGradient)" : activeTagHighlight?.tag === 'overtrading' ? "url(#overtradingLineGradient)" : "url(#plannedLineGradient)"}
+                                    stroke="url(#curvedLineGradient)"
                                     strokeWidth="2.5"
                                     strokeDasharray="6,4"
                                     opacity="0.95"
@@ -16358,14 +16352,14 @@ ${
                                     cx={cellCenterX}
                                     cy={cellCenterY}
                                     r="4"
-                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fcd34d" : activeTagHighlight?.tag === 'overtrading' ? "#fb923c" : "#4ade80"}
+                                    fill="#fcd34d"
                                     opacity="0.9"
                                   />
                                   <circle
                                     cx={cellCenterX}
                                     cy={cellCenterY}
                                     r="3"
-                                    fill={activeTagHighlight?.tag === 'fomo' ? "#fbbf24" : activeTagHighlight?.tag === 'overtrading' ? "#f97316" : "#22c55e"}
+                                    fill="#fbbf24"
                                     className="animate-pulse"
                                   />
                                 </g>
@@ -16392,16 +16386,6 @@ ${
                                   <stop offset="50%" stopColor="#f472b6" stopOpacity="1" />
                                   <stop offset="100%" stopColor="#fbbf24" stopOpacity="1" />
                                 </linearGradient>
-                                <linearGradient id="overtradingLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#fb923c" stopOpacity="1" />
-                                  <stop offset="50%" stopColor="#f97316" stopOpacity="1" />
-                                  <stop offset="100%" stopColor="#ea580c" stopOpacity="1" />
-                                </linearGradient>
-                                <linearGradient id="plannedLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#4ade80" stopOpacity="1" />
-                                  <stop offset="50%" stopColor="#22c55e" stopOpacity="1" />
-                                  <stop offset="100%" stopColor="#16a34a" stopOpacity="1" />
-                                </linearGradient>
                               </defs>
                               {paths}
                             </svg>
@@ -16424,8 +16408,6 @@ ${
                             const trendData: number[] = [];
                             const fomoDates: string[] = [];
                             const overTradingDates: string[] = [];
-                            const plannedDates: string[] = [];
-                            let plannedCount = 0;
                             const tagStats: Record<string, any> = {};
                             const tagDates: Record<string, string[]> = {};
                             let overTradingCount = 0;
@@ -16442,21 +16424,10 @@ ${
                                 winningTrades += metrics.winningTrades || 0;
                                 trendData.push(netPnL);
                                 
-                                // Track overtrading - check for tag or high trade count
+                                // Track overtrading dates (> 10 trades)
                                 if ((metrics.totalTrades || 0) > 10) {
                                   overTradingCount++;
                                   overTradingDates.push(dateKey);
-                                }
-                                
-                                // Also track if overtrading tag exists
-                                if (Array.isArray(tags) && tags.length > 0) {
-                                  const normalizedTags = tags.map((t: string) => t.trim().toLowerCase());
-                                  if (normalizedTags.includes('overtrading')) {
-                                    if (!overTradingDates.includes(dateKey)) {
-                                      overTradingCount++;
-                                      overTradingDates.push(dateKey);
-                                    }
-                                  }
                                 }
                                 
                                 if (Array.isArray(tags) && tags.length > 0) {
@@ -16464,10 +16435,6 @@ ${
                                   if (normalizedTags.includes('fomo')) {
                                     fomoTrades++;
                                     fomoDates.push(dateKey);
-}
-                                  if (normalizedTags.includes('planned')) {
-                                    plannedCount++;
-                                    plannedDates.push(dateKey);
                                   }
                                   // Track all tags with their dates
                                   normalizedTags.forEach(tag => {
@@ -16512,7 +16479,7 @@ ${
                               <div className="space-y-2">
                                 {/* Header row with stats and menu */}
                                 <div className="flex justify-between items-center gap-2">
-                                  <div className={`text-white flex-1 flex ${Object.values(visibleStats).filter(v => v).length === 1 ? 'justify-center' : 'justify-around'} items-stretch gap-2`}>
+                                  <div className="grid grid-cols-5 gap-2 text-white flex-1">
                                     {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
                                         <div className="text-[10px] opacity-80">P&L</div>
@@ -16555,33 +16522,6 @@ ${
                                         <div className="text-xs font-bold">{maxWinStreak}</div>
                                       </div>
                                     )}
-                                    {visibleStats.overtrading && (
-                                      <button 
-                                        ref={overtradingButtonRef}
-                                        className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${
-                                          activeTagHighlight?.tag === 'overtrading' ? 'bg-white/30 ring-2 ring-white/50' : ''
-                                        }`} 
-                                        onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'overtrading' ? null : { tag: 'overtrading', dates: overTradingDates })} 
-                                        data-testid="stat-overtrading"
-                                        title={`Click to ${activeTagHighlight?.tag === 'overtrading' ? 'hide' : 'show'} overtrading dates on heatmap`}
-                                      >
-                                        <div className="text-[10px] opacity-80">OvrTrade</div>
-                                        <div className="text-xs font-bold text-orange-200">{overTradingCount}</div>
-                                      </button>
-                                    )}
-                                    {visibleStats.planned && (
-                                      <button 
-                                        ref={plannedButtonRef}
-                                        className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${activeTagHighlight?.tag === 'planned' ? 'bg-white/30 ring-2 ring-white/50' : ''}`} 
-                                        onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'planned' ? null : { tag: 'planned', dates: plannedDates })} 
-                                        data-testid="stat-planned"
-                                        title={`Click to ${activeTagHighlight?.tag === 'planned' ? 'hide' : 'show'} planned trade dates on heatmap`}
-                                      >
-                                        <div className="text-[10px] opacity-80">Planned</div>
-                                        <div className="text-xs font-bold text-green-200">{plannedCount}</div>
-                                      </button>
-                                    )}
-
                                   </div>
                                   
                                   {/* Share Icon */}
@@ -16603,65 +16543,55 @@ ${
                                     </PopoverTrigger>
                                     <PopoverContent className="w-56 p-3 bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                       <div className="space-y-2">
-                                        <div className="text-xs font-semibold text-slate-400 mb-2 flex items-center justify-between">
-                                          <span>Customize Magic Bar</span>
-                                          <span className="text-xs opacity-70">{Object.values(visibleStats).filter(v => v).length}/6</span>
-                                        </div>
-                                        {(() => {
-                                          const selectedCount = Object.values(visibleStats).filter(v => v).length;
-                                          const isAtLimit = selectedCount >= 6;
-                                          const handleCheckChange = (field: string, checked: boolean) => {
-                                            if (checked && isAtLimit) return;
-                                            setVisibleStats({...visibleStats, [field]: checked});
-                                          };
-                                          return (
-                                            <>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.pnl && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!visibleStats.pnl && isAtLimit} className="rounded" />
-                                                P&L
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.trend && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.trend} onChange={(e) => handleCheckChange('trend', e.target.checked)} disabled={!visibleStats.trend && isAtLimit} className="rounded" />
-                                                Trend
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.fomo && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.fomo} onChange={(e) => handleCheckChange('fomo', e.target.checked)} disabled={!visibleStats.fomo && isAtLimit} className="rounded" />
-                                                FOMO
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.winRate && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.winRate} onChange={(e) => handleCheckChange('winRate', e.target.checked)} disabled={!visibleStats.winRate && isAtLimit} className="rounded" />
-                                                Win Rate
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.streak && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.streak} onChange={(e) => handleCheckChange('streak', e.target.checked)} disabled={!visibleStats.streak && isAtLimit} className="rounded" />
-                                                Streak
-                                              </label>
-                                              <div className="border-t border-slate-700 my-2"></div>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.overtrading && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => handleCheckChange('overtrading', e.target.checked)} disabled={!visibleStats.overtrading && isAtLimit} className="rounded" />
-                                                Overtrading
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.planned && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.planned} onChange={(e) => handleCheckChange('planned', e.target.checked)} disabled={!visibleStats.planned && isAtLimit} className="rounded" />
-                                                Planned
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.topTags && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => handleCheckChange('topTags', e.target.checked)} disabled={!visibleStats.topTags && isAtLimit} className="rounded" />
-                                                Top Tags
-                                              </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.aiAnalysis && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} disabled={!visibleStats.aiAnalysis && isAtLimit} className="rounded" />
-                                                AI Analysis
-                                              </label>
-                                            </>
-                                          );
-                                        })()}
+                                        <div className="text-xs font-semibold text-slate-400 mb-2">Customize Stats</div>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => setVisibleStats({...visibleStats, pnl: e.target.checked})} className="rounded" />
+                                          P&L
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.trend} onChange={(e) => setVisibleStats({...visibleStats, trend: e.target.checked})} className="rounded" />
+                                          Trend
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.fomo} onChange={(e) => setVisibleStats({...visibleStats, fomo: e.target.checked})} className="rounded" />
+                                          FOMO
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.winRate} onChange={(e) => setVisibleStats({...visibleStats, winRate: e.target.checked})} className="rounded" />
+                                          Win Rate
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.streak} onChange={(e) => setVisibleStats({...visibleStats, streak: e.target.checked})} className="rounded" />
+                                          Streak
+                                        </label>
+                                        <div className="border-t border-slate-700 my-2"></div>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => setVisibleStats({...visibleStats, overtrading: e.target.checked})} className="rounded" />
+                                          Overtrading
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => setVisibleStats({...visibleStats, topTags: e.target.checked})} className="rounded" />
+                                          Top Tags
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm hover:bg-slate-800/50 p-1.5 rounded">
+                                          <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => setVisibleStats({...visibleStats, aiAnalysis: e.target.checked})} className="rounded" />
+                                          AI Analysis
+                                        </label>
                                       </div>
                                     </PopoverContent>
                                   </Popover>
                                 </div>
                                 
-
+                                {/* Overtrading Block with Curved Lines */}
+                                {visibleStats.overtrading && (
+                                  <button className={`w-full hover-elevate active-elevate-2 rounded px-2 py-1 text-xs text-white transition-all ${
+                                    activeTagHighlight?.tag === 'overtrading' ? 'bg-white/30 ring-2 ring-white/50' : 'bg-white/10'
+                                  }`} onClick={() => setActiveTagHighlight(activeTagHighlight?.tag === 'overtrading' ? null : { tag: 'overtrading', dates: overTradingDates })} data-testid="stat-overtrading-block">
+                                    <span className="opacity-80">Overtrading Days: </span>
+                                    <span className="font-semibold text-orange-200">{overTradingCount}</span>
+                                  </button>
+                                )}
+                                
                                 {/* Top Tags Block with Curved Lines */}
                                 {visibleStats.topTags && topTags.length > 0 && (
                                   <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
@@ -16702,10 +16632,41 @@ ${
                   </div>
                 </div>
                 {/* End of Main Journal Content */}
-                {/* Ranking Tab Content - Mobile only - Empty placeholder */}
+
+                {/* Ranking Tab Content - Mobile only, shown when ranking tab is active */}
                 {mobileBottomTab === "ranking" && (
-                  <div className="md:hidden">
-                    {/* Empty ranking tab */}
+                  <div className="md:hidden mt-6 space-y-6">
+                    <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 border-amber-200 dark:border-amber-800">
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                            <Trophy className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl">
+                              Trader Rankings
+                            </CardTitle>
+                            <CardDescription>
+                              Coming soon: Compare your performance with other
+                              traders
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                            <Trophy className="h-16 w-16 mx-auto mb-4 opacity-40" />
+                            <p className="text-sm">
+                              Ranking feature coming soon...
+                            </p>
+                            <p className="text-xs mt-2">
+                              Track your position among top traders
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
