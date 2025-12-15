@@ -15900,7 +15900,7 @@ ${
 
                       {/* Mobile: Trade History Summary Content (Dropdown) */}
                       {showMobileTradeHistory && (
-                        <Card className="mt-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                        <Card className="mt-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                           <CardContent className="p-3">
                             <div className="flex items-center justify-end gap-1.5 mb-3">
                               <Button
@@ -15957,7 +15957,7 @@ ${
                                     </th>
                                   </tr>
                                 </thead>
-                                <tbody className="bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                <tbody className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300">
                                   {isLoadingHeatmapData && tradeHistoryData.length === 0 ? (
                                     <tr>
                                       <td colSpan={9} className="p-8 text-center">
