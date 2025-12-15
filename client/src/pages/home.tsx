@@ -19100,10 +19100,10 @@ ${
 
         {/* Paper Trading (Demo Trading) Modal - Minimalist Design */}
         <Dialog open={showPaperTradingModal || (activeTab === "journal" && mobileBottomTab === "paper-trade")} onOpenChange={(open) => { if (!open && mobileBottomTab === "paper-trade") setMobileBottomTab("home"); setShowPaperTradingModal(open); }}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0">
+          <DialogContent className="w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[85vh] rounded-none sm:rounded-lg overflow-y-auto custom-thin-scrollbar p-0">
             {/* Compact Header */}
             <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Paper Trading</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${
@@ -19142,9 +19142,9 @@ ${
 
               {/* Trade Entry - Compact Inline Form */}
               <div className="border border-gray-200 dark:border-gray-800 rounded-md p-3">
-                <div className="flex flex-wrap items-end gap-2">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3 sm:gap-2">
                   {/* Symbol Search */}
-                  <div className="flex-1 min-w-[180px] relative">
+                  <div className="w-full sm:flex-1 sm:min-w-[180px] relative">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                       <Input
@@ -19247,7 +19247,7 @@ ${
                       setPaperTradingWsStatus('disconnected');
                     }}
                   >
-                    <SelectTrigger className="w-24 h-8 text-xs" data-testid="select-paper-trade-type">
+                    <SelectTrigger className="w-full sm:w-24 h-9 sm:h-8 text-xs" data-testid="select-paper-trade-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -19265,7 +19265,7 @@ ${
                       placeholder="Qty"
                       value={paperTradeQuantity}
                       onChange={(e) => setPaperTradeQuantity(e.target.value)}
-                      className="w-20 h-8 text-xs text-center"
+                      className="w-full sm:w-20 h-9 sm:h-8 text-xs text-center"
                       min="1"
                       data-testid="input-paper-trade-qty"
                     />
@@ -19275,14 +19275,14 @@ ${
                       placeholder="Lots"
                       value={paperTradeLotInput}
                       onChange={(e) => setPaperTradeLotInput(e.target.value)}
-                      className="w-20 h-8 text-xs text-center"
+                      className="w-full sm:w-20 h-9 sm:h-8 text-xs text-center"
                       min="1"
                       data-testid="input-paper-trade-lots"
                     />
                   )}
 
                   {/* Price Display */}
-                  <div className="w-40 h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
+                  <div className="w-full sm:w-40 h-9 sm:h-8 flex items-center justify-center text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
                     {paperTradePriceLoading ? (
                       <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : paperTradeCurrentPrice ? (
@@ -19293,7 +19293,7 @@ ${
                   </div>
 
                   {/* Buy/Sell and SL Buttons - Right Side */}
-                  <div className="flex gap-2 ml-auto">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto">
                     {(() => {
                     const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                     return (
@@ -19302,7 +19302,7 @@ ${
                           onClick={() => { setPaperTradeAction('BUY'); executePaperTrade(); }}
                           disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
                           size="sm"
-                          className="h-8 px-4 bg-green-600 hover:bg-green-700 text-white text-xs"
+                          className="h-10 sm:h-8 px-4 flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white text-sm sm:text-xs"
                           data-testid="button-paper-buy"
                         >
                           BUY
@@ -19311,7 +19311,7 @@ ${
                           onClick={() => { setPaperTradeAction('SELL'); executePaperTrade(); }}
                           disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
                           size="sm"
-                          className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs"
+                          className="h-10 sm:h-8 px-4 flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white text-sm sm:text-xs"
                           data-testid="button-paper-sell"
                         >
                           SELL
@@ -19491,7 +19491,7 @@ ${
                       </Button>
                     </div>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden">
+                  <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-x-auto">
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400">
@@ -19598,7 +19598,7 @@ ${
                       Record
                     </Button>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden max-h-40 overflow-y-auto custom-thin-scrollbar">
+                  <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-x-auto max-h-40 overflow-y-auto custom-thin-scrollbar">
                     <table className="w-full text-[11px]">
                       <thead className="sticky top-0">
                         <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400">
