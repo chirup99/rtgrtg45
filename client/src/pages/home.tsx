@@ -4193,6 +4193,7 @@ ${
   // Stop Loss state
   const [showPaperTradeSLDropdown, setShowPaperTradeSLDropdown] = useState(false);
   const [showMobilePaperTradeSLDropdown, setShowMobilePaperTradeSLDropdown] = useState(false);
+  const [paperTradeSLPrice, setPaperTradeSLPrice] = useState("");
   const [paperTradeSLType, setPaperTradeSLType] = useState<'price' | 'percent' | 'duration' | 'high' | 'low'>('price');
   const [paperTradeSLValue, setPaperTradeSLValue] = useState("");
   const [paperTradeSLTimeframe, setPaperTradeSLTimeframe] = useState("5m");
@@ -19766,6 +19767,7 @@ ${
                         setSelectedPaperTradingInstrument(null);
                         setPaperTradeQuantity("");
                         setPaperTradeLotInput("");
+                        setPaperTradeSLPrice("");
                         setPaperTradingWsStatus('disconnected');
                       }}
                     >
@@ -21037,6 +21039,7 @@ ${
                         setSelectedPaperTradingInstrument(null);
                         setPaperTradeQuantity("");
                         setPaperTradeLotInput("");
+                        setPaperTradeSLPrice("");
                         setPaperTradingWsStatus('disconnected');
                       }}
                     >
