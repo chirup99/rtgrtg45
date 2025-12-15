@@ -20218,7 +20218,7 @@ ${
         
         {/* Mobile Paper Trade Tab - Full Screen */}
         {activeTab === "journal" && mobileBottomTab === "paper-trade" && (
-          <div className="md:hidden fixed inset-0 z-40 bg-white dark:bg-black overflow-y-auto pb-28">
+          <div className="md:hidden fixed inset-0 z-40 bg-white dark:bg-black overflow-y-auto pb-20">
             <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Paper Trading</h2>
