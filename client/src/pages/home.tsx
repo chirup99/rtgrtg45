@@ -19099,7 +19099,7 @@ ${
         </Dialog>
 
         {/* Paper Trading (Demo Trading) Modal - Minimalist Design */}
-        <Dialog open={showPaperTradingModal || (activeTab === "journal" && mobileBottomTab === "paper-trade")} onOpenChange={(open) => { if (!open && mobileBottomTab === "paper-trade") setMobileBottomTab("home"); setShowPaperTradingModal(open); }}>
+        <Dialog open={showPaperTradingModal} onOpenChange={(open) => setShowPaperTradingModal(open)}>
           <DialogContent className="w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[85vh] rounded-none sm:rounded-lg overflow-y-auto custom-thin-scrollbar p-0">
             {/* Compact Header */}
             <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
