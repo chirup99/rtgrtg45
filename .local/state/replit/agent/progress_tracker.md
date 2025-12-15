@@ -38,11 +38,10 @@
      * ANGEL_ONE_PIN
      * ANGEL_ONE_API_KEY
      * ANGEL_ONE_TOTP_SECRET
-   - Result: 
-     * Server now auto-connects to Angel One on startup
-     * Daily re-authentication scheduled 15 minutes before market opens (8:45 AM IST)
-     * Tokens automatically refresh using the refreshToken mechanism
-     * No more manual connection required each day
+   - Result: Server now auto-connects to Angel One on startup
+   - Daily re-authentication scheduled 15 minutes before market opens (8:45 AM IST)
+   - Tokens automatically refresh using the refreshToken mechanism
+   - No more manual connection required each day
    - Verification: Server logs show successful auto-connection and WebSocket streaming active
 
 [x] 50. **FINAL: Replit environment migration completed (December 14, 2025, 8:07 AM)**
@@ -112,10 +111,39 @@
    - Server running on port 5000
    - All 55 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (55 ITEMS)
+[x] 56. **FEATURE: Frontend Auto-Reconnect on Token Expiry (December 15, 2025)**
+   - Issue: User needs to manually tap Connect button daily when token expires
+   - Solution: Implemented automatic frontend detection and reconnection
+   - Frontend Changes (client/src/components/auth-button-angelone.tsx):
+     * Added token expiry tracking to AngelOneStatusData interface
+     * Added tokenExpiry (Unix timestamp) and tokenExpired (boolean) fields
+     * Implemented second useEffect hook that monitors token expiry status
+     * Auto-triggers reconnection when token is expired OR within 1 hour of expiry
+     * Shows toast notification when auto-reconnecting: "Token Expiring - Automatically reconnecting to Angel One..."
+     * Prevents duplicate reconnection attempts with hasWarnedAboutExpiry flag
+   - Backend Changes (server/angel-one-api.ts):
+     * Updated getConnectionStatus() to extract JWT token expiry
+     * Decodes JWT payload to extract exp (expiration timestamp)
+     * Returns tokenExpiry (Unix seconds) and tokenExpired (boolean) in status response
+     * Includes clientCode for user identification
+   - How It Works:
+     * Every 5 seconds, status query checks if token is expired
+     * If tokenExpired=true OR tokenExpiry <= current_time + 1 hour:
+       - Automatically calls /api/angelone/connect-env
+       - No user interaction needed
+       - Toast notification confirms auto-reconnection
+     * After successful reconnect, hasWarnedAboutExpiry resets for next cycle
+   - Result:
+     * Users open app and auto-connection happens seamlessly
+     * No more manual "Connect" button taps needed daily
+     * Token refresh happens silently in background
+     * Zero service interruption during token refresh
+
+### Current Status: ALL UPDATES COMPLETE (56 ITEMS)
 - Application running on port 5000
-- Angel One auto-reconnection ENABLED (startup + scheduled)
-- Token expiry auto-refresh ENABLED (every 30 minutes)
+- Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
+- Token expiry auto-refresh ENABLED (frontend + backend)
 - WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
 - Project import COMPLETE
-- Auto token generation when expired: IMPLEMENTED
+- Auto token generation when expired: FULLY IMPLEMENTED
+- Frontend auto-reconnect on token expiry: IMPLEMENTED

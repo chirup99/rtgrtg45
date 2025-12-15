@@ -19,6 +19,8 @@ interface AngelOneStatusData {
   connected: boolean;
   authenticated: boolean;
   clientCode?: string;
+  tokenExpiry?: number;
+  tokenExpired?: boolean;
 }
 
 interface AngelOneApiStats {
@@ -78,6 +80,7 @@ interface LiveIndicesResponse {
 export function AuthButtonAngelOne() {
   const { toast } = useToast();
   const [hasAttemptedAutoConnect, setHasAttemptedAutoConnect] = useState(false);
+  const [hasWarnedAboutExpiry, setHasWarnedAboutExpiry] = useState(false);
 
   const { data: angelStatus, isLoading: isStatusLoading } = useQuery<AngelOneStatusData>({
     queryKey: ["/api/angelone/status"],
@@ -98,6 +101,7 @@ export function AuthButtonAngelOne() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/angelone/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/angelone/profile"] });
+      setHasWarnedAboutExpiry(false);
       
       toast({
         title: "Connected!",
@@ -143,6 +147,34 @@ export function AuthButtonAngelOne() {
       connectMutation.mutate();
     }
   }, [isStatusLoading, angelStatus, hasAttemptedAutoConnect, connectMutation.isPending]);
+
+  // Auto-reconnect when token expires or is about to expire
+  useEffect(() => {
+    if (!isStatusLoading && angelStatus && angelStatus.connected && angelStatus.authenticated) {
+      // Check if token is expired or expiring soon (within 1 hour)
+      const isTokenExpired = angelStatus.tokenExpired;
+      const hoursUntilExpiry = angelStatus.tokenExpiry 
+        ? Math.floor((angelStatus.tokenExpiry * 1000 - Date.now()) / (1000 * 60 * 60))
+        : null;
+
+      if (isTokenExpired || (hoursUntilExpiry !== null && hoursUntilExpiry <= 1)) {
+        if (!hasWarnedAboutExpiry && !connectMutation.isPending) {
+          setHasWarnedAboutExpiry(true);
+          console.log('⏰ [Angel One] Token expired or expiring soon, auto-reconnecting...');
+          
+          toast({
+            title: "Token Expiring",
+            description: "Automatically reconnecting to Angel One...",
+          });
+          
+          // Trigger automatic reconnection
+          setTimeout(() => {
+            connectMutation.mutate();
+          }, 500);
+        }
+      }
+    }
+  }, [isStatusLoading, angelStatus?.tokenExpired, angelStatus?.tokenExpiry, angelStatus?.connected, angelStatus?.authenticated, connectMutation.isPending, hasWarnedAboutExpiry]);
 
   const isConnected = angelStatus?.connected && angelStatus?.authenticated;
   const userName = profileData?.profile?.name || angelStatus?.clientCode || "User";

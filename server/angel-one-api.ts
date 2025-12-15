@@ -572,12 +572,33 @@ class AngelOneAPI {
     return quotes;
   }
 
-  // Connection status
-  getConnectionStatus(): { connected: boolean; profile: AngelOneProfile | null; session: boolean } {
+  // Connection status with token expiry info
+  getConnectionStatus(): { connected: boolean; authenticated: boolean; profile: AngelOneProfile | null; session: boolean; tokenExpiry?: number; tokenExpired?: boolean; clientCode?: string } {
+    let tokenExpiry: number | undefined;
+    let tokenExpired = false;
+
+    // Extract token expiry from JWT if available
+    if (this.session?.jwtToken) {
+      try {
+        const parts = this.session.jwtToken.split('.');
+        if (parts.length === 3) {
+          const decoded = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+          tokenExpiry = decoded.exp; // Unix timestamp in seconds
+          tokenExpired = (decoded.exp * 1000) < Date.now(); // Check if expired
+        }
+      } catch (e) {
+        // Silent fail if JWT parsing fails
+      }
+    }
+
     return {
       connected: this.isAuthenticated,
+      authenticated: this.isAuthenticated,
       profile: this.profileData,
-      session: !!this.session
+      session: !!this.session,
+      clientCode: this.profileData?.clientCode,
+      tokenExpiry,
+      tokenExpired
     };
   }
 
