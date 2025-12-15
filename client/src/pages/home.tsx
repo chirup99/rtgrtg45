@@ -21101,6 +21101,28 @@ ${
                     </div>
                   </div>
                   
+                  {/* Stop Loss Input */}
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      type="number"
+                      placeholder="SL Price"
+                      value={paperTradeSLPrice}
+                      onChange={(e) => setPaperTradeSLPrice(e.target.value)}
+                      className="flex-1 h-10 text-sm text-center rounded-lg"
+                      step="0.01"
+                      data-testid="input-paper-trade-sl-mobile-tab"
+                    />
+                    <Button
+                      onClick={() => setPaperTradeSLPrice("")}
+                      size="sm"
+                      variant="ghost"
+                      className="h-10 px-3 text-xs text-gray-400"
+                      data-testid="button-clear-sl-mobile-tab"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
                   {/* Action Buttons */}
                   <div className="flex gap-3">
                     {(() => {
