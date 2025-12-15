@@ -16727,9 +16727,39 @@ ${
                             paperTradingWsStatus === 'connected' 
                               ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
                               : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                          }`} data-testid="paper-trading-ws-status">
+                          }`} data-testid="paper-trading-ws-status-mobile">
                             {paperTradingWsStatus === 'connected' ? '● Live' : '● Offline'}
                           </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* Option Chain Button */}
+                          <Button
+                            onClick={() => {
+                              fetchOptionChainData();
+                              setShowOptionChain(true);
+                            }}
+                            size="icon"
+                            variant="outline"
+                            className="h-8 w-8"
+                            data-testid="button-option-chain-mobile"
+                          >
+                            <Grid3X3 className="h-4 w-4" />
+                          </Button>
+                          {/* Hide Position Details Toggle */}
+                          <Button
+                            onClick={() => setHidePositionDetails(!hidePositionDetails)}
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            data-testid="button-toggle-position-visibility-mobile"
+                            title={hidePositionDetails ? "Show details" : "Hide details"}
+                          >
+                            {hidePositionDetails ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </Button>
                         </div>
                       </div>
 
@@ -16896,21 +16926,113 @@ ${
                           >
                             SELL
                           </Button>
+
+                        {/* SL Button */}
+                        <div className="relative">
+                          {(() => {
+                            const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
+                            return (
+                              <Button
+                                onClick={() => setShowPaperTradeSLDropdown(!showPaperTradeSLDropdown)}
+                                disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
+                                size="sm"
+                                variant={paperTradeSLEnabled ? "default" : "outline"}
+                                className={`h-9 text-xs ${paperTradeSLEnabled ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                                data-testid="button-paper-sl-mobile"
+                              >
+                                SL {paperTradeSLEnabled && '✓'}
+                              </Button>
+                            );
+                          })()}
+                          {showPaperTradeSLDropdown && (
+                            <div className="absolute z-50 top-10 left-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                              <div className="p-3 space-y-2 min-w-[200px]">
+                                <div>
+                                  <label className="text-[10px] text-gray-500 uppercase">Type</label>
+                                  <Select value={paperTradeSLType} onValueChange={(v: any) => setPaperTradeSLType(v)}>
+                                    <SelectTrigger className="h-7 text-xs mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="price">Price SL</SelectItem>
+                                      <SelectItem value="percent">% SL</SelectItem>
+                                      <SelectItem value="duration">Duration</SelectItem>
+                                      <SelectItem value="high">Candle High</SelectItem>
+                                      <SelectItem value="low">Candle Low</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-gray-500 uppercase">Value</label>
+                                  <Input
+                                    type="number"
+                                    value={paperTradeSLValue}
+                                    onChange={(e) => setPaperTradeSLValue(e.target.value)}
+                                    placeholder={paperTradeSLType === 'price' ? 'SL Price' : paperTradeSLType === 'percent' ? '% from entry' : 'Duration'}
+                                    className="h-7 text-xs mt-1"
+                                    data-testid="input-paper-sl-value-mobile"
+                                  />
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                  <Button
+                                    onClick={() => {
+                                      setPaperTradeSLEnabled(true);
+                                      setShowPaperTradeSLDropdown(false);
+                                    }}
+                                    size="sm"
+                                    className="flex-1 h-7 text-xs bg-orange-500 hover:bg-orange-600"
+                                    data-testid="button-apply-sl-mobile"
+                                  >
+                                    Apply
+                                  </Button>
+                                  <Button
+                                    onClick={() => {
+                                      setPaperTradeSLEnabled(false);
+                                      setPaperTradeSLValue('');
+                                      setShowPaperTradeSLDropdown(false);
+                                    }}
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 h-7 text-xs"
+                                    data-testid="button-clear-sl-mobile"
+                                  >
+                                    Clear
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         </div>
                       </div>
 
                       {/* Open Positions */}
                       {paperPositions.filter(p => p.isOpen).length > 0 && (
                         <div className="space-y-2">
-                          <h3 className="text-sm font-semibold">Open Positions</h3>
+<div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold">Open Positions</h3>
+                            <Button
+                              onClick={exitAllPaperPositions}
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-700 dark:hover:bg-red-900/20"
+                              data-testid="button-exit-all-positions-mobile"
+                            >
+                              Exit All
+                            </Button>
+                          </div>
                           <div className="space-y-2 max-h-40 overflow-y-auto">
                             {paperPositions.filter(p => p.isOpen).map((pos, idx) => (
                               <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs">
                                 <div className="flex justify-between items-start mb-1">
                                   <span className="font-bold">{pos.symbol}</span>
-                                  <span className={`font-semibold ${pos.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                    {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
-                                  </span>
+                                  {hidePositionDetails ? (
+                                    <span className="font-semibold text-gray-400">***</span>
+                                  ) : (
+                                    <span className={`font-semibold ${pos.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                      {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                                   <span>{pos.action} {pos.qty} @ ₹{pos.price}</span>
@@ -16930,20 +17052,58 @@ ${
                         </div>
                       )}
 
-                      {/* Recent Trades */}
+                      {/* Trade History */}
                       {paperTradeHistory.length > 0 && (
                         <div className="space-y-2">
-                          <h3 className="text-sm font-semibold">Recent Trades</h3>
-                          <div className="space-y-1 max-h-32 overflow-y-auto text-xs">
-                            {paperTradeHistory.slice(-5).reverse().map((trade, idx) => (
-                              <div key={idx} className="flex justify-between items-center p-1 bg-slate-50 dark:bg-slate-800/50 rounded">
-                                <span className="font-medium">{trade.symbol}</span>
-                                <span className={`font-semibold ${trade.action === 'BUY' ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                                  {trade.action} {trade.quantity}
-                                </span>
-                                <span>@ ₹{trade.price}</span>
-                              </div>
-                            ))}
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold">Trade History</h3>
+                            <Button
+                              onClick={recordAllPaperTrades}
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-700 dark:hover:bg-blue-900/20"
+                              data-testid="button-record-trades-mobile"
+                            >
+                              Record
+                            </Button>
+                          </div>
+                          <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-hidden max-h-40 overflow-y-auto">
+                            <table className="w-full text-[11px]">
+                              <thead className="sticky top-0">
+                                <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400">
+                                  <th className="px-2 py-1 text-left font-medium">Time</th>
+                                  <th className="px-2 py-1 text-center font-medium">Type</th>
+                                  <th className="px-2 py-1 text-left font-medium">Symbol</th>
+                                  <th className="px-2 py-1 text-right font-medium">Qty</th>
+                                  <th className="px-2 py-1 text-right font-medium">Price</th>
+                                  <th className="px-2 py-1 text-right font-medium">P&L</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[...paperTradeHistory].reverse().map(trade => (
+                                  <tr key={trade.id} className="border-t border-gray-100 dark:border-gray-800">
+                                    <td className="px-2 py-1 text-gray-400">{trade.time}</td>
+                                    <td className="px-2 py-1 text-center">
+                                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                                        trade.action === 'BUY' 
+                                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                      }`}>
+                                        {trade.action}
+                                      </span>
+                                    </td>
+                                    <td className="px-2 py-1 font-medium">{trade.symbol}</td>
+                                    <td className="px-2 py-1 text-right">{trade.quantity}</td>
+                                    <td className="px-2 py-1 text-right">₹{trade.price.toFixed(2)}</td>
+                                    <td className={`px-2 py-1 text-right font-medium ${
+                                      !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {trade.pnl || '-'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       )}
