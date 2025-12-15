@@ -6203,7 +6203,7 @@ ${
 
   // Mobile bottom navigation state (home, insight, ranking)
   const [mobileBottomTab, setMobileBottomTab] = useState<
-    "home" | "insight" | "ranking"
+    "home" | "insight" | "ranking" | "paper-trade"
   >("home");
 
   // Mobile trade history dropdown state
@@ -20188,12 +20188,15 @@ ${
 
                 {/* Paper Trade Tab */}
                 <button
-                  onClick={() => setShowPaperTradingModal(true)}
-                  className="flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover-elevate active-elevate-2"
+                  onClick={() => setMobileBottomTab("paper-trade")}
+                  className={`flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 ${
+                    mobileBottomTab === "paper-trade"
+                      ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
                   data-testid="mobile-tab-paper-trade"
-                  title="Open Paper Trading"
                 >
-                  <Banknote className="h-5 w-5" />
+                  <Banknote className={`h-5 w-5 ${mobileBottomTab === "paper-trade" ? "fill-current" : ""}`} />
                 </button>
 
                 {/* Ranking Tab */}
@@ -20208,6 +20211,25 @@ ${
                 >
                   <Trophy className={`h-5 w-5 ${mobileBottomTab === "ranking" ? "fill-current" : ""}`} />
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Mobile Paper Trade Tab - Full Screen */}
+        {activeTab === "journal" && mobileBottomTab === "paper-trade" && (
+          <div className="md:hidden fixed inset-0 z-40 bg-white dark:bg-black overflow-y-auto pb-20">
+            <div className="p-4">
+              <button 
+                onClick={() => setMobileBottomTab("home")}
+                className="mb-4 text-blue-600 dark:text-blue-400 text-sm font-medium"
+                data-testid="button-paper-trade-back"
+              >
+                ← Back
+              </button>
+              <h2 className="text-lg font-semibold mb-4">Paper Trading</h2>
+              <div className="text-gray-500 dark:text-gray-400 text-center py-8">
+                Paper Trading tab is now active on mobile
               </div>
             </div>
           </div>
