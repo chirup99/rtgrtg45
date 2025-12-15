@@ -19099,7 +19099,7 @@ ${
         </Dialog>
 
         {/* Paper Trading (Demo Trading) Modal - Minimalist Design */}
-        <Dialog open={showPaperTradingModal} onOpenChange={setShowPaperTradingModal}>
+        <Dialog open={showPaperTradingModal || (activeTab === "journal" && mobileBottomTab === "paper-trade")} onOpenChange={(open) => { if (!open && mobileBottomTab === "paper-trade") setMobileBottomTab("home"); setShowPaperTradingModal(open); }}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto custom-thin-scrollbar p-0">
             {/* Compact Header */}
             <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
@@ -20219,17 +20219,22 @@ ${
         {/* Mobile Paper Trade Tab - Full Screen */}
         {activeTab === "journal" && mobileBottomTab === "paper-trade" && (
           <div className="md:hidden fixed inset-0 z-40 bg-white dark:bg-black overflow-y-auto pb-20">
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Paper Trading</h2>
+                <button 
+                  onClick={() => setMobileBottomTab("home")}
+                  className="text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  data-testid="button-paper-trade-back"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
             <div className="p-4">
-              <button 
-                onClick={() => setMobileBottomTab("home")}
-                className="mb-4 text-blue-600 dark:text-blue-400 text-sm font-medium"
-                data-testid="button-paper-trade-back"
-              >
-                ← Back
-              </button>
-              <h2 className="text-lg font-semibold mb-4">Paper Trading</h2>
-              <div className="text-gray-500 dark:text-gray-400 text-center py-8">
-                Paper Trading tab is now active on mobile
+              {/* This shows the paper trading content for mobile */}
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p className="text-sm">Paper Trading will be available soon</p>
               </div>
             </div>
           </div>
