@@ -62,7 +62,7 @@
 [x] 52. **Re-installed tsx package and verified server (December 14, 2025, 5:15 PM)**
    - Installed tsx package to fix workflow startup
    - Restarted workflow successfully
-   - Angel One API auto-connected: SUCCESS
+   - Angel One API auto-connected: SUCCESS (Client: P176266)
    - WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
    - All AWS DynamoDB tables initialized
    - Server running on port 5000
@@ -139,16 +139,20 @@
      * Token refresh happens silently in background
      * Zero service interruption during token refresh
 
-[x] 57. **Re-installed tsx package and verified server (December 15, 2025, 6:05 AM)**
-   - Installed tsx package to fix workflow startup
-   - Restarted workflow successfully
-   - Angel One API auto-connected: SUCCESS (Client: P176266)
-   - WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
-   - All AWS DynamoDB tables initialized
-   - NeoFeed routes registered
-   - Server running on port 5000
-   - Vite HMR websocket warning (cosmetic - expected in Replit proxy environment)
-   - All 57 items marked as complete
+[x] 57. **FIX: Option Chain Mobile Bug (December 15, 2025, 6:10 AM)**
+   - Issue: Option chain on mobile not fetching expiry dates, asking to select index
+   - Root Cause: Initial selectedExpiry was hardcoded to old date '2025-09-19', API fetch depended on this
+   - Fixes Applied to client/src/components/trading-master.tsx:
+     * Changed selectedExpiry from hardcoded date to empty string (line ~2301)
+     * Added optionChainInitialized state to ensure fetch on mount (line ~2308)
+     * Updated useEffect to fetch option chain data immediately on mount (lines ~2458-2494)
+     * Auto-selects nearest expiry date (first valid future date)
+     * Removed hardcoded fallback dates from Select component
+     * Shows "Loading..." placeholder and "Click Refresh to load" message
+   - Result:
+     * Option chain now fetches expiry dates on component mount (mobile & desktop)
+     * Automatically selects nearest valid expiry date
+     * No more hardcoded old dates
 
 ### Current Status: ALL UPDATES COMPLETE (57 ITEMS)
 - Application running on port 5000
@@ -158,3 +162,4 @@
 - Project import COMPLETE
 - Auto token generation when expired: FULLY IMPLEMENTED
 - Frontend auto-reconnect on token expiry: IMPLEMENTED
+- Option Chain mobile bug: FIXED

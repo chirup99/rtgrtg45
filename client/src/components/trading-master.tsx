@@ -2295,13 +2295,14 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
 
   // Options-related state
   const [selectedUnderlying, setSelectedUnderlying] = useState('NSE:NIFTY50-INDEX');
-  const [selectedExpiry, setSelectedExpiry] = useState('2025-09-19');
+  const [selectedExpiry, setSelectedExpiry] = useState(''); // Empty until fetched from API
   const [expirySearchTerm, setExpirySearchTerm] = useState('');
   const [optionChainData, setOptionChainData] = useState<any>(null);
   const [optionsAnalytics, setOptionsAnalytics] = useState<any>(null);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [optionError, setOptionError] = useState<string | null>(null);
+  const [optionChainInitialized, setOptionChainInitialized] = useState(false);
   
   // NSE Testing State - for NSE Text tab
   const [nseTestSymbol, setNseTestSymbol] = useState('RELIANCE');
@@ -2451,25 +2452,40 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
     };
   }, [isUserActive]);
 
-  // Fetch option chain data when underlying changes
+  // Fetch option chain data on mount and when underlying changes
   useEffect(() => {
-    if (selectedUnderlying) {
+    if (selectedUnderlying && !optionChainInitialized) {
+      console.log('📊 [OPTION-CHAIN] Initial fetch on mount...');
+      fetchOptionChainData();
+      fetchOptionsAnalytics();
+      setOptionChainInitialized(true);
+    }
+  }, [selectedUnderlying, optionChainInitialized]);
+
+  // Refetch when underlying changes (after initial load)
+  useEffect(() => {
+    if (selectedUnderlying && optionChainInitialized) {
+      console.log('📊 [OPTION-CHAIN] Underlying changed, refetching...');
       fetchOptionChainData();
       fetchOptionsAnalytics();
     }
   }, [selectedUnderlying]);
 
-  // Auto-update to latest expiry date when option chain data loads
+  // Auto-update to nearest expiry date when option chain data loads
   useEffect(() => {
     if (optionChainData?.expiry_dates && optionChainData.expiry_dates.length > 0) {
-      // Sort expiry dates and select the latest (most recent) one
+      // Sort expiry dates chronologically
       const sortedExpiries = [...optionChainData.expiry_dates].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-      const latestExpiry = sortedExpiries[sortedExpiries.length - 1];
       
-      // Only update if current selection is not already the latest
-      if (selectedExpiry !== latestExpiry) {
-        console.log(`🔄 Auto-updating expiry from ${selectedExpiry} to latest: ${latestExpiry}`);
-        setSelectedExpiry(latestExpiry);
+      // Find the nearest expiry (first one that hasn't passed yet)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const nearestExpiry = sortedExpiries.find(expiry => new Date(expiry) >= today) || sortedExpiries[0];
+      
+      // Set expiry if not set or if current selection is invalid
+      if (!selectedExpiry || !sortedExpiries.includes(selectedExpiry)) {
+        console.log(`🔄 [OPTION-CHAIN] Setting expiry to nearest: ${nearestExpiry}`);
+        setSelectedExpiry(nearestExpiry);
       }
     }
   }, [optionChainData?.expiry_dates]);
@@ -11078,7 +11094,7 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
                   }}
                 >
                   <SelectTrigger className="w-[140px] h-10 text-sm" data-testid="select-expiry">
-                    <SelectValue placeholder="Select expiry" />
+                    <SelectValue placeholder={isLoadingOptions ? "Loading..." : "Select expiry"} />
                   </SelectTrigger>
                   <SelectContent>
                     {/* Search Input */}
@@ -11094,8 +11110,8 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
                         onKeyDown={(e) => e.stopPropagation()} // Prevent dropdown navigation
                       />
                     </div>
-                    {/* Filtered Expiry Options */}
-                    {(optionChainData?.expiry_dates || ['2025-09-19', '2025-09-26', '2025-10-03', '2025-10-10', '2025-10-17', '2025-10-24', '2025-10-31'])
+                    {/* Filtered Expiry Options - Use API data, no hardcoded fallback */}
+                    {(optionChainData?.expiry_dates || [])
                       .filter((expiry: string) => {
                         if (!expirySearchTerm) return true;
                         const searchTerm = expirySearchTerm.toLowerCase();
@@ -11115,8 +11131,14 @@ Risk Warning: Past performance does not guarantee future results. Trade responsi
                           })}
                         </SelectItem>
                       ))}
+                    {/* Loading or No Data Message */}
+                    {(!optionChainData?.expiry_dates || optionChainData.expiry_dates.length === 0) && !isLoadingOptions && (
+                      <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                        No expiry dates available. Click Refresh to load.
+                      </div>
+                    )}
                     {/* No Results Message */}
-                    {expirySearchTerm && (optionChainData?.expiry_dates || ['2025-09-19', '2025-09-26', '2025-10-03', '2025-10-10', '2025-10-17', '2025-10-24', '2025-10-31'])
+                    {expirySearchTerm && (optionChainData?.expiry_dates || [])
                       .filter((expiry: string) => {
                         const searchTerm = expirySearchTerm.toLowerCase();
                         const formattedDate = new Date(expiry).toLocaleDateString('en-GB', { 
