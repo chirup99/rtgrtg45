@@ -6203,7 +6203,7 @@ ${
 
   // Mobile bottom navigation state (home, insight, ranking)
   const [mobileBottomTab, setMobileBottomTab] = useState<
-    "home" | "insight" | "ranking" | "paper-trade"
+    "home" | "insight" | "ranking"
   >("home");
 
   // Mobile trade history dropdown state
@@ -20200,15 +20200,12 @@ ${
                 </button>
                 {/* Paper Trade Tab */}
                 <button
-                  onClick={() => setMobileBottomTab("paper-trade")}
-                  className={`flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 ${
-                    mobileBottomTab === "paper-trade"
-                      ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                  onClick={() => setShowPaperTradingModal(true)}
+                  className="flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover-elevate active-elevate-2"
                   data-testid="mobile-tab-paper-trade"
+                  title="Open Paper Trading"
                 >
-                  <Banknote className={`h-5 w-5 ${mobileBottomTab === "paper-trade" ? "fill-current" : ""}`} />
+                  <Banknote className="h-5 w-5" />
                 </button>
               </div>
             </div>
