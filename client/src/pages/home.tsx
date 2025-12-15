@@ -5387,17 +5387,30 @@ ${
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
+  };
 
-  // Auto-select first expiry date when option chain data loads
+  // Auto-select first expiry date when option chain data loads (mobile fix)
   useEffect(() => {
-    if (optionChainData && !selectedOptionExpiryDate) {
-      const firstExpiry = getOptionExpiryDates(selectedOptionIndex)[0]?.value;
-      if (firstExpiry) {
-        setSelectedOptionExpiryDate(firstExpiry);
+    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+        const expiryDate = new Date(expiry);
+        expiryDate.setHours(0, 0, 0, 0);
+        return expiryDate >= today;
+      });
+      if (futureExpiries.length > 0) {
+        setSelectedOptionExpiryDate(futureExpiries[0]);
       }
     }
-  }, [optionChainData, selectedOptionIndex]);
-  };
+  }, [optionChainData, selectedOptionExpiryDate]);
+
+  // Auto-fetch option chain data when dialog opens (mobile fix)
+  useEffect(() => {
+    if (showOptionChain && selectedOptionIndex && !optionChainData) {
+      fetchOptionChainData(selectedOptionIndex);
+    }
+  }, [showOptionChain, selectedOptionIndex, optionChainData]);
   const foEligibleSymbols = [
     'KOTAKBANK', 'LT', 'ITC', 'AXISBANK', 'HINDUNILVR', 'BAJFINANCE', 'MARUTI',
     'ASIANPAINT', 'TITAN', 'TATAMOTORS', 'SUNPHARMA', 'WIPRO', 'ULTRACEMCO',
