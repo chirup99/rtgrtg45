@@ -20677,24 +20677,346 @@ ${
         )}
         
         {/* Mobile Paper Trade Tab - Full Screen */}
-        {activeTab === "journal" && mobileBottomTab === "paper-trade" && (
-          <div className="md:hidden fixed inset-0 z-40 bg-white dark:bg-black overflow-y-auto pb-20">
-            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Paper Trading</h2>
-                <button 
-                  onClick={() => setMobileBottomTab("home")}
-                  className="text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                  data-testid="button-paper-trade-back"
+{activeTab === "journal" && mobileBottomTab === "paper-trade" && (
+          <div className="md:hidden fixed inset-0 z-40 bg-gradient-to-b from-gray-900 to-gray-950 overflow-y-auto pb-20 flex flex-col">
+            {/* Hero Balance Section - Dark gradient background */}
+            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-5 pt-8 pb-6 relative">
+              <div className="absolute top-3 right-3">
+                <span className={`text-[10px] px-2 py-1 rounded-full flex items-center gap-1 ${
+                  paperTradingWsStatus === 'connected' 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : 'bg-gray-700 text-gray-400'
+                }`} data-testid="paper-trading-ws-status-mobile">
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    paperTradingWsStatus === 'connected' ? 'bg-green-400' : 'bg-gray-500'
+                  }`} />
+                  {paperTradingWsStatus === 'connected' ? 'Live' : 'Offline'}
+                </span>
+              </div>
+              
+              <div className="text-gray-400 text-xs mb-1">Total Capital</div>
+              <div className="text-white text-3xl font-bold mb-2" data-testid="paper-trading-capital-mobile">
+                {hidePositionDetails ? '******' : `₹${paperTradingCapital.toLocaleString('en-IN')}`}
+              </div>
+              <div className={`text-sm flex items-center gap-1 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <span>{paperTradingTotalPnl >= 0 ? '+' : ''}{hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}</span>
+                <span className="text-gray-500 text-xs">P&L</span>
+              </div>
+              
+              {/* Quick Stats */}
+              <div className="flex items-center gap-4 mt-4 text-xs">
+                <div className="flex items-center gap-1.5 text-gray-400">
+                  <span>Positions:</span>
+                  <span className="text-white font-medium">{paperPositions.filter(p => p.isOpen).length}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-400">
+                  <span>Trades:</span>
+                  <span className="text-white font-medium">{paperTradeHistory.length}</span>
+                </div>
+                <Button
+                  onClick={() => setHidePositionDetails(!hidePositionDetails)}
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 ml-auto text-gray-400 hover:text-white"
+                  data-testid="button-toggle-visibility-mobile"
                 >
-                  ✕
-                </button>
+                  {hidePositionDetails ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
               </div>
             </div>
-            <div className="p-4">
-              {/* This shows the paper trading content for mobile */}
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="text-sm">Paper Trading will be available soon</p>
+            
+            {/* Content Area - Scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              {/* New Trade Card */}
+              <div className="px-4 py-4">
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">New Trade</div>
+                  
+                  {/* Search Input */}
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Search instrument..."
+                      value={paperTradeSymbolSearch}
+                      onChange={(e) => {
+                        const query = e.target.value;
+                        if (!query && paperTradeSymbol && paperTradingEventSourcesRef.current.has(paperTradeSymbol)) {
+                          const stream = paperTradingEventSourcesRef.current.get(paperTradeSymbol);
+                          if (stream) stream.close();
+                          paperTradingEventSourcesRef.current.delete(paperTradeSymbol);
+                          setPaperTradingWsStatus('disconnected');
+                        }
+                        setPaperTradeSymbolSearch(query);
+                        setPaperTradeSymbol("");
+                        setPaperTradeCurrentPrice(null);
+                        if (query.length > 0) {
+                          searchPaperTradingInstruments(query);
+                        } else {
+                          setPaperTradeSearchResults([]);
+                        }
+                      }}
+                      className="h-10 pl-10 text-sm rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                      data-testid="input-paper-trade-search-mobile-tab"
+                    />
+                    {/* Search Dropdown */}
+                    {paperTradeSymbolSearch && !paperTradeSymbol && (
+                      <div className="absolute z-[100] left-0 right-0 mt-1 max-h-48 overflow-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                        {paperTradeSearchLoading ? (
+                          <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                            Searching...
+                          </div>
+                        ) : paperTradeSearchResults.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-gray-500">No results found</div>
+                        ) : (
+                          paperTradeSearchResults.slice(0, 6).map((stock, idx) => (
+                            <button
+                              key={`${stock.symbol}-${stock.exchange}-${idx}`}
+                              onClick={() => {
+                                setSelectedPaperTradingInstrument(stock);
+                                setPaperTradeSymbol(stock.symbol);
+                                setPaperTradeSymbolSearch(stock.symbol);
+                                if (paperTradeType === 'STOCK') {
+                                  setPaperTradeQuantity("");
+                                } else {
+                                  setPaperTradeLotInput("1");
+                                }
+                                fetchPaperTradePrice(stock);
+                              }}
+                              className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-800 last:border-0"
+                              data-testid={`select-stock-mobile-tab-${stock.symbol}`}
+                            >
+                              <span className="font-medium">{stock.symbol}</span>
+                              <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{stock.exchange}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Type and Option Chain Row */}
+                  <div className="flex gap-2 mb-3">
+                    <Select 
+                      value={paperTradeType} 
+                      onValueChange={(v) => {
+                        const newType = v as 'STOCK' | 'FUTURES' | 'OPTIONS' | 'MCX';
+                        if (paperTradeSymbol && paperTradingEventSourcesRef.current.has(paperTradeSymbol)) {
+                          const stream = paperTradingEventSourcesRef.current.get(paperTradeSymbol);
+                          if (stream) stream.close();
+                          paperTradingEventSourcesRef.current.delete(paperTradeSymbol);
+                        }
+                        setPaperTradeType(newType);
+                        setPaperTradeSymbol("");
+                        setPaperTradeSymbolSearch("");
+                        setPaperTradeSearchResults([]);
+                        setPaperTradeCurrentPrice(null);
+                        setSelectedPaperTradingInstrument(null);
+                        setPaperTradeQuantity("");
+                        setPaperTradeLotInput("");
+                        setPaperTradingWsStatus('disconnected');
+                      }}
+                    >
+                      <SelectTrigger className="flex-1 h-10 text-sm rounded-lg" data-testid="select-paper-trade-type-mobile-tab">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="STOCK">Stock</SelectItem>
+                        <SelectItem value="FUTURES">Futures</SelectItem>
+                        <SelectItem value="OPTIONS">Options</SelectItem>
+                        <SelectItem value="MCX">MCX</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => {
+                        fetchOptionChainData();
+                        setShowOptionChain(true);
+                      }}
+                      size="icon"
+                      variant="outline"
+                      className="h-10 w-10 rounded-lg"
+                      data-testid="button-option-chain-mobile-tab"
+                    >
+                      <Grid3X3 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Quantity and Price Row */}
+                  <div className="flex gap-2 mb-4">
+                    {paperTradeType === 'STOCK' ? (
+                      <Input
+                        type="number"
+                        placeholder="Quantity"
+                        value={paperTradeQuantity}
+                        onChange={(e) => setPaperTradeQuantity(e.target.value)}
+                        className="flex-1 h-10 text-sm text-center rounded-lg"
+                        min="1"
+                        data-testid="input-paper-trade-qty-mobile-tab"
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        placeholder="Lots"
+                        value={paperTradeLotInput}
+                        onChange={(e) => setPaperTradeLotInput(e.target.value)}
+                        className="flex-1 h-10 text-sm text-center rounded-lg"
+                        min="1"
+                        data-testid="input-paper-trade-lots-mobile-tab"
+                      />
+                    )}
+                    <div className="flex-1 h-10 flex items-center justify-center text-sm font-medium border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-800">
+                      {paperTradePriceLoading ? (
+                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                      ) : paperTradeCurrentPrice ? (
+                        <span>₹{paperTradeCurrentPrice.toFixed(2)}</span>
+                      ) : (
+                        <span className="text-gray-400">Price</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    {(() => {
+                      const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
+                      return (
+                        <>
+                          <Button
+                            onClick={() => { setPaperTradeAction('BUY'); executePaperTrade(); }}
+                            disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
+                            className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-base"
+                            data-testid="button-paper-buy-mobile-tab"
+                          >
+                            BUY
+                          </Button>
+                          <Button
+                            onClick={() => { setPaperTradeAction('SELL'); executePaperTrade(); }}
+                            disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
+                            className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-base"
+                            data-testid="button-paper-sell-mobile-tab"
+                          >
+                            SELL
+                          </Button>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Open Positions Section */}
+              {paperPositions.filter(p => p.isOpen).length > 0 && (
+                <div className="px-4 pb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      Open Positions
+                      {paperTradingWsStatus === 'connected' && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
+                    </div>
+                    <Button
+                      onClick={exitAllPaperPositions}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
+                      data-testid="button-exit-all-mobile-tab"
+                    >
+                      Exit All
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {paperPositions.filter(p => p.isOpen).map(position => (
+                      <div 
+                        key={position.id}
+                        className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
+                        data-testid={`position-card-tab-${position.symbol}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{position.symbol}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              position.action === 'BUY' 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                              {position.action}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="text-gray-500">
+                            Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
+                          </div>
+                          <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Trade History Section */}
+              {paperTradeHistory.length > 0 && (
+                <div className="px-4 pb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Trade History
+                    </div>
+                    <Button
+                      onClick={recordAllPaperTrades}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-blue-400 hover:text-blue-500"
+                      data-testid="button-record-all-mobile-tab"
+                    >
+                      Record
+                    </Button>
+                  </div>
+                  <div className="space-y-1">
+                    {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
+                      <div 
+                        key={trade.id}
+                        className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                            trade.action === 'BUY' 
+                              ? 'bg-green-900/30 text-green-400' 
+                              : 'bg-red-900/30 text-red-400'
+                          }`}>
+                            {trade.action === 'BUY' ? 'B' : 'S'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-white">{trade.symbol}</div>
+                            <div className="text-[10px] text-gray-400">{trade.time} | Qty: {trade.quantity}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-white">₹{trade.price.toFixed(2)}</div>
+                          <div className={`text-xs ${
+                            !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {trade.pnl || '-'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Footer */}
+              <div className="px-4 pb-6">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-800">
+                  <button
+                    onClick={resetPaperTradingAccount}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                    data-testid="button-reset-mobile-tab"
+                  >
+                    Reset Account
+                  </button>
+                  <span className="text-xs text-gray-400">Demo mode</span>
+                </div>
               </div>
             </div>
           </div>
