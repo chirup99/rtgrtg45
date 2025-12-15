@@ -16082,7 +16082,7 @@ ${
                               variant="ghost"
                               size="sm"
                               onClick={() => setShowPaperTradingModal(true)}
-                              className="h-7 px-2 text-xs"
+                              className="h-7 px-2 text-xs hidden md:block"
                               data-testid="button-paper-trade"
                             >
                               <TrendingUp className="h-4 w-4 mr-1" />
@@ -16713,40 +16713,251 @@ ${
                 </div>
                 {/* End of Main Journal Content */}
 
-                {/* Ranking Tab Content - Mobile only, shown when ranking tab is active */}
+                {/* Ranking Tab Content - Mobile only, shows Paper Trading on mobile */}
                 {mobileBottomTab === "ranking" && (
-                  <div className="md:hidden mt-6 space-y-6">
-                    <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 border-amber-200 dark:border-amber-800">
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center">
-                            <Trophy className="h-6 w-6 text-white" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl">
-                              Trader Rankings
-                            </CardTitle>
-                            <CardDescription>
-                              Coming soon: Compare your performance with other
-                              traders
-                            </CardDescription>
+                  <div className="md:hidden">
+                    {/* Full-screen Paper Trading on Mobile */}
+                    <div className="p-4 space-y-4">
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <span className="text-lg font-bold">Paper Trading</span>
+                          <span className={`text-[10px] px-2 py-1 rounded ${
+                            paperTradingWsStatus === 'connected' 
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                          }`} data-testid="paper-trading-ws-status">
+                            {paperTradingWsStatus === 'connected' ? '● Live' : '● Offline'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
+                          <div className="text-[10px] text-gray-600 dark:text-gray-400">Capital</div>
+                          <div className="text-sm font-bold">₹{paperTradingCapital.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-800/30 p-2 rounded border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] text-gray-600 dark:text-gray-400">Positions</div>
+                          <div className="text-sm font-bold">{paperPositions.filter(p => p.isOpen).length}</div>
+                        </div>
+                        <div className={`p-2 rounded border ${
+                          paperTradingTotalPnl >= 0 
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+                            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                        }`}>
+                          <div className="text-[10px] text-gray-600 dark:text-gray-400">P&L</div>
+                          <div className={`text-sm font-bold ${paperTradingTotalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {paperTradingTotalPnl >= 0 ? '+' : ''}₹{(Math.abs(paperTradingTotalPnl) / 1000).toFixed(1)}K
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                            <Trophy className="h-16 w-16 mx-auto mb-4 opacity-40" />
-                            <p className="text-sm">
-                              Ranking feature coming soon...
-                            </p>
-                            <p className="text-xs mt-2">
-                              Track your position among top traders
-                            </p>
+                      </div>
+
+                      {/* Trade Entry */}
+                      <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 space-y-3">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            type="text"
+                            placeholder="Search instrument..."
+                            value={paperTradeSymbolSearch}
+                            onChange={(e) => {
+                              const query = e.target.value;
+                              if (!query && paperTradeSymbol && paperTradingEventSourcesRef.current.has(paperTradeSymbol)) {
+                                const stream = paperTradingEventSourcesRef.current.get(paperTradeSymbol);
+                                if (stream) stream.close();
+                                paperTradingEventSourcesRef.current.delete(paperTradeSymbol);
+                                setPaperTradingWsStatus('disconnected');
+                              }
+                              setPaperTradeSymbolSearch(query);
+                              setPaperTradeSymbol("");
+                              setPaperTradeCurrentPrice(null);
+                              if (query.length > 0) {
+                                searchPaperTradingInstruments(query);
+                              } else {
+                                setPaperTradeSearchResults([]);
+                              }
+                            }}
+                            className="h-9 pl-8 text-sm"
+                            data-testid="input-paper-trade-search"
+                          />
+                        </div>
+
+                        {/* Search Results */}
+                        {paperTradeSymbolSearch && !paperTradeSymbol && (
+                          <div className="max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md">
+                            {paperTradeSearchLoading ? (
+                              <div className="px-3 py-2 text-xs text-gray-500 flex items-center gap-2">
+                                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                Searching...
+                              </div>
+                            ) : paperTradeSearchResults.length === 0 ? (
+                              <div className="px-3 py-2 text-xs text-gray-500">No results</div>
+                            ) : (
+                              paperTradeSearchResults.slice(0, 8).map((stock, idx) => (
+                                <button
+                                  key={`${stock.symbol}-${idx}`}
+                                  onClick={() => {
+                                    setSelectedPaperTradingInstrument(stock);
+                                    setPaperTradeSymbol(stock.symbol);
+                                    setPaperTradeSymbolSearch(stock.symbol);
+                                    if (paperTradeType === 'STOCK') {
+                                      setPaperTradeQuantity("");
+                                    } else {
+                                      setPaperTradeLotInput("1");
+                                    }
+                                    fetchPaperTradePrice(stock);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-b-0 flex justify-between items-center"
+                                  data-testid={`select-stock-${stock.symbol}`}
+                                >
+                                  <span className="font-medium">{stock.symbol}</span>
+                                  <span className="text-xs text-gray-400">{stock.exchange}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+
+                        {/* Type and Quantity */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select 
+                            value={paperTradeType} 
+                            onValueChange={(v) => {
+                              const newType = v as 'STOCK' | 'FUTURES' | 'OPTIONS' | 'MCX';
+                              if (paperTradeSymbol && paperTradingEventSourcesRef.current.has(paperTradeSymbol)) {
+                                const stream = paperTradingEventSourcesRef.current.get(paperTradeSymbol);
+                                if (stream) stream.close();
+                                paperTradingEventSourcesRef.current.delete(paperTradeSymbol);
+                              }
+                              setPaperTradeType(newType);
+                              setPaperTradeSymbol("");
+                              setPaperTradeSymbolSearch("");
+                              setPaperTradeSearchResults([]);
+                              setPaperTradeCurrentPrice(null);
+                              setSelectedPaperTradingInstrument(null);
+                              setPaperTradeQuantity("");
+                              setPaperTradeLotInput("");
+                              setPaperTradingWsStatus('disconnected');
+                            }}
+                          >
+                            <SelectTrigger className="h-9 text-xs" data-testid="select-paper-trade-type">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="STOCK">Stock</SelectItem>
+                              <SelectItem value="FUTURES">Futures</SelectItem>
+                              <SelectItem value="OPTIONS">Options</SelectItem>
+                              <SelectItem value="MCX">MCX</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput}
+                            onChange={(e) => {
+                              if (paperTradeType === 'STOCK') {
+                                setPaperTradeQuantity(e.target.value);
+                              } else {
+                                setPaperTradeLotInput(e.target.value);
+                              }
+                            }}
+                            className="h-9 text-xs"
+                            data-testid="input-paper-trade-quantity"
+                          />
+                        </div>
+
+                        {/* Price */}
+                        {paperTradeCurrentPrice !== null && (
+                          <div className="bg-slate-50 dark:bg-slate-700/30 p-2 rounded text-xs">
+                            <span className="text-gray-600 dark:text-gray-400">Price: </span>
+                            <span className="font-bold">₹{paperTradeCurrentPrice}</span>
+                          </div>
+                        )}
+
+                        {/* BUY/SELL Buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => executePaperTrade('BUY')}
+                            disabled={!paperTradeSymbol || !((paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput))}
+                            className="flex-1 h-9 text-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+                            data-testid="button-paper-trade-buy"
+                          >
+                            BUY
+                          </Button>
+                          <Button
+                            onClick={() => executePaperTrade('SELL')}
+                            disabled={!paperTradeSymbol || !((paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput))}
+                            className="flex-1 h-9 text-sm bg-red-600 hover:bg-red-700 text-white"
+                            data-testid="button-paper-trade-sell"
+                          >
+                            SELL
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Open Positions */}
+                      {paperPositions.filter(p => p.isOpen).length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold">Open Positions</h3>
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {paperPositions.filter(p => p.isOpen).map((pos, idx) => (
+                              <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs">
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="font-bold">{pos.symbol}</span>
+                                  <span className={`font-semibold ${pos.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                                  <span>{pos.action} {pos.qty} @ ₹{pos.price}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => closePaperPosition(idx)}
+                                    className="h-6 px-2 text-xs"
+                                    data-testid={`button-close-position-${idx}`}
+                                  >
+                                    Close
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+
+                      {/* Recent Trades */}
+                      {paperTradeHistory.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold">Recent Trades</h3>
+                          <div className="space-y-1 max-h-32 overflow-y-auto text-xs">
+                            {paperTradeHistory.slice(-5).reverse().map((trade, idx) => (
+                              <div key={idx} className="flex justify-between items-center p-1 bg-slate-50 dark:bg-slate-800/50 rounded">
+                                <span className="font-medium">{trade.symbol}</span>
+                                <span className={`font-semibold ${trade.action === 'BUY' ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                                  {trade.action} {trade.quantity}
+                                </span>
+                                <span>@ ₹{trade.price}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reset Button */}
+                      <Button
+                        onClick={resetPaperTradingAccount}
+                        variant="outline"
+                        className="w-full h-9 text-xs"
+                        data-testid="button-reset-paper-trading"
+                      >
+                        Reset Account
+                      </Button>
+                    </div>
                   </div>
                 )}
 

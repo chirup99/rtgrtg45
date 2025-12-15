@@ -175,12 +175,38 @@
    - Vite HMR WebSocket warning (cosmetic, does not affect functionality)
    - All 59 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (59 ITEMS)
+[x] 60. **FEATURE: Mobile Paper Trading Full-Screen Tab (December 15, 2025, 7:30 AM)**
+   - Issue: Paper trading dialog overlaps content and has poor mobile UX
+   - Solution: Implemented full-screen paper trading on mobile via Trader Rankings tab
+   - Changes to client/src/pages/home.tsx:
+     * Hidden "Paper Trade" button from Trade History on mobile (added `hidden md:block`)
+     * Replaced "Trader Rankings" placeholder with full paper trading interface on mobile
+     * Full-screen paper trading shows:
+       - Capital, Positions, P&L stats
+       - Instrument search with symbol dropdown
+       - Type selector (Stock/Futures/Options/MCX)
+       - Quantity input with current price display
+       - BUY/SELL action buttons
+       - Open positions list with close functionality
+       - Recent trades display
+       - Reset account button
+   - UX Improvements:
+     * Paper trading accessible via bottom navigation (trophy icon) on mobile
+     * No modal dialog overlays - full screen space
+     * Easy one-tap access from tab navigation
+     * Desktop behavior unchanged - button + modal still works
+     * Consistent visual design with rest of app
+   - Result:
+     * Better mobile user experience for paper trading
+     * Users can easily access paper trading without modal dialogs
+     * Desktop users still have quick modal access
+     * Cleaner interface on both platforms
+
+### Current Status: ALL UPDATES COMPLETE (60 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)
 - WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
 - Project import COMPLETE
-- Auto token generation when expired: FULLY IMPLEMENTED
-- Frontend auto-reconnect on token expiry: IMPLEMENTED
-- Option Chain mobile bug: FIXED
+- Mobile Paper Trading UI: IMPLEMENTED (full-screen tab view)
+- Paper Trade button: HIDDEN on mobile, VISIBLE on desktop
