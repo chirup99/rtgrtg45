@@ -20225,46 +20225,94 @@ ${
 
         {/* Option Chain Modal */}
         <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
-          <DialogContent className="w-full max-w-2xl" showCloseButton={false}>
-            {/* Title - Option Chain */}
-            <div className="text-center mb-2">
-              <h2 className="text-sm font-medium text-gray-900 dark:text-white">Option Chain</h2>
+          <DialogContent className="w-full max-w-4xl md:max-w-5xl p-0 md:p-6 bg-gradient-to-b from-gray-950 to-gray-900 dark:from-gray-950 dark:to-gray-900 md:dark:from-gray-900 md:dark:to-gray-800 md:bg-white md:dark:bg-gray-900 md:rounded-xl rounded-2xl border-0 md:border md:border-gray-200 md:dark:border-gray-700">
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setShowOptionChain(false)}
+              className="md:hidden absolute top-4 right-4 z-50 text-white hover:text-gray-400 transition-colors"
+              data-testid="button-close-option-chain-mobile"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            {/* Mobile Header */}
+            <div className="md:hidden px-6 pt-8 pb-4">
+              <h2 className="text-2xl font-bold text-white mb-4">Option Chain</h2>
+              
+              {/* Controls */}
+              <div className="space-y-3">
+                {/* Index and Expiry Row */}
+                <div className="flex gap-2">
+                  <select
+                    value={selectedOptionIndex}
+                    onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                    data-testid="select-option-index-mobile"
+                  >
+                    <option value="NIFTY">NIFTY</option>
+                    <option value="BANKNIFTY">BANKNIFTY</option>
+                    <option value="SENSEX">SENSEX</option>
+                  </select>
+                  <select
+                    value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
+                    onChange={(e) => {
+                      const newExpiry = e.target.value;
+                      setSelectedOptionExpiryDate(newExpiry);
+                      fetchOptionChainData(selectedOptionIndex, newExpiry);
+                    }}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                    data-testid="select-option-expiry-date-mobile"
+                  >
+                    {getOptionExpiryDates(selectedOptionIndex).map((date) => (
+                      <option key={date.value} value={date.value}>
+                        {date.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Spot Price */}
+                <div className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2.5">
+                  <span className="text-gray-400 text-sm">Spot Price:</span>
+                  <span className="text-green-400 font-semibold text-lg" data-testid="text-option-spot-price-mobile">
+                    ₹{(optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
+                  </span>
+                </div>
+              </div>
             </div>
-            {/* Compact Header */}
-            <div className="flex items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
-              {/* Index */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+            
+            {/* Desktop Header */}
+            <div className="hidden md:block mb-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Option Chain</h2>
+              </div>
+              
+              {/* Desktop Controls */}
+              <div className="flex items-center gap-4 mt-4">
                 <select
                   value={selectedOptionIndex}
                   onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
-                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
-                  data-testid="select-option-index"
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                  data-testid="select-option-index-desktop"
                 >
                   <option value="NIFTY">NIFTY</option>
                   <option value="BANKNIFTY">BANKNIFTY</option>
                   <option value="SENSEX">SENSEX</option>
                 </select>
-              </div>
-
-              {/* Spot Price */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Spot:</span>
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid="text-option-spot-price">
-                  {(optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
+                
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Spot: <span className="font-semibold text-green-600 dark:text-green-400">${(optionChainData?.spotPrice || 0)?.toLocaleString()}</span>
                 </span>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
+                
                 <select
                   value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                   onChange={(e) => {
                     const newExpiry = e.target.value;
                     setSelectedOptionExpiryDate(newExpiry);
-                    // Refetch option chain data for the new expiry date
                     fetchOptionChainData(selectedOptionIndex, newExpiry);
                   }}
-                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs"
-                  data-testid="select-option-expiry-date"
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                  data-testid="select-option-expiry-date-desktop"
                 >
                   {getOptionExpiryDates(selectedOptionIndex).map((date) => (
                     <option key={date.value} value={date.value}>
@@ -20274,8 +20322,204 @@ ${
                 </select>
               </div>
             </div>
-            {/* Content Area - Call/Put Options Table */}
-            <div className="py-6 space-y-4 max-h-96 overflow-y-auto">
+            
+            {/* Content Area */}
+            <div className="md:hidden px-6 pb-6 overflow-y-auto max-h-[calc(100vh-300px)]">
+              {optionChainLoading && (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400 mx-auto mb-3"></div>
+                  <p className="text-gray-300 text-sm">Loading {selectedOptionIndex} options...</p>
+                </div>
+              )}
+              
+              {!optionChainLoading && (selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (() => {
+                const getOptionSymbols = () => {
+                  if (!optionChainData?.calls || !optionChainData?.puts) {
+                    return { calls: [], puts: [] };
+                  }
+                  
+                  const formatExpiryDate = (date: any) => {
+                    if (!date) return null;
+                    if (typeof date === 'string') {
+                      const d = new Date(date);
+                      return d.toISOString().split('T')[0];
+                    }
+                    return null;
+                  };
+                  
+                  const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+                  const selectedExpiryFormatted = formatExpiryDate(effectiveExpiryDate);
+                  
+                  const filteredCalls = optionChainData.calls.filter((call: any) => {
+                    if (!call.expiry) return true;
+                    const callExpiryFormatted = formatExpiryDate(call.expiry);
+                    return callExpiryFormatted === selectedExpiryFormatted;
+                  });
+                  
+                  const filteredPuts = optionChainData.puts.filter((put: any) => {
+                    if (!put.expiry) return true;
+                    const putExpiryFormatted = formatExpiryDate(put.expiry);
+                    return putExpiryFormatted === selectedExpiryFormatted;
+                  });
+                  
+                  return { calls: filteredCalls, puts: filteredPuts };
+                };
+
+                const { calls, puts } = getOptionSymbols();
+                const currentPrice = optionChainData?.spotPrice || 0;
+                
+                const allStrikes = new Set();
+                calls.forEach(c => allStrikes.add(c.strikePrice));
+                puts.forEach(p => allStrikes.add(p.strikePrice));
+                
+                const strikeArray = Array.from(allStrikes) as number[];
+                let atmStrike = null;
+                if (strikeArray.length > 0) {
+                  atmStrike = strikeArray.reduce((nearest, strike) => 
+                    Math.abs(strike - currentPrice) < Math.abs(nearest - currentPrice) ? strike : nearest
+                  );
+                }
+                
+                const filteredCalls = (() => {
+                  const itm = calls.filter(c => c.strikePrice < currentPrice && c.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const oTm = calls.filter(c => c.strikePrice > currentPrice && c.strikePrice !== atmStrike).slice(0, 10);
+                  const atm = atmStrike ? calls.filter(c => c.strikePrice === atmStrike).slice(0, 1) : [];
+                  return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                const filteredPuts = (() => {
+                  const itm = puts.filter(p => p.strikePrice > currentPrice && p.strikePrice !== atmStrike).slice(0, 10);
+                  const oTm = puts.filter(p => p.strikePrice < currentPrice && p.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
+                  const atm = atmStrike ? puts.filter(p => p.strikePrice === atmStrike).slice(0, 1) : [];
+                  return [...oTm, ...atm, ...itm].sort((a, b) => a.strikePrice - b.strikePrice);
+                })();
+                
+                const maxRows = Math.max(filteredCalls.length, filteredPuts.length);
+                const getOptionStatus = (strike, isCall) => {
+                  const allStrikes = new Set();
+                  calls.forEach(c => allStrikes.add(c.strikePrice));
+                  puts.forEach(p => allStrikes.add(p.strikePrice));
+                  
+                  const strikeArray = Array.from(allStrikes);
+                  if (strikeArray.length === 0) return 'OTM';
+                  
+                  if (strike === atmStrike) return 'ATM';
+                  if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
+                  return strike > currentPrice ? 'ITM' : 'OTM';
+                };
+                
+                const getExchangeForIndex = (index: string): string => {
+                  const exchangeMap: Record<string, string> = {
+                    'NIFTY': 'NFO',
+                    'BANKNIFTY': 'NFO',
+                    'SENSEX': 'BFO',
+                    'MIDCPNIFTY': 'NFO'
+                  };
+                  return exchangeMap[index] || 'NFO';
+                };
+
+                const handleOptionClick = async (option: any) => {
+                  const { symbol: instrumentSymbol, ltp, token: optionToken, exchange: optionExchange } = option;
+                  setPaperTradeSymbol(instrumentSymbol);
+                  setPaperTradeSymbolSearch(instrumentSymbol);
+                  setPaperTradeType('OPTIONS');
+                  setPaperTradeLotInput("1");
+                  
+                  if (ltp && ltp > 0) {
+                    setPaperTradeCurrentPrice(ltp);
+                    setPaperTradePriceLoading(false);
+                    
+                    const optionInstrument = {
+                      symbol: instrumentSymbol,
+                      exchange: optionExchange || getExchangeForIndex(selectedOptionIndex),
+                      token: optionToken || '',
+                      name: instrumentSymbol
+                    };
+                    setSelectedPaperTradingInstrument(optionInstrument);
+                    fetchPaperTradePrice(optionInstrument);
+                  }
+                  
+                  setShowOptionChain(false);
+                };
+                
+                const getStatusColor = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'from-yellow-900/30 to-yellow-900/10';
+                  if (status === 'ITM' && isCall) return 'from-green-900/30 to-green-900/10';
+                  if (status === 'ITM') return 'from-red-900/30 to-red-900/10';
+                  return 'from-gray-800/30 to-gray-800/10';
+                };
+                
+                const getTextColor = (strike, isCall) => {
+                  const status = getOptionStatus(strike, isCall);
+                  if (status === 'ATM') return 'text-yellow-300';
+                  if (status === 'ITM' && isCall) return 'text-green-300';
+                  if (status === 'ITM') return 'text-red-300';
+                  return 'text-gray-300';
+                };
+                
+                if (maxRows === 0) {
+                  return <div className="text-center py-8"><p className="text-sm text-gray-300">No options available for {selectedOptionIndex}</p></div>;
+                }
+                
+                return (
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Call Options</div>
+                    {filteredCalls.slice(0, 15).map(call => (
+                      <button
+                        key={`${call.strikePrice}-call`}
+                        onClick={() => handleOptionClick(call)}
+                        className={`w-full rounded-lg bg-gradient-to-r ${getStatusColor(call.strikePrice, true)} border border-gray-700 p-3 text-left hover:border-gray-600 transition-all`}
+                        data-testid={`option-call-card-${call.strikePrice}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className={`font-semibold ${getTextColor(call.strikePrice, true)}`}>₹{call.strikePrice}</div>
+                            <div className="text-xs text-gray-400">{getOptionStatus(call.strikePrice, true)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`font-semibold ${getTextColor(call.strikePrice, true)}`}>₹{call.ltp?.toFixed(2) || '0'}</div>
+                            <div className="text-xs text-gray-400">Premium</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    
+                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-4 mb-3">Put Options</div>
+                    {filteredPuts.slice(0, 15).map(put => (
+                      <button
+                        key={`${put.strikePrice}-put`}
+                        onClick={() => handleOptionClick(put)}
+                        className={`w-full rounded-lg bg-gradient-to-r ${getStatusColor(put.strikePrice, false)} border border-gray-700 p-3 text-left hover:border-gray-600 transition-all`}
+                        data-testid={`option-put-card-${put.strikePrice}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className={`font-semibold ${getTextColor(put.strikePrice, false)}`}>₹{put.strikePrice}</div>
+                            <div className="text-xs text-gray-400">{getOptionStatus(put.strikePrice, false)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`font-semibold ${getTextColor(put.strikePrice, false)}`}>₹{put.ltp?.toFixed(2) || '0'}</div>
+                            <div className="text-xs text-gray-400">Premium</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+              
+              {!optionChainLoading && !(selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-300">
+                    {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-y-auto max-h-96">
               {optionChainLoading && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
@@ -20289,30 +20533,25 @@ ${
                     return { calls: [], puts: [] };
                   }
                   
-                  // Filter calls and puts by selected expiry date
-                  // Filter by expiry date - handle different date formats
                   const formatExpiryDate = (date: any) => {
                     if (!date) return null;
                     if (typeof date === 'string') {
-                      // Try to normalize the date format
                       const d = new Date(date);
                       return d.toISOString().split('T')[0];
                     }
                     return null;
                   };
                   
-                    const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
+                  const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
                   const selectedExpiryFormatted = formatExpiryDate(effectiveExpiryDate);
                   
                   const filteredCalls = optionChainData.calls.filter((call: any) => {
-                    // If no expiry field, include it; if has expiry, must match selected
                     if (!call.expiry) return true;
                     const callExpiryFormatted = formatExpiryDate(call.expiry);
                     return callExpiryFormatted === selectedExpiryFormatted;
                   });
                   
                   const filteredPuts = optionChainData.puts.filter((put: any) => {
-                    // If no expiry field, include it; if has expiry, must match selected
                     if (!put.expiry) return true;
                     const putExpiryFormatted = formatExpiryDate(put.expiry);
                     return putExpiryFormatted === selectedExpiryFormatted;
@@ -20324,7 +20563,6 @@ ${
                 const { calls, puts } = getOptionSymbols();
                 const currentPrice = optionChainData?.spotPrice || 0;
                 
-                // Find the single nearest ATM strike
                 const allStrikes = new Set();
                 calls.forEach(c => allStrikes.add(c.strikePrice));
                 puts.forEach(p => allStrikes.add(p.strikePrice));
@@ -20337,7 +20575,6 @@ ${
                   );
                 }
                 
-                // Filter calls: 1 ATM + 10 ITM + 10 OTM
                 const filteredCalls = (() => {
                   const itm = calls.filter(c => c.strikePrice < currentPrice && c.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
                   const oTm = calls.filter(c => c.strikePrice > currentPrice && c.strikePrice !== atmStrike).slice(0, 10);
@@ -20345,7 +20582,6 @@ ${
                   return [...itm, ...atm, ...oTm].sort((a, b) => a.strikePrice - b.strikePrice);
                 })();
                 
-                // Filter puts: 1 ATM + 10 ITM + 10 OTM
                 const filteredPuts = (() => {
                   const itm = puts.filter(p => p.strikePrice > currentPrice && p.strikePrice !== atmStrike).slice(0, 10);
                   const oTm = puts.filter(p => p.strikePrice < currentPrice && p.strikePrice !== atmStrike).reverse().slice(0, 10).reverse();
@@ -20355,46 +20591,39 @@ ${
                 
                 const maxRows = Math.max(filteredCalls.length, filteredPuts.length);
                 const getOptionStatus = (strike, isCall) => {
-                  // Find all unique strikes from calls and puts
                   const allStrikes = new Set();
                   calls.forEach(c => allStrikes.add(c.strikePrice));
                   puts.forEach(p => allStrikes.add(p.strikePrice));
                   
-                  // Find the strike(s) closest to current price
                   const strikeArray = Array.from(allStrikes);
                   if (strikeArray.length === 0) return 'OTM';
                   
-                  // This logic is moved to filteredCalls and filteredPuts
-                  // Mark only the single nearest strike as ATM
                   if (strike === atmStrike) return 'ATM';
                   if (isCall) return strike < currentPrice ? 'ITM' : 'OTM';
                   return strike > currentPrice ? 'ITM' : 'OTM';
                 };
-  const getExchangeForIndex = (index: string): string => {
-    const exchangeMap: Record<string, string> = {
-      'NIFTY': 'NFO',
-      'BANKNIFTY': 'NFO',
-      'SENSEX': 'BFO',
-      'MIDCPNIFTY': 'NFO'
-    };
-    return exchangeMap[index] || 'NFO';
-  };
+                
+                const getExchangeForIndex = (index: string): string => {
+                  const exchangeMap: Record<string, string> = {
+                    'NIFTY': 'NFO',
+                    'BANKNIFTY': 'NFO',
+                    'SENSEX': 'BFO',
+                    'MIDCPNIFTY': 'NFO'
+                  };
+                  return exchangeMap[index] || 'NFO';
+                };
 
                 const handleOptionClick = async (option: any) => {
                   const { symbol: instrumentSymbol, ltp, token: optionToken, exchange: optionExchange } = option;
-                  // Populate paper trading search bar with selected option
-                  // Populate paper trading search bar with selected option
                   setPaperTradeSymbol(instrumentSymbol);
                   setPaperTradeSymbolSearch(instrumentSymbol);
                   setPaperTradeType('OPTIONS');
                   setPaperTradeLotInput("1");
                   
-                  // Set the price directly from option chain if available
                   if (ltp && ltp > 0) {
                     setPaperTradeCurrentPrice(ltp);
                     setPaperTradePriceLoading(false);
                     
-                    // Use token directly from option chain data (no API search needed)
                     const optionInstrument = {
                       symbol: instrumentSymbol,
                       exchange: optionExchange || getExchangeForIndex(selectedOptionIndex),
@@ -20402,14 +20631,12 @@ ${
                       name: instrumentSymbol
                     };
                     setSelectedPaperTradingInstrument(optionInstrument);
-                    
-                    // Start live price streaming with token from option chain
                     fetchPaperTradePrice(optionInstrument);
                   }
                   
-                  // Close option chain dialog
                   setShowOptionChain(false);
                 };
+                
                 const getClasses = (strike, isCall) => {
                   const status = getOptionStatus(strike, isCall);
                   if (status === 'ATM') return 'px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded text-center cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors';
@@ -20417,6 +20644,7 @@ ${
                   if (status === 'ITM') return 'px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded text-center cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors';
                   return 'px-2 py-1 bg-gray-50 dark:bg-gray-800/40 rounded text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors';
                 };
+                
                 const getTextClasses = (strike, isCall) => {
                   const status = getOptionStatus(strike, isCall);
                   if (status === 'ATM') return 'text-xs font-semibold text-yellow-900 dark:text-yellow-300';
@@ -20424,6 +20652,7 @@ ${
                   if (status === 'ITM') return 'text-xs font-semibold text-red-900 dark:text-red-300';
                   return 'text-xs font-semibold text-gray-700 dark:text-gray-400';
                 };
+                
                 const getPriceClasses = (strike, isCall) => {
                   const status = getOptionStatus(strike, isCall);
                   if (status === 'ATM') return 'text-xs text-yellow-700 dark:text-yellow-400 mt-0.5';
@@ -20431,19 +20660,13 @@ ${
                   if (status === 'ITM') return 'text-xs text-red-700 dark:text-red-400 mt-0.5';
                   return 'text-xs text-gray-600 dark:text-gray-500 mt-0.5';
                 };
+                
                 if (maxRows === 0) {
                   return <div className="text-center py-8"><p className="text-sm text-gray-500 dark:text-gray-400">No options available for {selectedOptionIndex} on {selectedOptionExpiryDate}</p></div>;
                 }
+                
                 return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index])} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index])} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
-              
-              {!optionChainLoading && !(selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
-                  </p>
-                </div>
-              )}
             </div>
           </DialogContent>
         </Dialog>
