@@ -20186,6 +20186,16 @@ ${
                   <TrendingUp className={`h-5 w-5 ${mobileBottomTab === "insight" ? "stroke-[2.5]" : ""}`} />
                 </button>
 
+                {/* Paper Trade Tab */}
+                <button
+                  onClick={() => setShowPaperTradingModal(true)}
+                  className="flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover-elevate active-elevate-2"
+                  data-testid="mobile-tab-paper-trade"
+                  title="Open Paper Trading"
+                >
+                  <Banknote className="h-5 w-5" />
+                </button>
+
                 {/* Ranking Tab */}
                 <button
                   onClick={() => setMobileBottomTab("ranking")}
@@ -20197,15 +20207,6 @@ ${
                   data-testid="mobile-tab-ranking"
                 >
                   <Trophy className={`h-5 w-5 ${mobileBottomTab === "ranking" ? "fill-current" : ""}`} />
-                </button>
-                {/* Paper Trade Tab */}
-                <button
-                  onClick={() => setShowPaperTradingModal(true)}
-                  className="flex items-center justify-center flex-1 rounded-full px-4 py-2 transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover-elevate active-elevate-2"
-                  data-testid="mobile-tab-paper-trade"
-                  title="Open Paper Trading"
-                >
-                  <Banknote className="h-5 w-5" />
                 </button>
               </div>
             </div>
