@@ -19102,7 +19102,7 @@ ${
 
         {/* Paper Trading (Demo Trading) Modal - Minimalist Design */}
         <Dialog open={showPaperTradingModal || (activeTab === "journal" && mobileBottomTab === "paper-trade")} onOpenChange={(open) => { if (!open && mobileBottomTab === "paper-trade") setMobileBottomTab("home"); setShowPaperTradingModal(open); }}>
-          <DialogContent className="w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[85vh] rounded-none sm:rounded-lg overflow-hidden p-0 bg-gradient-to-b from-gray-900 to-gray-950 sm:bg-white sm:dark:bg-gray-900">
+          <DialogContent className="w-full max-h-[calc(100dvh-64px)] sm:h-auto sm:max-w-2xl sm:max-h-[85vh] rounded-none sm:rounded-lg overflow-hidden p-0 bg-gradient-to-b from-gray-900 to-gray-950 sm:bg-white sm:dark:bg-gray-900">
             {/* Mobile Wallet-Style View */}
             <div className="flex flex-col h-full sm:hidden">
               {/* Hero Balance Section - Dark gradient background */}
