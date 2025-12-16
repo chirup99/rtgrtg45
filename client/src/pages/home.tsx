@@ -19834,7 +19834,7 @@ ${
                             onClick={() => { setPaperTradeAction('SELL'); executePaperTrade(); }}
                             disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
                             size="sm"
-                            className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs ml-auto"
+                            className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs"
                             data-testid="button-paper-sell"
                           >
                             SELL
