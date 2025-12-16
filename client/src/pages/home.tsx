@@ -19545,12 +19545,14 @@ ${
                               <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
                                 <span className="text-[10px] ml-1">({position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(1)}%)</span>
+                            <div className="flex flex-col gap-0.5 text-[10px] mt-1">
+                              <div className="text-gray-400">
+                                LTP: ₹{position.currentPrice.toFixed(2)}
                               </div>
-                            </div>
-                            <div className="text-[10px] text-gray-400 mt-1">
-                              LTP: ₹{position.currentPrice.toFixed(2)}
                               {(position as any).slEnabled && (position as any).slTriggerPrice && (
-                                <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(1)}</span>
+                                <div className="text-orange-500">
+                                  SL: ₹{(position as any).slTriggerPrice.toFixed(1)}
+                                </div>
                               )}
                             </div>
                           </div>
