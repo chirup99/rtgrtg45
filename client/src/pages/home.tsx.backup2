@@ -20309,18 +20309,24 @@ ${
               
               {/* Controls */}
               <div className="space-y-1.5">
-                {/* Expiry Date Only */}
-                <div className="flex gap-2 items-center">
-                  <div className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm font-semibold flex-1 flex items-center justify-center">
-                    {selectedOptionIndex}
-                  </div>
+                {/* Index and Expiry Row */}
+                <div className="flex gap-2">
+                  <select
+                    value={selectedOptionIndex}
+                    onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); setTimeout(() => fetchOptionChainData(idx), 0); }}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+                    data-testid="select-option-index-mobile"
+                  >
+                    <option value="NIFTY">NIFTY</option>
+                    <option value="BANKNIFTY">BANKNIFTY</option>
+                    <option value="SENSEX">SENSEX</option>
+                  </select>
                   <select
                     value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                     onChange={(e) => {
                       const newExpiry = e.target.value;
                       if (newExpiry) {
                         setSelectedOptionExpiryDate(newExpiry);
-                        fetchOptionChainData(selectedOptionIndex, newExpiry);
                       }
                     }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
