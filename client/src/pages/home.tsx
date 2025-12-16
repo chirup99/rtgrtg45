@@ -21150,7 +21150,7 @@ ${
                         {paperTradeSLEnabled ? `SL: ₹${paperTradeSLPrice}` : 'Set SL'}
                       </Button>
                       {showMobilePaperTradeSLDropdown && (
-                        <div className="absolute z-50 bottom-12 left-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg w-64">
+                        <div className="absolute z-50 bottom-1/2 transform translate-y-1/2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg w-64">
                           <div className="p-4 space-y-3">
                             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Stop Loss Configuration</div>
                             <div>
