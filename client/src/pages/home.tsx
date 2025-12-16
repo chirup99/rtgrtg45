@@ -10816,7 +10816,7 @@ ${
                               <div className="bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-medium inline-block mb-4">
                                 PODCAST OF THE WEEK
                               </div>
-                              <h2 className="text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}">Rich Mindset</h2>
+                              <h2 className="text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">Rich Mindset</h2>
                               <p className="text-white/80 mb-4">Finance Expert</p>
 
                               {/* Play Button */}
@@ -12141,7 +12141,7 @@ ${
                           ) : (
                             <TrendingDown className="h-4 w-4 text-red-400" />
                           )}
-                          <span className={`text-sm font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-400' : 'text-red-400'}`}>
+                          <span className={`text-sm font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                             {animatedStocks[currentStockIndex].symbol}: {animatedStocks[currentStockIndex].price}
                           </span>
                         </div>
@@ -12178,7 +12178,7 @@ ${
                               ) : (
                                 <TrendingDown className="h-5 w-5 text-red-400" />
                               )}
-                              <span className={`text-lg font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-400' : 'text-red-400'}`}>
+                              <span className={`text-lg font-semibold ${animatedStocks[currentStockIndex].isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {animatedStocks[currentStockIndex].symbol}: {animatedStocks[currentStockIndex].price}
                               </span>
                             </div>
@@ -12376,7 +12376,7 @@ ${
                                                             ₹{currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                                                           </div>
                                                           <div className={`text-xs font-medium ${
-                                                            priceChange >= 0 ? 'text-green-400' : 'text-red-400'
+                                                            priceChange >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                                           }`}>
                                                             {priceChange >= 0 ? '↑' : '↓'} ₹{Math.abs(priceChange).toFixed(2)} ({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)
                                                           </div>
@@ -12489,8 +12489,8 @@ ${
                                                       </div>
                                                       <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
                                                         <div className="text-xs font-medium text-gray-400 mb-1">Close</div>
-                                                        <div className={`text-sm font-semibold ${close >= open ? 'text-green-400' : 'text-red-400'}`}>₹{close.toFixed(2)}</div>
-                                                        <div className={`text-xs font-medium ${close >= open ? 'text-green-400' : 'text-red-400'}`}>
+                                                        <div className={`text-sm font-semibold ${close >= open ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>₹{close.toFixed(2)}</div>
+                                                        <div className={`text-xs font-medium ${close >= open ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                           {close >= open ? '+' : ''}{((close - open) / open * 100).toFixed(2)}%
                                                         </div>
                                                       </div>
@@ -12559,7 +12559,7 @@ ${
                                                     </div>
                                                     <div className="text-right">
                                                       <div className="text-sm font-mono text-gray-100">₹{getNifty50CurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                                      <div className={`text-xs flex items-center justify-end gap-0.5 ${getNifty50Change() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                      <div className={`text-xs flex items-center justify-end gap-0.5 ${getNifty50Change() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                         {getNifty50Change() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNifty50Change()).toFixed(2)} ({((getNifty50Change() / (getNifty50CurrentPrice() - getNifty50Change())) * 100).toFixed(2)}%)
                                                       </div>
                                                     </div>
@@ -12664,7 +12664,7 @@ ${
                                                     </div>
                                                     <div className="text-right">
                                                       <div className="text-sm font-mono text-gray-100">₹{getNiftyBankCurrentPrice().toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-                                                      <div className={`text-xs flex items-center justify-end gap-0.5 ${getNiftyBankChange() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                      <div className={`text-xs flex items-center justify-end gap-0.5 ${getNiftyBankChange() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                         {getNiftyBankChange() >= 0 ? '▲' : '▼'} ₹{Math.abs(getNiftyBankChange()).toFixed(2)} ({((getNiftyBankChange() / (getNiftyBankCurrentPrice() - getNiftyBankChange())) * 100).toFixed(2)}%)
                                                       </div>
                                                     </div>
@@ -19165,7 +19165,7 @@ ${
               <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-5 pt-8 pb-6 relative">
                 
               <div className="text-gray-400 text-xs mb-1">P&L</div>
-              <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
+              <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} data-testid="paper-trading-pnl-mobile">
                 {hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               </div>
               <div className="text-sm flex items-center gap-1 text-gray-400">
@@ -19642,7 +19642,7 @@ ${
                           <div className="text-right">
                             <div className="text-sm font-medium">₹{trade.price.toFixed(2)}</div>
                             <div className={`text-xs ${
-                              !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-600' : 'text-red-600'
+                              !trade.pnl ? 'text-gray-600 dark:text-gray-400' : trade.pnl.includes('+') ? 'text-green-600' : 'text-red-600'
                             }`}>
                               {trade.pnl || '-'}
                             </div>
@@ -20137,7 +20137,7 @@ ${
                               <td className="px-2 py-1.5 text-right">{trade.quantity}</td>
                               <td className="px-2 py-1.5 text-right">₹{trade.price.toFixed(2)}</td>
                               <td className={`px-2 py-1.5 text-right font-medium ${
-                                !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-600' : 'text-red-600'
+                                !trade.pnl ? 'text-gray-600 dark:text-gray-400' : trade.pnl.includes('+') ? 'text-green-600' : 'text-red-600'
                               }`}>
                                 {trade.pnl || '-'}
                               </td>
@@ -20955,7 +20955,7 @@ ${
             <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-5 pt-8 pb-6 relative">
               
               <div className="text-gray-400 text-xs mb-1">P&L</div>
-              <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
+              <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} data-testid="paper-trading-pnl-mobile">
                 {hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               </div>
               <div className="text-sm flex items-center gap-1 text-gray-400">
@@ -21467,25 +21467,25 @@ ${
                       {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
                         <div 
                           key={trade.id}
-                          className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0"
+                          className="flex items-center justify-between py-2.5 border-b border-gray-200 dark:border-gray-800 last:border-0"
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
                               trade.action === 'BUY' 
-                                ? 'bg-green-900/30 text-green-400' 
-                                : 'bg-red-900/30 text-red-400'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                             }`}>
                               {trade.action === 'BUY' ? 'B' : 'S'}
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-white">{trade.symbol}</div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{trade.symbol}</div>
                               <div className="text-[10px] text-gray-400">{trade.time} | Qty: {trade.quantity}</div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-sm font-medium text-white">₹{trade.price.toFixed(2)}</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">₹{trade.price.toFixed(2)}</div>
                             <div className={`text-xs ${
-                              !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-400' : 'text-red-400'
+                              !trade.pnl ? 'text-gray-600 dark:text-gray-400' : trade.pnl.includes('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                             }`}>
                               {trade.pnl || '-'}
                             </div>
