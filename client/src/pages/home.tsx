@@ -13314,7 +13314,7 @@ ${
                                                 <div className="overflow-x-auto">
                                                   <table className="w-full text-sm">
                                                     <thead>
-                                                      <tr className="border-b border-gray-700">
+                                                      <tr className="border-b border-gray-200 dark:border-gray-700">
                                                         <th className="text-left py-2 px-2 text-gray-400 font-medium">Particulars</th>
                                                         {companyInsights.annualFinancials.years.slice(0, 5).map((year: string) => (
                                                           <th key={year} className="text-right py-2 px-2 text-gray-400 font-medium">{year}</th>
@@ -19177,11 +19177,11 @@ ${
                 <div className="flex items-center gap-4 mt-4 text-xs">
                   <div className="flex items-center gap-1.5 text-gray-400">
                     <span>Positions:</span>
-                    <span className="text-white font-medium">{paperPositions.filter(p => p.isOpen).length}</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{paperPositions.filter(p => p.isOpen).length}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-gray-400">
                     <span>Trades:</span>
-                    <span className="text-white font-medium">{paperTradeHistory.length}</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{paperTradeHistory.length}</span>
                   </div>
                   <Button
                     onClick={() => setHidePositionDetails(!hidePositionDetails)}
@@ -20513,7 +20513,7 @@ ${
                 
                 return (
                   <div className="space-y-2">
-                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Call Options</div>
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Call Options</div>
                     {filteredCalls.slice(0, 15).map(call => (
                       <button
                         key={`${call.strikePrice}-call`}
@@ -20534,7 +20534,7 @@ ${
                       </button>
                     ))}
                     
-                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-4 mb-3">Put Options</div>
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-4 mb-3">Put Options</div>
                     {filteredPuts.slice(0, 15).map(put => (
                       <button
                         key={`${put.strikePrice}-put`}
@@ -20950,7 +20950,7 @@ ${
         
         {/* Mobile Paper Trade Tab - Full Screen */}
 {activeTab === "journal" && mobileBottomTab === "paper-trade" && (
-          <div className="md:hidden fixed inset-0 z-40 bg-gradient-to-b from-gray-900 to-gray-950 overflow-y-auto pb-20 flex flex-col">
+          <div className="md:hidden fixed inset-0 z-40 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 overflow-y-auto pb-20 flex flex-col">
             {/* Hero Balance Section - Dark gradient background */}
             <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-5 pt-8 pb-6 relative">
               
@@ -20967,11 +20967,11 @@ ${
               <div className="flex items-center gap-4 mt-4 text-xs">
                 <div className="flex items-center gap-1.5 text-gray-400">
                   <span>Positions:</span>
-                  <span className="text-white font-medium">{paperPositions.filter(p => p.isOpen).length}</span>
+                  <span className="text-gray-900 dark:text-white font-medium">{paperPositions.filter(p => p.isOpen).length}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-gray-400">
                   <span>Trades:</span>
-                  <span className="text-white font-medium">{paperTradeHistory.length}</span>
+                  <span className="text-gray-900 dark:text-white font-medium">{paperTradeHistory.length}</span>
                 </div>
                 <Button
                   onClick={() => setHidePositionDetails(!hidePositionDetails)}
@@ -21307,7 +21307,7 @@ ${
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
                       {showMobileTradeHistory ? 'Trade History' : 'Open Positions'}
                       {!showMobileTradeHistory && paperTradingWsStatus === 'connected' && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
                     </div>
