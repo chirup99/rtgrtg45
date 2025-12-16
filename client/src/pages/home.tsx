@@ -4729,7 +4729,7 @@ ${
         quantity: openPosition.quantity,
         price: paperTradeCurrentPrice,
         time: new Date().toLocaleTimeString(),
-        pnl: `${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}`,
+        pnl: `₹${pnl.toFixed(2)}`,
         closedAt: new Date().toLocaleTimeString()
       };
       const updatedHistory = [...paperTradeHistory, sellTrade];
@@ -4738,7 +4738,7 @@ ${
       
       toast({
         title: pnl >= 0 ? "Profit Booked!" : "Loss Booked",
-        description: `Sold ${openPosition.quantity} ${paperTradeSymbol} @ ₹${paperTradeCurrentPrice.toFixed(2)} | P&L: ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}`
+        description: `Sold ${openPosition.quantity} ${paperTradeSymbol} @ ₹${paperTradeCurrentPrice.toFixed(2)} | P&L: ₹${pnl.toFixed(2)}`
       });
     }
     
@@ -4905,7 +4905,7 @@ ${
         quantity: p.quantity,
         price: p.currentPrice,
         time: exitTime,
-        pnl: `${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)}`,
+        pnl: `₹${pnl.toFixed(2)}`,
         closedAt: exitTime
       };
       newHistoryEntries.push(sellTrade);
@@ -19547,7 +19547,7 @@ ${
                                 Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
                               </div>
                               <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
+                                {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
                                 <span className="text-[10px] ml-1">({position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(1)}%)</span>
                               </div>
                             </div>
@@ -20041,7 +20041,7 @@ ${
                                 {(position as any).slTriggerPrice ? `₹${(position as any).slTriggerPrice.toFixed(2)}` : '-'}
                               </td>
                               <td className={`px-2 py-1.5 text-right font-medium ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(0)}`}
+                                {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
                               </td>
                               <td className={`px-2 py-1.5 text-right text-[10px] ${position.pnlPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
@@ -21309,7 +21309,7 @@ ${
                             Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
                           </div>
                           <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
+                            {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
                           </div>
                         </div>
                             <div className="text-[10px] text-gray-400 mt-1">
