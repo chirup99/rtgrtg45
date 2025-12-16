@@ -21101,27 +21101,134 @@ ${
                     </div>
                   </div>
                   
-                  {/* Stop Loss Input */}
+                  {/* Stop Loss Button with Dropdown - Mobile Tab */}
                   <div className="flex gap-2 mb-3">
-                    <Input
-                      type="number"
-                      placeholder="SL Price"
-                      value={paperTradeSLPrice}
-                      onChange={(e) => setPaperTradeSLPrice(e.target.value)}
-                      className="flex-1 h-10 text-sm text-center rounded-lg"
-                      step="0.01"
-                      data-testid="input-paper-trade-sl-mobile-tab"
-                    />
-                    <Button
-                      onClick={() => setPaperTradeSLPrice("")}
-                      size="sm"
-                      variant="ghost"
-                      className="h-10 px-3 text-xs text-gray-400"
-                      data-testid="button-clear-sl-mobile-tab"
-                    >
-                      Clear
-                    </Button>
+                    <div className="relative flex-1">
+                      <Button
+                        onClick={() => setShowMobilePaperTradeSLDropdown(!showMobilePaperTradeSLDropdown)}
+                        disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
+                        variant={paperTradeSLEnabled ? "default" : "outline"}
+                        className={`w-full h-10 rounded-lg ${paperTradeSLEnabled ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                        data-testid="button-paper-sl-mobile-tab"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        {paperTradeSLEnabled ? `SL: ₹${paperTradeSLPrice}` : 'Set SL'}
+                      </Button>
+                      {showMobilePaperTradeSLDropdown && (
+                        <div className="absolute z-50 bottom-12 left-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg w-64">
+                          <div className="p-4 space-y-3">
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Stop Loss Configuration</div>
+                            <div>
+                              <label className="text-[10px] text-gray-500 uppercase">Type</label>
+                              <Select value={paperTradeSLType} onValueChange={(v: any) => setPaperTradeSLType(v)}>
+                                <SelectTrigger className="h-9 text-sm mt-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="price">Price SL</SelectItem>
+                                  <SelectItem value="percent">% SL</SelectItem>
+                                  <SelectItem value="duration">Duration</SelectItem>
+                                  <SelectItem value="high">Candle High</SelectItem>
+                                  <SelectItem value="low">Candle Low</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {(paperTradeSLType === 'high' || paperTradeSLType === 'low') && (
+                              <div>
+                                <label className="text-[10px] text-gray-500 uppercase">Timeframe</label>
+                                <Select value={paperTradeSLTimeframe} onValueChange={(v) => setPaperTradeSLTimeframe(v)}>
+                                  <SelectTrigger className="h-9 text-sm mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1m">1 Minute</SelectItem>
+                                    <SelectItem value="5m">5 Minutes</SelectItem>
+                                    <SelectItem value="15m">15 Minutes</SelectItem>
+                                    <SelectItem value="30m">30 Minutes</SelectItem>
+                                    <SelectItem value="1h">1 Hour</SelectItem>
+                                    <SelectItem value="4h">4 Hours</SelectItem>
+                                    <SelectItem value="1d">1 Day</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {paperTradeSLType === 'duration' && (
+                              <div>
+                                <label className="text-[10px] text-gray-500 uppercase">Duration Unit</label>
+                                <Select value={paperTradeSLDurationUnit} onValueChange={(v) => setPaperTradeSLDurationUnit(v)}>
+                                  <SelectTrigger className="h-9 text-sm mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="min">Minutes</SelectItem>
+                                    <SelectItem value="hr">Hours</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {paperTradeSLType !== 'high' && paperTradeSLType !== 'low' && (
+                              <div>
+                                <label className="text-[10px] text-gray-500 uppercase">Value</label>
+                                <Input
+                                  type="number"
+                                  placeholder={paperTradeSLType === 'price' ? 'Price' : '%'}
+                                  value={paperTradeSLValue}
+                                  onChange={(e) => setPaperTradeSLValue(e.target.value)}
+                                  className="h-9 text-sm mt-1"
+                                  data-testid="input-paper-sl-value-mobile-tab"
+                                />
+                              </div>
+                            )}
+
+                            <div className="flex gap-2 pt-1">
+                              <Button
+                                onClick={() => {
+                                  setPaperTradeSLEnabled(false);
+                                  setPaperTradeSLValue("");
+                                  setPaperTradeSLPrice("");
+                                  setShowMobilePaperTradeSLDropdown(false);
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 h-9"
+                                data-testid="button-clear-sl-mobile-tab"
+                              >
+                                Clear
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  if (paperTradeSLValue || paperTradeSLType === 'high' || paperTradeSLType === 'low') {
+                                    setPaperTradeSLEnabled(true);
+                                    setPaperTradeSLPrice(paperTradeSLValue);
+                                    toast({
+                                      title: "Stop Loss Set",
+                                      description: paperTradeSLType === 'price' 
+                                        ? `SL at ₹${paperTradeSLValue}` 
+                                        : paperTradeSLType === 'percent'
+                                        ? `SL at ${paperTradeSLValue}% loss`
+                                        : paperTradeSLType === 'duration'
+                                        ? `SL after ${paperTradeSLValue} ${paperTradeSLDurationUnit}`
+                                        : `SL at ${paperTradeSLTimeframe} candle ${paperTradeSLType}`
+                                    });
+                                  }
+                                  setShowMobilePaperTradeSLDropdown(false);
+                                }}
+                                size="sm"
+                                className="flex-1 h-9 bg-orange-500 hover:bg-orange-600 text-white"
+                                data-testid="button-set-sl-mobile-tab"
+                              >
+                                Set SL
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
                   
                   {/* Action Buttons */}
                   <div className="flex gap-3">

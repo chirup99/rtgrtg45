@@ -285,7 +285,24 @@
    - Server running on port 5000
    - All 66 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (66 ITEMS)
+[x] 67. **FIX: Mobile Paper Trading SL Button UI Consistency (December 16, 2025, 5:27 AM)**
+   - Issue: SL input field on mobile tab was different from paper trading dialog
+   - Fix Applied to client/src/pages/home.tsx:
+     * Replaced simple input field with full SL button + dropdown
+     * Button now shows Shield icon and SL status when enabled
+     * Dropdown matches dialog version with all SL configuration options
+     * Type selector (Price/Percent/Duration/Candle High/Candle Low)
+     * Timeframe selector for candle-based SL
+     * Duration unit selector (minutes/hours)
+     * Value input field
+     * Clear/Set SL buttons
+   - Result:
+     * Mobile paper trading tab SL button now matches dialog UI
+     * Consistent user experience across mobile and dialog
+     * All SL types supported on mobile tab now
+     * Proper dropdown positioning and styling
+
+### Current Status: ALL UPDATES COMPLETE (67 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)
@@ -294,3 +311,4 @@
 - Mobile Paper Trading UI: REDESIGNED with wallet-style card layout
 - Paper Trade button: HIDDEN on mobile, VISIBLE on desktop
 - **Replit environment migration: COMPLETE**
+- **Mobile SL button UI consistency: FIXED**
