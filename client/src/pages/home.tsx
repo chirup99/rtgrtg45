@@ -39,7 +39,7 @@ import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cognitoSignOut, getCognitoToken, sendEmailVerificationCode, confirmEmailVerification, checkEmailVerified } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
-import { LogOut, ArrowLeft, Save, Clock, Newspaper, TrendingUp, RefreshCw, ExternalLink, Loader2, Banknote } from "lucide-react";
+import { ArrowLeft, Banknote, Clock, ExternalLink, Loader2, LogOut, Newspaper, RefreshCw, Save, TrendingUp } from "lucide-react";
 import { parseBrokerTrades, ParseError } from "@/utils/trade-parser";
 
 // Global window type declaration for audio control
@@ -21243,110 +21243,111 @@ ${
                 </div>
               </div>
               
-              {/* Open Positions Section */}
-              {paperPositions.filter(p => p.isOpen).length > 0 && (
+              {/* Positions & Trade History Toggle Section */}
+              {(paperPositions.filter(p => p.isOpen).length > 0 || paperTradeHistory.length > 0) && (
                 <div className="px-4 pb-4">
                   <div className="flex items-center justify-between mb-3">
+                    <Button
+                      onClick={() => setShowMobileTradeHistory(!showMobileTradeHistory)}
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-gray-400 hover:text-white"
+                      data-testid="button-toggle-mobile-position-history"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
                     <div className="text-xs font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                      Open Positions
-                      {paperTradingWsStatus === 'connected' && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
+                      {showMobileTradeHistory ? 'Trade History' : 'Open Positions'}
+                      {!showMobileTradeHistory && paperTradingWsStatus === 'connected' && <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
                     </div>
                     <Button
-                      onClick={exitAllPaperPositions}
+                      onClick={showMobileTradeHistory ? recordAllPaperTrades : exitAllPaperPositions}
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
-                      data-testid="button-exit-all-mobile-tab"
+                      className={`h-7 px-2 text-xs ${
+                        showMobileTradeHistory 
+                          ? 'text-blue-400 hover:text-blue-500' 
+                          : 'text-red-500 hover:text-red-600'
+                      }`}
+                      data-testid={showMobileTradeHistory ? "button-record-all-mobile-tab" : "button-exit-all-mobile-tab"}
                     >
-                      Exit All
+                      {showMobileTradeHistory ? 'Record' : 'Exit All'}
                     </Button>
                   </div>
-                  <div className="space-y-2">
-                    {paperPositions.filter(p => p.isOpen).map(position => (
-                      <div 
-                        key={position.id}
-                        className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
-                        data-testid={`position-card-tab-${position.symbol}`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{position.symbol}</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              position.action === 'BUY' 
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                            }`}>
-                              {position.action}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="text-gray-500">
-                            Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
-                          </div>
-                          <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
-                          </div>
-                        </div>
-                            <div className="text-[10px] text-gray-400 mt-1">
-                              LTP: ₹{position.currentPrice.toFixed(2)}
-                              {(position as any).slTriggerPrice && (
-                                <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
-                              )}
+                  
+                  {/* Open Positions View */}
+                  {!showMobileTradeHistory && paperPositions.filter(p => p.isOpen).length > 0 && (
+                    <div className="space-y-2">
+                      {paperPositions.filter(p => p.isOpen).map(position => (
+                        <div 
+                          key={position.id}
+                          className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
+                          data-testid={`position-card-tab-${position.symbol}`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{position.symbol}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                position.action === 'BUY' 
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {position.action}
+                              </span>
                             </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Trade History Section */}
-              {paperTradeHistory.length > 0 && (
-                <div className="px-4 pb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Trade History
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="text-gray-500">
+                              Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
+                            </div>
+                            <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-1">
+                            LTP: ₹{position.currentPrice.toFixed(2)}
+                            {(position as any).slTriggerPrice && (
+                              <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <Button
-                      onClick={recordAllPaperTrades}
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs text-blue-400 hover:text-blue-500"
-                      data-testid="button-record-all-mobile-tab"
-                    >
-                      Record
-                    </Button>
-                  </div>
-                  <div className="space-y-1">
-                    {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
-                      <div 
-                        key={trade.id}
-                        className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                            trade.action === 'BUY' 
-                              ? 'bg-green-900/30 text-green-400' 
-                              : 'bg-red-900/30 text-red-400'
-                          }`}>
-                            {trade.action === 'BUY' ? 'B' : 'S'}
+                  )}
+                  
+                  {/* Trade History View */}
+                  {showMobileTradeHistory && paperTradeHistory.length > 0 && (
+                    <div className="space-y-1">
+                      {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
+                        <div 
+                          key={trade.id}
+                          className="flex items-center justify-between py-2.5 border-b border-gray-800 last:border-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                              trade.action === 'BUY' 
+                                ? 'bg-green-900/30 text-green-400' 
+                                : 'bg-red-900/30 text-red-400'
+                            }`}>
+                              {trade.action === 'BUY' ? 'B' : 'S'}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-white">{trade.symbol}</div>
+                              <div className="text-[10px] text-gray-400">{trade.time} | Qty: {trade.quantity}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-white">{trade.symbol}</div>
-                            <div className="text-[10px] text-gray-400">{trade.time} | Qty: {trade.quantity}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-white">₹{trade.price.toFixed(2)}</div>
-                          <div className={`text-xs ${
-                            !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {trade.pnl || '-'}
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-white">₹{trade.price.toFixed(2)}</div>
+                            <div className={`text-xs ${
+                              !trade.pnl ? 'text-gray-400' : trade.pnl.includes('+') ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {trade.pnl || '-'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               
