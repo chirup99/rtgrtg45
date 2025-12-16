@@ -19127,7 +19127,7 @@ ${
                 
               <div className="text-gray-400 text-xs mb-1">P&L</div>
               <div className={`text-white text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
-                {paperTradingTotalPnl >= 0 ? '+' : ''}{hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                {hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               </div>
               <div className="text-sm flex items-center gap-1 text-gray-400">
                 <span>{hidePositionDetails ? '***' : `₹${paperTradingCapital.toLocaleString('en-IN')}`}</span>
@@ -20929,7 +20929,7 @@ ${
               
               <div className="text-gray-400 text-xs mb-1">P&L</div>
               <div className={`text-white text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
-                {paperTradingTotalPnl >= 0 ? '+' : ''}{hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                {hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               </div>
               <div className="text-sm flex items-center gap-1 text-gray-400">
                 <span>{hidePositionDetails ? '***' : `₹${paperTradingCapital.toLocaleString('en-IN')}`}</span>
