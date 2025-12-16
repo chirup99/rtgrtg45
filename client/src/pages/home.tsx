@@ -21308,7 +21308,7 @@ ${
                           <div className="text-gray-500">
                             Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
                           </div>
-                          <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <div className={`text-xl font-bold ${position.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                             {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
                           </div>
                         </div>
