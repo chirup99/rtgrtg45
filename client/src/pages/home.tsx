@@ -4121,6 +4121,9 @@ ${
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);
   const [hidePositionDetails, setHidePositionDetails] = useState(false); // Eye icon toggle
+  const [swipedPositionId, setSwipedPositionId] = useState<string | null>(null);
+  const swipeStartXRef = useRef<number>(0);
+  const swipeStartYRef = useRef<number>(0);
   const [paperTradingCapital, setPaperTradingCapital] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("paperTradingCapital");
@@ -4936,6 +4939,54 @@ ${
     toast({
       title: totalPnl >= 0 ? "All Positions Closed - Profit!" : "All Positions Closed - Loss",
       description: `Exited ${openPositions.length} position${openPositions.length > 1 ? 's' : ''} | Total P&L: ${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toFixed(2)}`
+    });
+  };
+
+  const exitPosition = (positionId: string) => {
+    const position = paperPositions.find(p => p.id === positionId);
+    
+    if (!position) {
+      toast({
+        title: "Position Not Found",
+        description: "Could not find the position to exit",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const exitPnL = position.pnl;
+    const exitPrice = position.currentPrice;
+    
+    // Update position as closed
+    const updatedPositions = paperPositions.map(p =>
+      p.id === positionId ? { ...p, isOpen: false } : p
+    );
+    setPaperPositions(updatedPositions);
+    localStorage.setItem("paperPositions", JSON.stringify(updatedPositions));
+    
+    // Add to trade history
+    const newTrade: PaperTrade = {
+      id: `exit-${positionId}`,
+      symbol: position.symbol,
+      type: position.type,
+      action: position.action === 'BUY' ? 'SELL' : 'BUY', // Exit action is opposite of entry
+      quantity: position.quantity,
+      price: exitPrice,
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      pnl: `${exitPnL >= 0 ? '+' : ''}₹${exitPnL.toFixed(0)}`,
+      closedAt: new Date().toISOString()
+    };
+    
+    const updatedHistory = [...paperTradeHistory, newTrade];
+    setPaperTradeHistory(updatedHistory);
+    localStorage.setItem("paperTradeHistory", JSON.stringify(updatedHistory));
+    
+    setSwipedPositionId(null);
+    
+    toast({
+      title: "Position Exited",
+      description: `${position.symbol} exited at ₹${exitPrice.toFixed(2)} | P&L: ₹${exitPnL.toFixed(0)}`,
+      duration: 2000
     });
   };
   
@@ -21275,45 +21326,96 @@ ${
                     </Button>
                   </div>
                   
+                  
                   {/* Open Positions View */}
                   {!showMobileTradeHistory && paperPositions.filter(p => p.isOpen).length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 px-4">
                       {paperPositions.filter(p => p.isOpen).map(position => (
                         <div 
                           key={position.id}
-                          className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
+                          className="relative overflow-hidden bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800"
                           data-testid={`position-card-tab-${position.symbol}`}
+                          onTouchStart={(e) => {
+                            swipeStartXRef.current = e.touches[0].clientX;
+                            swipeStartYRef.current = e.touches[0].clientY;
+                          }}
+                          onTouchEnd={(e) => {
+                            const endX = e.changedTouches[0].clientX;
+                            const endY = e.changedTouches[0].clientY;
+                            const diffX = swipeStartXRef.current - endX;
+                            const diffY = Math.abs(swipeStartYRef.current - endY);
+                            
+                            // Swipe left (diffX > 0) with minimal vertical movement
+                            if (diffX > 50 && diffY < 30) {
+                              setSwipedPositionId(position.id);
+                            }
+                            // Swipe right to close
+                            else if (diffX < -50 && diffY < 30) {
+                              setSwipedPositionId(null);
+                            }
+                          }}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{position.symbol}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                position.action === 'BUY' 
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              }`}>
-                                {position.action}
-                              </span>
+                          {/* Main position card content */}
+                          <div className={`p-3 transition-transform duration-200 ${
+                            swipedPositionId === position.id ? 'translate-x-0' : 'translate-x-0'
+                          }`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">{position.symbol}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                  position.action === 'BUY' 
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                }`}>
+                                  {position.action}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="text-gray-500">
+                                Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
+                              </div>
+                              <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1">
+                              LTP: ₹{position.currentPrice.toFixed(2)}
+                              {(position as any).slTriggerPrice && (
+                                <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="text-gray-500">
-                              Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
+                          
+                          {/* Swipe hint text */}
+                          {swipedPositionId !== position.id && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">
+                              ← Swipe
                             </div>
-                            <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {hidePositionDetails ? '***' : `₹${position.pnl.toFixed(0)}`}
+                          )}
+                          
+                          {/* Exit button - appears on swipe */}
+                          {swipedPositionId === position.id && (
+                            <div className="absolute right-0 top-0 bottom-0 w-16 bg-red-500 flex items-center justify-center animate-in fade-in duration-200">
+                              <button
+                                onClick={() => {
+                                  exitPosition(position.id);
+                                }}
+                                className="flex flex-col items-center justify-center w-full h-full gap-1 hover:bg-red-600 transition-colors"
+                                data-testid={`button-exit-position-${position.symbol}`}
+                                title="Exit position"
+                              >
+                                <div className="text-white text-lg">×</div>
+                                <div className="text-[9px] text-white font-medium">EXIT</div>
+                              </button>
                             </div>
-                          </div>
-                          <div className="text-[10px] text-gray-400 mt-1">
-                            LTP: ₹{position.currentPrice.toFixed(2)}
-                            {(position as any).slTriggerPrice && (
-                              <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
-                            )}
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
+                  
+
                   
                   {/* Trade History View */}
                   {showMobileTradeHistory && paperTradeHistory.length > 0 && (
