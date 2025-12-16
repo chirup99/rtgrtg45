@@ -16628,7 +16628,7 @@ ${
                                             setVisibleStats({...visibleStats, [field]: checked});
                                           };
                                           return (
-                                            <div className="flex gap-2 items-center">
+                                            <div className="flex gap-2 items-center justify-end">
                                               <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.pnl && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
                                                 <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!visibleStats.pnl && isAtLimit} className="rounded" />
                                                 P&L
@@ -19820,7 +19820,7 @@ ${
                     {(() => {
                       const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                       return (
-                        <div className="flex gap-2 items-center">
+                        <div className="flex gap-2 items-center justify-end">
                           <Button
                             onClick={() => { setPaperTradeAction('BUY'); executePaperTrade(); }}
                             disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}

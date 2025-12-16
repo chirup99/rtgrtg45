@@ -365,7 +365,20 @@
      * Better use of space in the trading dialog
      * Consistent button alignment across the interface
 
-### Current Status: ALL UPDATES COMPLETE (72 ITEMS)
+[x] 73. **FIX: Paper Trading Dialog Buttons Positioned on Right Side (December 16, 2025, 6:22 AM)**
+   - Issue: BUY, SELL, SL buttons were aligned to the left side of the dialog
+   - Solution: Added `justify-end` to flex container to push buttons to the right
+   - Changes to client/src/pages/home.tsx (line ~19823):
+     * Updated button container from `<div className="flex gap-2 items-center">` 
+     * To: `<div className="flex gap-2 items-center justify-end">`
+     * Flexbox justify-end property aligns all buttons to the right side
+   - Result:
+     * BUY, SELL, SL buttons now aligned to right side of dialog
+     * Better visual alignment with right-aligned input fields
+     * Cleaner, more professional layout
+     * User-requested positioning applied successfully
+
+### Current Status: ALL UPDATES COMPLETE (73 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)
@@ -376,3 +389,4 @@
 - **Replit environment migration: COMPLETE**
 - **Mobile SL button UI consistency: FIXED**
 - **Paper Trading Dialog Button Layout: FIXED - BUY/SELL/SL now in same row**
+- **Paper Trading Dialog Buttons: NOW ALIGNED TO RIGHT SIDE**
