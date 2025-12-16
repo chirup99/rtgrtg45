@@ -19841,7 +19841,7 @@ ${
                           </Button>
                           
                           {/* SL Button with Dropdown */}
-                          <div className="relative">
+                          <div className="relative ml-auto">
                             <Button
                               onClick={() => setShowPaperTradeSLDropdown(!showPaperTradeSLDropdown)}
                               disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
