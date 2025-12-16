@@ -35,6 +35,12 @@
   --main-content-bg: hsl(0, 0%, 100%);
   --sidebar-text: hsl(240, 10%, 3.9%);
   --sidebar-muted: hsl(240, 3.8%, 46.1%);
+
+  /* Light theme specific colors for better UI */
+  --light-text: hsl(240, 10%, 3.9%);
+  --light-text-secondary: hsl(240, 3.8%, 46.1%);
+  --light-border: hsl(240, 5.9%, 90%);
+  --light-bg-secondary: hsl(0, 0%, 96%);
 }
 
 .dark {
@@ -85,18 +91,18 @@
     width: 8px;
   }
 
-  ::-webkit-scrollbar-track {
-    background: hsl(215, 28%, 20%);
+  :root ::-webkit-scrollbar-track {
+    background: hsl(240, 5.9%, 90%);
     border-radius: 10px;
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: hsl(215, 20%, 35%);
+  :root ::-webkit-scrollbar-thumb {
+    background: hsl(240, 5.9%, 70%);
     border-radius: 10px;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(215, 20%, 45%);
+  :root ::-webkit-scrollbar-thumb:hover {
+    background: hsl(240, 5.9%, 60%);
   }
 
   /* Dark theme scrollbar */

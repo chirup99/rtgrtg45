@@ -1444,7 +1444,7 @@ function HistoricalDataSection() {
                             </span>
                           </div>
                         ) : sentimentAnalysis[index] ? (
-                          <div className="space-y-1">
+                          <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
                             <div
                               className={`text-xs font-semibold px-2 py-1 rounded ${
                                 sentimentAnalysis[index].signal === "BUY"
@@ -1585,7 +1585,7 @@ function MicroAnimationsDemoPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="flex items-center justify-center p-6 bg-gray-50 dark:bg-white dark:bg-gray-900 rounded-lg">
               <PriceChangeAnimation
                 value={demoPrice}
                 previousValue={prevPrice}
@@ -10682,7 +10682,7 @@ ${
         <div className="flex items-center justify-between mb-8">
           {/* MiniCast Component - Left Side (replacing search bar) */}
           <div className="flex items-center gap-6">
-            <div className="bg-gray-900 rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg border border-gray-700">
+            <div className="bg-white dark:bg-gray-900 rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg border border-gray-700">
               <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">M</span>
               </div>
@@ -11628,7 +11628,7 @@ ${
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          <div className="space-y-1">
+          <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
             <p className="text-xs font-medium sidebar-muted uppercase tracking-wide mb-3">
               Dashboard & Overview
             </p>
@@ -11940,7 +11940,7 @@ ${
                 {showSettingsPanel && (
                   <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowSettingsPanel(false)}>
                     <div 
-                      className="bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl border border-gray-700"
+                      className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl border border-gray-700"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-between mb-6">
@@ -15264,7 +15264,7 @@ ${
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
-                              <div className="space-y-1">
+                              <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600 dark:text-gray-400">
                                     Winning Trades:
@@ -15285,7 +15285,7 @@ ${
                                   </span>
                                 </div>
                               </div>
-                              <div className="space-y-1">
+                              <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600 dark:text-gray-400">
                                     Losing Trades:
@@ -15474,7 +15474,7 @@ ${
                                       </div>
 
                                       {/* Timeframe Selector */}
-                                      <div className="space-y-1">
+                                      <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
                                         <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                                           Timeframe
                                         </label>
@@ -19341,7 +19341,7 @@ ${
                         ) : paperTradeCurrentPrice ? (
                           <span>₹{paperTradeCurrentPrice.toFixed(2)}</span>
                         ) : (
-                          <span className="text-gray-400">Price</span>
+                          <span className="text-gray-500 dark:text-gray-400">Price</span>
                         )}
                       </div>
                     </div>
@@ -19582,7 +19582,7 @@ ${
                               <span className="text-xs text-gray-400">{durationStr}</span>
                             </div>
                             <div className="flex items-center justify-between text-xs">
-                              <div className="text-gray-500">
+                              <div className="text-gray-600 dark:text-gray-400">
                                 Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
                               </div>
                               <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -19620,7 +19620,7 @@ ${
                         Record
                       </Button>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
                       {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
                         <div 
                           key={trade.id}
@@ -19855,7 +19855,7 @@ ${
                       ) : paperTradeCurrentPrice ? (
                         <span>₹{paperTradeCurrentPrice.toFixed(2)}</span>
                       ) : (
-                        <span className="text-gray-400">--</span>
+                        <span className="text-gray-500 dark:text-gray-400">--</span>
                       )}
                     </div>
 
@@ -20779,7 +20779,7 @@ ${
                     ) : (
                       <div className="text-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                        <p className="text-gray-500">
+                        <p className="text-gray-600 dark:text-gray-400">
                           Loading journal analysis...
                         </p>
                       </div>
@@ -21131,7 +21131,7 @@ ${
                       ) : paperTradeCurrentPrice ? (
                         <span>₹{paperTradeCurrentPrice.toFixed(2)}</span>
                       ) : (
-                        <span className="text-gray-400">Price</span>
+                        <span className="text-gray-500 dark:text-gray-400">Price</span>
                       )}
                     </div>
                   </div>
@@ -21331,7 +21331,7 @@ ${
                   
                   {/* Open Positions View */}
                   {!showMobileTradeHistory && paperPositions.filter(p => p.isOpen).length > 0 && (
-                    <div className="space-y-2 px-4">
+                    <div className="space-y-2 px-4 divide-gray-200 dark:divide-gray-800">
                       {paperPositions.filter(p => p.isOpen).map(position => (
                         <div 
                           key={position.id}
@@ -21402,7 +21402,7 @@ ${
                               title="Exit position"
                             >
                               <div className="text-white text-sm font-bold">×</div>
-                              <div className="text-[7px] text-white font-bold whitespace-nowrap">EXIT</div>
+                              <div className="text-[7px] text-white dark:text-white font-bold whitespace-nowrap">EXIT</div>
                             </button>
                           </div>
 
@@ -21437,7 +21437,7 @@ ${
                               )}
                             </div>
                             <div className="flex items-center justify-between text-xs">
-                              <div className="text-gray-500">
+                              <div className="text-gray-600 dark:text-gray-400">
                                 Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
                               </div>
                               <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -21463,7 +21463,7 @@ ${
                   
                   {/* Trade History View */}
                   {showMobileTradeHistory && paperTradeHistory.length > 0 && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
                       {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
                         <div 
                           key={trade.id}
