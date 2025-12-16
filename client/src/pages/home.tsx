@@ -1852,6 +1852,7 @@ export default function Home() {
   >("home");
   // Settings panel state
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [swipedPositionId, setSwipedPositionId] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
   const [verificationOtp, setVerificationOtp] = useState("");
   const [verificationSending, setVerificationSending] = useState(false);
@@ -21287,7 +21288,7 @@ ${
                   </div>
                   <div className="space-y-2">
                     {paperPositions.filter(p => p.isOpen).map(position => (
-                      <div 
+                    {paperPositions.filter(p => p.isOpen).map(position => (
                         key={position.id}
                         className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
                         data-testid={`position-card-tab-${position.symbol}`}
@@ -21296,30 +21297,43 @@ ${
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">{position.symbol}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              position.action === 'BUY' 
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              position.action === "BUY" 
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                             }`}>
                               {position.action}
                             </span>
+                            <button
+                              onClick={() => {
+                                closePaperPosition(position.id);
+                                toast({title: "Position Closed", description: `${position.symbol} closed at ₹${position.currentPrice.toFixed(2)}`});
+                              }}
+                              className="ml-auto text-red-500 hover:text-red-600"
+                              data-testid={`button-exit-position-${position.symbol}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div className="text-gray-500">
-                            Qty: {position.quantity} | Avg: {hidePositionDetails ? '***' : `₹${position.entryPrice.toFixed(2)}`}
+                            Qty: {position.quantity} | Avg: {hidePositionDetails ? "***" : `₹${position.entryPrice.toFixed(2)}`}
                           </div>
-                          <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
+                          <div className={`font-semibold ${position.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {hidePositionDetails ? "***" : `${position.pnl >= 0 ? "+" : ""}₹${position.pnl.toFixed(0)}`}
                           </div>
                         </div>
-                            <div className="text-[10px] text-gray-400 mt-1">
-                              LTP: ₹{position.currentPrice.toFixed(2)}
-                              {(position as any).slTriggerPrice && (
-                                <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
-                              )}
-                            </div>
+                        <div className="text-[10px] text-gray-400 mt-1">
+                          LTP: ₹{position.currentPrice.toFixed(2)}
+                          {(position as any).slTriggerPrice && (
+                            <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
+                          )}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
