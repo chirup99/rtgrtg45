@@ -21106,7 +21106,7 @@ ${
                     <div className="relative flex-1">
                       <Button
                         onClick={() => setShowMobilePaperTradeSLDropdown(!showMobilePaperTradeSLDropdown)}
-                        disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
+                        disabled={!paperTradeSymbol || !(paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput) || !paperTradeCurrentPrice}
                         variant={paperTradeSLEnabled ? "default" : "outline"}
                         className={`w-full h-10 rounded-lg ${paperTradeSLEnabled ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
                         data-testid="button-paper-sl-mobile-tab"
