@@ -19325,26 +19325,22 @@ ${
                         const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                         return (
                           <>
-                          <div className="flex gap-2 w-full">
                             <Button
                               onClick={() => { setPaperTradeAction('BUY'); executePaperTrade(); }}
                               disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
-                              size="sm"
-                              className="h-8 px-4 bg-green-600 hover:bg-green-700 text-white text-xs flex-1"
-                              data-testid="button-paper-buy"
+                              className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-base"
+                              data-testid="button-paper-buy-mobile"
                             >
                               BUY
                             </Button>
                             <Button
                               onClick={() => { setPaperTradeAction('SELL'); executePaperTrade(); }}
                               disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
-                              size="sm"
-                              className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs flex-1"
-                              data-testid="button-paper-sell"
+                              className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-base"
+                              data-testid="button-paper-sell-mobile"
                             >
                               SELL
                             </Button>
-                          </div>
                             
                             {/* Mobile SL Button with Dropdown */}
                             <div className="relative">
@@ -19825,12 +19821,11 @@ ${
                       const inputValue = paperTradeType === 'STOCK' ? paperTradeQuantity : paperTradeLotInput;
                       return (
                         <>
-                          <div className="flex gap-2 w-full">
                           <Button
                             onClick={() => { setPaperTradeAction('BUY'); executePaperTrade(); }}
                             disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
                             size="sm"
-                            className="h-8 px-4 bg-green-600 hover:bg-green-700 text-white text-xs flex-1"
+                            className="h-8 px-4 bg-green-600 hover:bg-green-700 text-white text-xs"
                             data-testid="button-paper-buy"
                           >
                             BUY
@@ -19839,15 +19834,14 @@ ${
                             onClick={() => { setPaperTradeAction('SELL'); executePaperTrade(); }}
                             disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
                             size="sm"
-                            className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs flex-1"
+                            className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs"
                             data-testid="button-paper-sell"
                           >
                             SELL
                           </Button>
-                          </div>
                           
                           {/* SL Button with Dropdown */}
-                          <div className="relative ml-auto">
+                          <div className="relative">
                             <Button
                               onClick={() => setShowPaperTradeSLDropdown(!showPaperTradeSLDropdown)}
                               disabled={!paperTradeSymbol || !inputValue || !paperTradeCurrentPrice}
