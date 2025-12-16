@@ -20390,7 +20390,7 @@ ${
                     onChange={(e) => {
                       const newExpiry = e.target.value;
                       if (newExpiry) {
-                        setSelectedOptionExpiryDate(newExpiry);
+                        setSelectedOptionExpiryDate(newExpiry); fetchOptionChainData(selectedOptionIndex, newExpiry);
                       }
                     }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
@@ -20447,8 +20447,7 @@ ${
                   value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                   onChange={(e) => {
                     const newExpiry = e.target.value;
-                    setSelectedOptionExpiryDate(newExpiry);
-                    fetchOptionChainData(selectedOptionIndex, newExpiry);
+                    setSelectedOptionExpiryDate(newExpiry); fetchOptionChainData(selectedOptionIndex, newExpiry);
                   }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                   data-testid="select-option-expiry-date-desktop"

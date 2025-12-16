@@ -13,10 +13,11 @@
 [x] 13. Migration to Replit environment completed
 [x] 14. Make option chain minimalist on mobile
 [x] 15. Fixed syntax error in home.tsx (duplicate code block removed)
+[x] 16. Fixed mobile option chain expiry date selection not loading data
 
 ### LATEST UPDATE
-**Date:** December 16, 2025, 6:21 PM
-**Status:** Project fully operational after fixing syntax error
+**Date:** December 16, 2025, 6:28 PM
+**Status:** Mobile option chain expiry date selection fixed
 
 **✅ Tasks Completed:**
 [x] Fixed mobile expiry date display bug
@@ -26,24 +27,12 @@
 [x] Created comprehensive filtering logic explanation
 [x] Provided visual and quick-reference guides
 [x] Fixed duplicate code block syntax error in home.tsx (line 5648-5665)
+[x] Fixed mobile option chain expiry date selection - now calls fetchOptionChainData on change
 
-**📋 Documentation Files Created:**
-1. `expiry_dates_complete_logic.md` - 10 logic flows with data diagrams
-2. `filtering_logic_detailed.md` - 9 sections, complete breakdown
-3. `filtering_quick_reference.md` - Quick code reference guide
-4. `filtering_visual_summary.txt` - ASCII visual diagrams
+**🔧 Issue Fixed:**
+- Problem: Mobile expiry date dropdown only set state but didn't fetch new data
+- Solution: Added `fetchOptionChainData(selectedOptionIndex, newExpiry)` to mobile onChange handler
+- Location: client/src/pages/home.tsx line ~20393 (mobile expiry select)
+- Now matches desktop behavior
 
-**🔧 Filtering Logic Explained:**
-- Purpose: Filter 4000+ options down to ~300 for selected expiry
-- Method: Normalize dates to "YYYY-MM-DD", match by equality
-- Performance: 2ms to filter, instant expiry switching (no API needed)
-- Both mobile & desktop use identical filtering logic
-- Handles edge cases: Missing expiry fields, timezone differences
-
-**Key Components:**
-1. formatExpiryDate() - Converts dates to standard format
-2. effectiveExpiryDate - Gets user's selection or first available
-3. filter() calls - Match each call/put against selected expiry
-4. Return filtered {calls, puts} for rendering
-
-**Result:** Mobile & Desktop option chain fully functional. All 4000+ options instantly filtered by selected expiry date (2ms). Application ready for production.
+**Result:** Mobile option chain now loads correct data when switching expiry dates.
