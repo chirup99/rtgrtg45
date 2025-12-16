@@ -5435,26 +5435,39 @@ ${
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
   const [showMobileExpiryDialog, setShowMobileExpiryDialog] = useState(false);
   // Get expiry dates from optionChainData
-  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
-    if (!optionChainData?.calls || optionChainData.calls.length === 0) {
+  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
+    if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
       return [];
     }
-    
-    // Extract unique expiry dates from calls
-    const expirySet = new Set<string>();
-    optionChainData.calls.forEach((call: any) => {
-      if (call.expiryDate) {
-        expirySet.add(call.expiryDate);
-      }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const expiryDate = new Date(expiry);
+      expiryDate.setHours(0, 0, 0, 0);
+      return expiryDate >= today;
     });
-    
-    // Convert to array and format
-    const uniqueExpiries = Array.from(expirySet).sort();
-    return uniqueExpiries.map((expiry: string) => ({
+    return futureExpiries.slice(0, 4).map((expiry: string) => ({
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
   };
+
+  // Auto-select first expiry date when option chain data loads (mobile fix)
+  useEffect(() => {
+    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+        const expiryDate = new Date(expiry);
+        expiryDate.setHours(0, 0, 0, 0);
+        return expiryDate >= today;
+      });
+      if (futureExpiries.length > 0) {
+        setSelectedOptionExpiryDate(futureExpiries[0]);
+      }
+    }
+  }, [optionChainData, selectedOptionExpiryDate]);
+
   // Auto-fetch option chain data when dialog opens (mobile fix)
   useEffect(() => {
     if (showOptionChain && selectedOptionIndex) {
@@ -20304,12 +20317,7 @@ ${
                   </div>
                 </div>
                   <button
-                    onClick={() => {
-                      if (!optionChainData) {
-                        fetchOptionChainData(selectedOptionIndex);
-                      }
-                      setShowMobileExpiryDialog(true);
-                    }}
+                    onClick={() => setShowMobileExpiryDialog(true)}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm hover:bg-gray-700 transition-colors"
                     data-testid="button-option-expiry-date-mobile"
                   >
