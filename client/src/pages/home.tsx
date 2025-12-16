@@ -20539,47 +20539,64 @@ ${
                 
                 return (
                   <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Call Options Column */}
-                      <div className="flex flex-col">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Calls</div>
-                        <div className="space-y-1.5">
-                          {filteredCalls.slice(0, 15).map(call => (
-                            <button
-                              key={`${call.strikePrice}-call`}
-                              onClick={() => handleOptionClick(call)}
-                              className={`w-full rounded-lg bg-gradient-to-r ${getStatusColor(call.strikePrice, true)} border border-gray-700 p-2 text-left hover:border-gray-600 transition-all text-sm`}
-                              data-testid={`option-call-card-${call.strikePrice}`}
-                            >
-                              <div className="flex flex-col">
-                                <div className={`font-semibold ${getTextColor(call.strikePrice, true)}`}>₹{call.strikePrice}</div>
-                                <div className="text-xs text-gray-400">{getOptionStatus(call.strikePrice, true)}</div>
-                                <div className={`font-semibold ${getTextColor(call.strikePrice, true)} text-xs`}>₹{call.ltp?.toFixed(2) || '0'}</div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                    <div className="space-y-0">
+                      {/* Headers */}
+                      <div className="grid grid-cols-3 gap-1 mb-2 px-1">
+                        <div className="text-center text-xs font-semibold text-blue-400">Calls</div>
+                        <div className="text-center text-xs font-semibold text-gray-400">Strike</div>
+                        <div className="text-center text-xs font-semibold text-red-400">Puts</div>
                       </div>
                       
-                      {/* Put Options Column */}
-                      <div className="flex flex-col">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Puts</div>
-                        <div className="space-y-1.5">
-                          {filteredPuts.slice(0, 15).map(put => (
-                            <button
-                              key={`${put.strikePrice}-put`}
-                              onClick={() => handleOptionClick(put)}
-                              className={`w-full rounded-lg bg-gradient-to-r ${getStatusColor(put.strikePrice, false)} border border-gray-700 p-2 text-left hover:border-gray-600 transition-all text-sm`}
-                              data-testid={`option-put-card-${put.strikePrice}`}
-                            >
-                              <div className="flex flex-col">
-                                <div className={`font-semibold ${getTextColor(put.strikePrice, false)}`}>₹{put.strikePrice}</div>
-                                <div className="text-xs text-gray-400">{getOptionStatus(put.strikePrice, false)}</div>
-                                <div className={`font-semibold ${getTextColor(put.strikePrice, false)} text-xs`}>₹{put.ltp?.toFixed(2) || '0'}</div>
+                      {/* Compact 3-Column Option Chain */}
+                      <div className="space-y-0.5">
+                        {(() => {
+                          const allStrikes = new Set<number>();
+                          filteredCalls.forEach(c => allStrikes.add(c.strikePrice));
+                          filteredPuts.forEach(p => allStrikes.add(p.strikePrice));
+                          const strikes = Array.from(allStrikes).sort((a, b) => a - b);
+                          
+                          return strikes.slice(0, 20).map(strike => {
+                            const call = filteredCalls.find(c => c.strikePrice === strike);
+                            const put = filteredPuts.find(p => p.strikePrice === strike);
+                            
+                            return (
+                              <div key={`${strike}-row`} className="grid grid-cols-3 gap-1 px-1">
+                                {/* Call Price */}
+                                <button
+                                  onClick={() => call && handleOptionClick(call)}
+                                  disabled={!call}
+                                  className={`py-1.5 px-1 rounded text-xs font-semibold text-center transition-all ${
+                                    call
+                                      ? 'bg-blue-900 text-blue-200 hover:bg-blue-800 border border-blue-700'
+                                      : 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+                                  }`}
+                                  data-testid={`option-call-ltp-${strike}`}
+                                >
+                                  {call ? `₹${call.ltp?.toFixed(0) || '0'}` : '-'}
+                                </button>
+                                
+                                {/* Strike Price - Center */}
+                                <div className="py-1.5 px-1 rounded text-xs font-bold text-center bg-gray-800 border border-gray-700 text-yellow-400 flex items-center justify-center">
+                                  {strike}
+                                </div>
+                                
+                                {/* Put Price */}
+                                <button
+                                  onClick={() => put && handleOptionClick(put)}
+                                  disabled={!put}
+                                  className={`py-1.5 px-1 rounded text-xs font-semibold text-center transition-all ${
+                                    put
+                                      ? 'bg-red-900 text-red-200 hover:bg-red-800 border border-red-700'
+                                      : 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+                                  }`}
+                                  data-testid={`option-put-ltp-${strike}`}
+                                >
+                                  {put ? `₹${put.ltp?.toFixed(0) || '0'}` : '-'}
+                                </button>
                               </div>
-                            </button>
-                          ))}
-                        </div>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   </div>
