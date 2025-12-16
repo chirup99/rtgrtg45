@@ -12285,7 +12285,7 @@ ${
                                 <div className="flex items-center gap-2 pb-3 border-b border-transparent">
                                   {searchResults.includes("[CHART:WATCHLIST]") ? (
                                     <>
-                                      <Eye className="h-4 w-4 text-blue-400" />
+                                      <Eye className="h-4 w-4 text-gray-700 dark:text-blue-400" />
                                       <h3 className="text-lg font-medium text-gray-100">
                                         Watchlist
                                       </h3>
@@ -13730,7 +13730,7 @@ ${
                                   <div className="flex items-center gap-1.5">
                                     {searchResults.includes("[CHART:WATCHLIST]") ? (
                                       <>
-                                        <Eye className="h-4 w-4 text-blue-400" />
+                                        <Eye className="h-4 w-4 text-gray-700 dark:text-blue-400" />
                                         <h3 className="text-xs font-medium text-gray-100">
                                           Watchlist
                                         </h3>

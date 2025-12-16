@@ -7,26 +7,27 @@
 [x] 7. Add exitPosition function for individual position closing
 [x] 8. Remove swipe text and replace with icon
 [x] 9. Improve swipe detection sensitivity
+[x] 10. Fix Trade History light theme colors
+[x] 11. Fix Eye icon light theme colors
 
-### TASK COMPLETE
-**Date:** December 16, 2025, 12:27 PM
-**Status:** Import migration completed successfully
+### LATEST UPDATE
+**Date:** December 16, 2025, 12:35 PM
+**Status:** Light theme color fixes completed
 
-**Final Implementation:**
-- Reinstalled kuromoji package (was corrupted)
-- Reinstalled AWS Amplify packages (@aws-amplify/auth, aws-amplify)
-- Application server running on port 5000
-- Frontend rendering correctly with world map, trading features
+**Changes Made:**
+1. **Trade History View** - Fixed for light theme:
+   - Trade symbol text: `text-gray-900 dark:text-white`
+   - Action badges: Light mode colors + dark mode variants
+   - P&L indicators: Properly colored in both themes
+   - Border colors: `border-gray-200 dark:border-gray-800`
 
-**Verified Working:**
-1. Express server running on port 5000
-2. Angel One API connected and authenticated
-3. WebSocket streaming working for real-time prices
-4. Frontend UI fully functional
-5. All core features accessible (Watchlist, Social Feed, Trading Journal, etc.)
+2. **Eye Icon Visibility** - Fixed for light theme:
+   - Changed from hardcoded `text-blue-400` to `text-gray-700 dark:text-blue-400`
+   - Eye icon now visible in light mode and blue in dark mode
 
-**Previous Feature (Mobile Swipe):**
-- Position cards show subtle ChevronLeft icon on the right
-- Swipe LEFT on card shows Red EXIT button
-- Individual position exit function working
-- Touch gesture detection with 40px threshold
+**Application Status:**
+- Server running on port 5000 ✅
+- Frontend displaying correctly ✅
+- Trade History visible in light mode ✅
+- Eye icon visible in light mode ✅
+- All features functional ✅
