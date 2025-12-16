@@ -20301,14 +20301,7 @@ ${
         {/* Option Chain Modal */}
         <Dialog open={showOptionChain} onOpenChange={(open) => { setShowOptionChain(open); if (open) { fetchOptionChainData(selectedOptionIndex); } }}>
           <DialogContent className="w-full max-w-4xl md:max-w-5xl p-0 md:p-6 bg-gradient-to-b from-gray-950 to-gray-900 dark:from-gray-950 dark:to-gray-900 md:dark:from-gray-900 md:dark:to-gray-800 md:bg-white md:dark:bg-gray-900 md:rounded-xl rounded-2xl border-0 md:border md:border-gray-200 md:dark:border-gray-700">
-            {/* Mobile Close Button */}
-            <button
-              onClick={() => setShowOptionChain(false)}
-              className="md:hidden absolute top-4 right-4 z-50 text-white hover:text-gray-400 transition-colors"
-              data-testid="button-close-option-chain-mobile"
-            >
-              <X className="w-6 h-6" />
-            </button>
+
             
             {/* Mobile Header */}
             <div className="md:hidden px-6 pt-8 pb-4">
