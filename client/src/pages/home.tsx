@@ -19520,7 +19520,7 @@ ${
                 
                 {/* Open Positions Section */}
                 {paperPositions.filter(p => p.isOpen).length > 0 && (
-                  <div className="px-4 pb-4">
+                  <div className="">
                     <div className="flex items-center justify-between mb-3">
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
                         Open Positions
@@ -19605,7 +19605,7 @@ ${
                 
                 {/* Trade History Section */}
                 {paperTradeHistory.length > 0 && (
-                  <div className="px-4 pb-4">
+                  <div className="">
                     <div className="flex items-center justify-between mb-3">
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Trade History
@@ -21296,7 +21296,7 @@ ${
               
               {/* Positions & Trade History Toggle Section */}
               {(paperPositions.filter(p => p.isOpen).length > 0 || paperTradeHistory.length > 0) && (
-                <div className="px-4 pb-4">
+                <div className="">
                   <div className="flex items-center justify-between mb-3">
                     <Button
                       onClick={() => setShowMobileTradeHistory(!showMobileTradeHistory)}
