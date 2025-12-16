@@ -315,7 +315,20 @@
      * App fully functional on mobile tab
      * Server running successfully on port 5000
 
-### Current Status: ALL UPDATES COMPLETE (67 ITEMS)
+[x] 69. **FIX: Paper Trading Dialog SL Dropdown Display Issue (December 16, 2025, 5:33 AM)**
+   - Issue: SL dialog showing compressed layout - "Type% SLSet SL" overlapping text
+   - Root Cause: Dropdown container too narrow (min-w-[220px]), poor positioning
+   - Fix Applied:
+     * Changed container styling from `absolute z-50 top-8 right-0 mt-1` to `absolute z-50 top-10 -right-2 mt-1`
+     * Increased width from `min-w-[220px]` to fixed `w-80` (320px)
+     * Improved padding from `p-3 space-y-2` to `p-4 space-y-3` for better spacing
+   - Result:
+     * SL dropdown now displays properly with full width
+     * All options (Type, Timeframe, Duration, Value) clearly visible
+     * Better positioning within dialog bounds
+     * Professional layout with proper spacing
+
+### Current Status: ALL UPDATES COMPLETE (69 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)

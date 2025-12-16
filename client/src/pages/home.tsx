@@ -19853,8 +19853,8 @@ ${
                               SL {paperTradeSLEnabled && '✓'}
                             </Button>
                             {showPaperTradeSLDropdown && (
-                              <div className="absolute z-50 top-8 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
-                                <div className="p-3 space-y-2 min-w-[220px]">
+                              <div className="absolute z-50 top-10 -right-2 mt-1 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                <div className="p-4 space-y-3">
                                   <div>
                                     <label className="text-[10px] text-gray-500 uppercase">Type</label>
                                     <Select value={paperTradeSLType} onValueChange={(v: any) => setPaperTradeSLType(v)}>
