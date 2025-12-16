@@ -14,22 +14,17 @@
 [x] 14. Make option chain minimalist on mobile
 [x] 15. Fix duplicate index dropdown on mobile
 [x] 16. Fix expiry dates not loading on mobile
-[x] 17. Center and full-width expiry dropdown on mobile
-[x] 18. Replace expiry dropdown with dialog picker
 
-### FINAL UPDATE
-**Date:** December 16, 2025, 3:45 PM
-**Status:** Expiry date picker now displays as dialog/modal
+### LATEST UPDATE
+**Date:** December 16, 2025, 3:35 PM
+**Status:** Fixed mobile option chain issues
 
-**Latest Changes:**
-1. **Dialog-based date picker** - Replaced `<select>` with a button that opens a modal
-2. **Grid layout** - 2-column grid showing all available expiry dates
-3. **Visual feedback** - Selected date highlighted in blue
-4. **Easy to tap** - Larger buttons perfect for mobile touch
-5. **State management** - Added `showExpiryDatePicker` state variable
+**Fixes Applied:**
+1. **Removed duplicate index dropdown** - Shows NIFTY as non-selectable label instead of dropdown
+2. **Fixed expiry date loading** - Added `fetchOptionChainData(selectedOptionIndex, newExpiry)` call on expiry selection
+3. **Cleaner mobile UX** - Only expiry dropdown selector now, index shown as label
 
-**How it works:**
-- Click "Select Expiry Date" button to open modal
-- Modal shows all expiry dates in a 2-column grid
-- Click a date to select it and close modal
-- Selected date is highlighted and shows on the button
+**Changes:**
+- Mobile header now shows: [NIFTY label] [Expiry Dropdown]
+- Expiry dates will now load and populate correctly when modal opens
+- Dates update properly when selected
