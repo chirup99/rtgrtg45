@@ -21394,20 +21394,22 @@ ${
                             </div>
                           </div>
                           
-                          {/* Exit button - visible when card slides left (20% of card width) */}
-                          <div className="absolute right-0 top-0 bottom-0 w-1/5 bg-red-500 flex items-center justify-center">
-                            <button
-                              onClick={() => {
-                                exitPosition(position.id);
-                              }}
-                              className="flex flex-col items-center justify-center w-full h-full gap-0.5 hover:bg-red-600 transition-colors active:bg-red-700"
-                              data-testid={`button-exit-position-${position.symbol}`}
-                              title="Exit position"
-                            >
-                              <div className="text-white text-sm font-bold">×</div>
-                              <div className="text-[7px] text-white font-bold whitespace-nowrap">EXIT</div>
-                            </button>
-                          </div>
+                          {/* Exit button - only visible when card is swiped left */}
+                          {swipedPositionId === position.id && (
+                            <div className="absolute right-0 top-0 bottom-0 w-1/5 bg-red-500 flex items-center justify-center animate-in slide-in-from-right-1/5 duration-300">
+                              <button
+                                onClick={() => {
+                                  exitPosition(position.id);
+                                }}
+                                className="flex flex-col items-center justify-center w-full h-full gap-0.5 hover:bg-red-600 transition-colors active:bg-red-700"
+                                data-testid={`button-exit-position-${position.symbol}`}
+                                title="Exit position"
+                              >
+                                <div className="text-white text-sm font-bold">×</div>
+                                <div className="text-[7px] text-white font-bold whitespace-nowrap">EXIT</div>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
