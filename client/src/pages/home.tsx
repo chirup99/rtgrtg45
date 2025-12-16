@@ -21335,33 +21335,73 @@ ${
                       {paperPositions.filter(p => p.isOpen).map(position => (
                         <div 
                           key={position.id}
-                          className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+                          className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden select-none cursor-grab active:cursor-grabbing"
                           data-testid={`position-card-tab-${position.symbol}`}
-                        >
-                          {/* Main position card content - slides left on swipe */}
-                          <div 
-                            className={`p-3 transition-transform duration-300 ${
-                              swipedPositionId === position.id ? '-translate-x-1/5' : 'translate-x-0'
-                            }`}
-                            onTouchStart={(e) => {
+                          onMouseDown={(e) => {
+                            swipeStartXRef.current = e.clientX;
+                            swipeStartYRef.current = e.clientY;
+                            console.log('🔴 MOUSE DOWN on', position.symbol, ':', swipeStartXRef.current);
+                          }}
+                          onMouseUp={(e) => {
+                            const endX = e.clientX;
+                            const endY = e.clientY;
+                            const diffX = swipeStartXRef.current - endX;
+                            const diffY = Math.abs(swipeStartYRef.current - endY);
+                            
+                            console.log('🟢 MOUSE UP on', position.symbol, '- diffX:', diffX, 'diffY:', diffY);
+                            
+                            // Swipe left (diffX > 0) with minimal vertical movement - REVEAL EXIT
+                            if (diffX > 25 && diffY < 50) {
+                              console.log('✅ LEFT SWIPE DETECTED - SHOW EXIT BUTTON');
+                              setSwipedPositionId(position.id);
+                            }
+                            // Swipe right to close (diffX < 0) - HIDE EXIT
+                            else if (diffX < -25 && diffY < 50) {
+                              console.log('✅ RIGHT SWIPE DETECTED - HIDE EXIT BUTTON');
+                              setSwipedPositionId(null);
+                            }
+                          }}
+                          onTouchStart={(e) => {
+                            if (e.touches && e.touches[0]) {
                               swipeStartXRef.current = e.touches[0].clientX;
                               swipeStartYRef.current = e.touches[0].clientY;
-                            }}
-                            onTouchEnd={(e) => {
+                              console.log('🔴 TOUCH START on', position.symbol, ':', swipeStartXRef.current);
+                            }
+                          }}
+                          onTouchMove={(e) => {
+                            // Prevent scrolling while swiping
+                            if (Math.abs(swipeStartXRef.current - (e.touches[0]?.clientX || 0)) > 10) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onTouchEnd={(e) => {
+                            if (e.changedTouches && e.changedTouches[0]) {
                               const endX = e.changedTouches[0].clientX;
                               const endY = e.changedTouches[0].clientY;
                               const diffX = swipeStartXRef.current - endX;
                               const diffY = Math.abs(swipeStartYRef.current - endY);
                               
-                              // Swipe left (diffX > 0) with minimal vertical movement
-                              if (diffX > 40 && diffY < 40) {
+                              console.log('🟢 TOUCH END on', position.symbol, '- diffX:', diffX, 'diffY:', diffY);
+                              
+                              // Swipe left (diffX > 0) with minimal vertical movement - REVEAL EXIT
+                              if (diffX > 25 && diffY < 50) {
+                                console.log('✅ LEFT SWIPE DETECTED - SHOW EXIT BUTTON');
                                 setSwipedPositionId(position.id);
                               }
-                              // Swipe right to close
-                              else if (diffX < -40 && diffY < 40) {
+                              // Swipe right to close (diffX < 0) - HIDE EXIT
+                              else if (diffX < -25 && diffY < 50) {
+                                console.log('✅ RIGHT SWIPE DETECTED - HIDE EXIT BUTTON');
                                 setSwipedPositionId(null);
                               }
-                            }}
+                            }
+                          }}
+                        >
+                          {/* Main position card content - slides left on swipe */}
+                          <div 
+                            className={`p-3 transition-transform duration-300 relative z-20 bg-white dark:bg-gray-900 ${
+                              swipedPositionId === position.id ? '-translate-x-1/5' : 'translate-x-0'
+                            }`}
+                            style={{ pointerEvents: 'auto' }}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
