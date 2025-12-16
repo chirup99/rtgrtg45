@@ -5541,18 +5541,40 @@ ${
     setOptionChainLoading(true);
     try {
       const expiry = expiryToFetch ? `&expiry=${encodeURIComponent(expiryToFetch)}` : '';
-      const response = await fetch(`/api/options/chain?symbol=${underlying}${expiry}`);
+      const url = `/api/options/chain?symbol=${underlying}${expiry}`;
+      console.log('🔗 [OPTIONS] Fetching from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('📡 [OPTIONS] Response status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('📊 [OPTIONS] Data received:', data.success ? '✅' : '❌', data);
       
       if (data.success && data.data) {
         setOptionChainData(data.data);
+        console.log('✅ [OPTIONS] Option chain loaded:', data.data.calls?.length || 0, 'calls,', data.data.puts?.length || 0, 'puts');
         // Set default expiry to the first available
         if (data.data.expiryDates && data.data.expiryDates.length > 0 && !selectedOptionExpiry) {
           setSelectedOptionExpiry(data.data.expiryDates[0]);
         }
+      } else {
+        console.warn('⚠️ [OPTIONS] Invalid response format:', data);
+        setOptionChainData(null);
       }
     } catch (error) {
-      console.error('Error fetching option chain:', error);
+      console.error('❌ [OPTIONS] Error fetching option chain:', error);
+      setOptionChainData(null);
     } finally {
       setOptionChainLoading(false);
     }
