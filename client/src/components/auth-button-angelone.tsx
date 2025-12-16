@@ -297,10 +297,6 @@ export function AngelOneStatus() {
       queryClient.invalidateQueries({ queryKey: ["/api/angelone/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/angelone/statistics"] });
       queryClient.invalidateQueries({ queryKey: ["/api/angelone/activity-logs"] });
-      toast({
-        title: "Connection Refreshed",
-        description: "Angel One API status has been updated successfully.",
-      });
     },
     onError: () => {
       toast({

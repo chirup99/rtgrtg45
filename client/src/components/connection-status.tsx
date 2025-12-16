@@ -18,10 +18,6 @@ export function ConnectionStatus() {
     mutationFn: () => apiRequest("POST", "/api/status/refresh"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/status"] });
-      toast({
-        title: "Connection Refreshed",
-        description: "API status has been updated successfully.",
-      });
     },
     onError: (error) => {
       toast({

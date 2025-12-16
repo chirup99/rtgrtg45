@@ -15,25 +15,30 @@
 [x] 15. Fixed syntax error in home.tsx (duplicate code block removed)
 [x] 16. Fixed mobile option chain expiry date selection not loading data
 [x] 17. Added eye icon to password input fields on landing page
+[x] 18. Made eye icon compact on password fields (w-4 h-4)
+[x] 19. Removed "Connection Refreshed" notification toast
 
 ### LATEST UPDATE
-**Date:** December 16, 2025, 11:21 PM
-**Status:** Eye icon password visibility toggle added to landing page
+**Date:** December 16, 2025, 11:26 PM
+**Status:** Connection refresh notification removed, eye icon made compact
 
-**✅ Tasks Completed:**
-[x] Added Eye and EyeOff icons from lucide-react
-[x] Created three state variables for password visibility (showPassword, showNewPassword, showConfirmPassword)
+**✅ Tasks Completed in This Session:**
+[x] Added Eye and EyeOff icons from lucide-react to password fields
+[x] Created state variables for password visibility toggle
 [x] Wrapped all password input fields in relative containers
-[x] Implemented eye icon button with toggle functionality on right corner
-[x] Added smooth hover effects and transitions for eye icons
-[x] Applied to all three password fields (login, new password, confirm password)
-[x] Added data-testid attributes for testing
+[x] Implemented eye icon button with toggle functionality
+[x] Made eye icon more compact (reduced from w-5 h-5 to w-4 h-4)
+[x] Removed "Connection Refreshed" success toast from auth-button-angelone.tsx
+[x] Removed "Connection Refreshed" success toast from connection-status.tsx
 
-**🎯 Feature Added:**
-- Password visibility toggle with eye icon on all password fields
-- Eye icon shows on right side with gray color, turns light on hover
-- Clicking icon toggles between showing/hiding password text
-- Applies to: Main login/signup password, password reset new password, password reset confirm password
-- Seamless user experience with proper positioning and styling
+**🎯 Features Added/Updated:**
+- Password visibility toggle with compact eye icon on all password fields
+- Eye icons appear in right corner with smooth hover effects
+- Removed success notification when connection refreshes (data still updates in background)
+- Error notifications still appear if refresh fails
+- Applied changes to all three password fields (login, new password, confirm password)
 
-**Result:** Users can now view/hide passwords by clicking the eye icon in the right corner of password fields.
+**Result:** 
+- Users can now easily view/hide passwords with compact eye icons
+- Cleaner UI without excessive "Connection Refreshed" notifications
+- Connection refresh still works silently in the background
