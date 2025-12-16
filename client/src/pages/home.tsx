@@ -5433,6 +5433,7 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
+  const [showMobileExpiryDialog, setShowMobileExpiryDialog] = useState(false);
   // Get expiry dates from optionChainData
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
     if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
@@ -20314,29 +20315,14 @@ ${
                   <div className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm font-semibold flex-1 flex items-center justify-center">
                     {selectedOptionIndex}
                   </div>
-                  <select
-                    value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
-                    onChange={(e) => {
-                      const newExpiry = e.target.value;
-                      if (newExpiry) {
-                        setSelectedOptionExpiryDate(newExpiry);
-                        fetchOptionChainData(selectedOptionIndex, newExpiry);
-                      }
-                    }}
-                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
-                    data-testid="select-option-expiry-date-mobile"
-                  >
-                    {getOptionExpiryDates(selectedOptionIndex).length === 0 ? (
-                      <option value="">Loading...</option>
-                    ) : (
-                      getOptionExpiryDates(selectedOptionIndex).map((date) => (
-                        <option key={date.value} value={date.value}>
-                          {date.label}
-                        </option>
-                      ))
-                    )}
-                  </select>
                 </div>
+                  <button
+                    onClick={() => setShowMobileExpiryDialog(true)}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm hover:bg-gray-700 transition-colors"
+                    data-testid="button-option-expiry-date-mobile"
+                  >
+                    {selectedOptionExpiryDate ? getOptionExpiryDates(selectedOptionIndex).find(d => d.value === selectedOptionExpiryDate)?.label : "Select Expiry"}
+                  </button>
                 
                 {/* Spot Price */}
                 <div className="flex items-center justify-between bg-gray-800 rounded-lg px-2.5 py-1.5">
@@ -20773,6 +20759,35 @@ ${
                 
                 return <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="sticky top-0 bg-gray-50 dark:bg-gray-800"><tr className="border-b border-gray-300 dark:border-gray-600"><th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">CE</th><th className="text-center py-2 px-2 font-semibold text-gray-900 dark:text-white">Strike</th><th className="text-right py-2 px-3 font-semibold text-gray-900 dark:text-white">PE</th></tr></thead><tbody>{Array.from({ length: maxRows }).map((_, index) => <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"><td className="py-2 px-3">{filteredCalls[index] ? <div onClick={() => handleOptionClick(filteredCalls[index])} className={getClasses(filteredCalls[index].strikePrice, true)} data-testid={`option-call-${filteredCalls[index].strikePrice}`}><div className={getPriceClasses(filteredCalls[index].strikePrice, true)}>₹{filteredCalls[index].ltp?.toFixed(2) || 0}</div></div> : null}</td><td className="py-2 px-2 text-center font-medium text-gray-700 dark:text-gray-300">{filteredCalls[index]?.strikePrice || filteredPuts[index]?.strikePrice || '-'}</td><td className="py-2 px-3">{filteredPuts[index] ? <div onClick={() => handleOptionClick(filteredPuts[index])} className={getClasses(filteredPuts[index].strikePrice, false)} data-testid={`option-put-${filteredPuts[index].strikePrice}`}><div className={getPriceClasses(filteredPuts[index].strikePrice, false)}>₹{filteredPuts[index].ltp?.toFixed(2) || 0}</div></div> : null}</td></tr>)}</tbody></table></div>;
               })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Mobile Expiry Dates Dialog */}
+        <Dialog open={showMobileExpiryDialog} onOpenChange={setShowMobileExpiryDialog}>
+          <DialogContent className="max-w-xs max-h-96">
+            <DialogHeader>
+              <DialogTitle>Select Expiry Date</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 overflow-y-auto max-h-64">
+              {getOptionExpiryDates(selectedOptionIndex).map((date) => (
+                <button
+                  key={date.value}
+                  onClick={() => {
+                    setSelectedOptionExpiryDate(date.value);
+                    fetchOptionChainData(selectedOptionIndex, date.value);
+                    setShowMobileExpiryDialog(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
+                    selectedOptionExpiryDate === date.value
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-800 text-white hover:bg-gray-700'
+                  }`}
+                  data-testid={`button-expiry-${date.value}`}
+                >
+                  {date.label}
+                </button>
+              ))}
             </div>
           </DialogContent>
         </Dialog>
