@@ -4945,11 +4945,15 @@ ${
   // Uses same SSE stream as journal chart for live 700ms price updates
   // ============================================
   useEffect(() => {
-    // Only stream when modal is open and there are open positions
+    // Only stream when modal is open OR mobile paper trading tab is active, and there are open positions
     const openPositions = paperPositions.filter(p => p.isOpen);
     const openSymbols = new Set(openPositions.map(p => p.symbol));
     
-    if (!showPaperTradingModal || openPositions.length === 0) {
+    // Check if paper trading is active (either desktop modal OR mobile tab)
+    const isMobilePaperTradeTabActive = activeTab === 'journal' && mobileBottomTab === 'paper-trade';
+    const isPaperTradingActive = showPaperTradingModal || isMobilePaperTradeTabActive;
+    
+    if (!isPaperTradingActive || openPositions.length === 0) {
       // Clean up all existing connections
       paperTradingEventSourcesRef.current.forEach((es) => {
         es.close();
@@ -5058,7 +5062,7 @@ ${
       });
       paperTradingEventSourcesRef.current.clear();
     };
-  }, [showPaperTradingModal, paperPositions.filter(p => p.isOpen).map(p => `${p.symbol}:${p.action}`).join(',')]);
+  }, [showPaperTradingModal, activeTab, mobileBottomTab, paperPositions.filter(p => p.isOpen).map(p => `${p.symbol}:${p.action}`).join(',')]);
   
   // Calculate total unrealized P&L for all open positions
   const paperTradingTotalPnl = useMemo(() => {
