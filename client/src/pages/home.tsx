@@ -5645,23 +5645,6 @@ ${
       setOptionChainData(null);
     } finally {
       setOptionChainLoading(false);
-    }        // Auto-select first expiry if not already selected
-        if (data.data.expiries && data.data.expiries.length > 0) {
-          const firstExpiry = data.data.expiries[0];
-          if (!selectedOptionExpiryDate) {
-            setSelectedOptionExpiryDate(firstExpiry);
-            console.log('✅ [OPTIONS] Auto-selected first expiry:', firstExpiry);
-          }
-        }
-      } else {
-        console.warn('⚠️ [OPTIONS] Invalid response format:', data);
-        setOptionChainData(null);
-      }
-    } catch (error) {
-      console.error('❌ [OPTIONS] Error fetching option chain:', error);
-      setOptionChainData(null);
-    } finally {
-      setOptionChainLoading(false);
     }
   };
   const [selectedInstrumentCategory, setSelectedInstrumentCategory] = useState("all");
