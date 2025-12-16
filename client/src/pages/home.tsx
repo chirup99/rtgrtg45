@@ -20317,7 +20317,12 @@ ${
                   </div>
                 </div>
                   <button
-                    onClick={() => setShowMobileExpiryDialog(true)}
+                    onClick={() => {
+                      if (!optionChainData) {
+                        fetchOptionChainData(selectedOptionIndex);
+                      }
+                      setShowMobileExpiryDialog(true);
+                    }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm hover:bg-gray-700 transition-colors"
                     data-testid="button-option-expiry-date-mobile"
                   >
