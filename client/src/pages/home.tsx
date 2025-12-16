@@ -19853,8 +19853,8 @@ ${
                               SL {paperTradeSLEnabled && '✓'}
                             </Button>
                             {showPaperTradeSLDropdown && (
-                              <div className="absolute z-50 top-10 -right-2 mt-1 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
-                                <div className="p-4 space-y-3">
+                              <div className="absolute z-50 top-10 -right-2 mt-1 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                <div className="p-2.5 space-y-1.5">
                                   <div>
                                     <label className="text-[10px] text-gray-500 uppercase">Type</label>
                                     <Select value={paperTradeSLType} onValueChange={(v: any) => setPaperTradeSLType(v)}>
@@ -19875,7 +19875,7 @@ ${
                                     <div>
                                       <label className="text-[10px] text-gray-500 uppercase">Timeframe</label>
                                       <Select value={paperTradeSLTimeframe} onValueChange={(v) => setPaperTradeSLTimeframe(v)}>
-                                        <SelectTrigger className="h-7 text-xs mt-1">
+                                        <SelectTrigger className="h-6 text-xs mt-0">
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -19898,11 +19898,11 @@ ${
                                         placeholder="Duration"
                                         value={paperTradeSLValue}
                                         onChange={(e) => setPaperTradeSLValue(e.target.value)}
-                                        className="h-7 text-xs flex-1"
+                                        className="h-6 text-xs flex-1"
                                         data-testid="input-paper-sl-duration"
                                       />
                                       <Select value={paperTradeSLDurationUnit} onValueChange={(v) => setPaperTradeSLDurationUnit(v)}>
-                                        <SelectTrigger className="h-7 text-xs w-16">
+                                        <SelectTrigger className="h-6 text-xs w-14">
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -19919,7 +19919,7 @@ ${
                                       placeholder={paperTradeSLType === 'price' ? 'Price' : '%'}
                                       value={paperTradeSLValue}
                                       onChange={(e) => setPaperTradeSLValue(e.target.value)}
-                                      className="h-7 text-xs"
+                                      className="h-6 text-xs"
                                       data-testid="input-paper-sl-value"
                                     />
                                   )}
@@ -19942,7 +19942,7 @@ ${
                                       setShowPaperTradeSLDropdown(false);
                                     }}
                                     size="sm"
-                                    className="w-full h-7 text-xs bg-gray-600 hover:bg-gray-700 text-white"
+                                    className="w-full h-6 text-xs bg-gray-600 hover:bg-gray-700 text-white"
                                     data-testid="button-set-paper-sl"
                                   >
                                     Set SL
