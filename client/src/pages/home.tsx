@@ -20547,47 +20547,69 @@ ${
                         <div className="text-center text-xs font-semibold text-red-400">Puts</div>
                       </div>
                       
-                      {/* Compact 3-Column Option Chain */}
+                      {/* Compact 3-Column Option Chain with ITM/ATM Color Coding */}
                       <div className="space-y-0.5">
                         {(() => {
+                          const spotPrice = optionChainData?.spotPrice || 0;
+                          const atmRange = spotPrice * 0.01; // ±1% for ATM
+                          
+                          // Get color class for a strike
+                          const getStrikeColor = (strike: number, isCall: boolean) => {
+                            const distance = Math.abs(strike - spotPrice);
+                            
+                            if (isCall) {
+                              // For calls: ITM if strike < spotPrice
+                              if (strike < spotPrice) {
+                                return distance <= atmRange ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-blue-900 text-blue-200 border-blue-700';
+                              }
+                            } else {
+                              // For puts: ITM if strike > spotPrice
+                              if (strike > spotPrice) {
+                                return distance <= atmRange ? 'bg-yellow-900 text-yellow-200 border-yellow-700' : 'bg-blue-900 text-blue-200 border-blue-700';
+                              }
+                            }
+                            // OTM - no color
+                            return 'bg-gray-800 text-gray-300 border-gray-700';
+                          };
+                          
                           const allStrikes = new Set<number>();
                           filteredCalls.forEach(c => allStrikes.add(c.strikePrice));
                           filteredPuts.forEach(p => allStrikes.add(p.strikePrice));
                           const strikes = Array.from(allStrikes).sort((a, b) => a - b);
                           
-                          return strikes.slice(0, 20).map(strike => {
+                          return strikes.slice(0, 25).map(strike => {
                             const call = filteredCalls.find(c => c.strikePrice === strike);
                             const put = filteredPuts.find(p => p.strikePrice === strike);
+                            const callStrikeAtm = Math.abs(strike - spotPrice) <= spotPrice * 0.01;
+                            const putStrikeAtm = Math.abs(strike - spotPrice) <= spotPrice * 0.01;
                             
                             return (
                               <div key={`${strike}-row`} className="grid grid-cols-3 gap-1 px-1">
-                                {/* Call Price */}
+                                {/* Call Price - ITM (light blue) / ATM (yellow) / OTM (gray) */}
                                 <button
                                   onClick={() => call && handleOptionClick(call)}
                                   disabled={!call}
-                                  className={`py-1.5 px-1 rounded text-xs font-semibold text-center transition-all ${
-                                    call
-                                      ? 'bg-blue-900 text-blue-200 hover:bg-blue-800 border border-blue-700'
-                                      : 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+                                  className={`py-1.5 px-1 rounded text-xs font-semibold text-center transition-all border ${
+                                    call ? getStrikeColor(strike, true) + ' hover:opacity-80 cursor-pointer' : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed'
                                   }`}
                                   data-testid={`option-call-ltp-${strike}`}
                                 >
                                   {call ? `₹${call.ltp?.toFixed(0) || '0'}` : '-'}
                                 </button>
                                 
-                                {/* Strike Price - Center */}
-                                <div className="py-1.5 px-1 rounded text-xs font-bold text-center bg-gray-800 border border-gray-700 text-yellow-400 flex items-center justify-center">
+                                {/* Strike Price - Center - Highlight ATM */}
+                                <div className={`py-1.5 px-1 rounded text-xs font-bold text-center flex items-center justify-center transition-all ${
+                                  callStrikeAtm ? 'bg-yellow-700 text-yellow-100 border-yellow-600' : 'bg-gray-800 text-yellow-400 border-gray-700'
+                                } border`}>
                                   {strike}
                                 </div>
                                 
-                                {/* Put Price */}
+                                {/* Put Price - ITM (light blue) / ATM (yellow) / OTM (gray) */}
                                 <button
                                   onClick={() => put && handleOptionClick(put)}
                                   disabled={!put}
-                                  className={`py-1.5 px-1 rounded text-xs font-semibold text-center transition-all ${
-                                    put
-                                      ? 'bg-red-900 text-red-200 hover:bg-red-800 border border-red-700'
-                                      : 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+                                  className={`py-1.5 px-1 rounded text-xs font-semibold text-center transition-all border ${
+                                    put ? getStrikeColor(strike, false) + ' hover:opacity-80 cursor-pointer' : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed'
                                   }`}
                                   data-testid={`option-put-ltp-${strike}`}
                                 >
