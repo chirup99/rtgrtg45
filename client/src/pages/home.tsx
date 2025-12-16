@@ -5564,9 +5564,13 @@ ${
       if (data.success && data.data) {
         setOptionChainData(data.data);
         console.log('✅ [OPTIONS] Option chain loaded:', data.data.calls?.length || 0, 'calls,', data.data.puts?.length || 0, 'puts');
-        // Set default expiry to the first available
-        if (data.data.expiryDates && data.data.expiryDates.length > 0 && !selectedOptionExpiry) {
-          setSelectedOptionExpiry(data.data.expiryDates[0]);
+        // Auto-select first expiry if not already selected
+        if (data.data.expiryDates && data.data.expiryDates.length > 0) {
+          const firstExpiry = data.data.expiryDates[0];
+          if (!selectedOptionExpiryDate) {
+            setSelectedOptionExpiryDate(firstExpiry);
+            console.log('✅ [OPTIONS] Auto-selected first expiry:', firstExpiry);
+          }
         }
       } else {
         console.warn('⚠️ [OPTIONS] Invalid response format:', data);
@@ -20316,7 +20320,7 @@ ${
                 <div className="flex gap-2">
                   <select
                     value={selectedOptionIndex}
-                    onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
+                    onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); setTimeout(() => fetchOptionChainData(idx), 0); }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
                     data-testid="select-option-index-mobile"
                   >
@@ -20329,7 +20333,7 @@ ${
                     onChange={(e) => {
                       const newExpiry = e.target.value;
                       setSelectedOptionExpiryDate(newExpiry);
-                      fetchOptionChainData(selectedOptionIndex, newExpiry);
+                      setTimeout(() => fetchOptionChainData(selectedOptionIndex, newExpiry), 0);
                     }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
                     data-testid="select-option-expiry-date-mobile"
@@ -20362,7 +20366,7 @@ ${
               <div className="flex items-center gap-4 mt-4">
                 <select
                   value={selectedOptionIndex}
-                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); fetchOptionChainData(idx); }}
+                  onChange={(e) => { const idx = e.target.value; setSelectedOptionIndex(idx); setSelectedOptionExpiryDate(""); setOptionChainData(null); setTimeout(() => fetchOptionChainData(idx), 0); }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                   data-testid="select-option-index-desktop"
                 >
