@@ -5565,8 +5565,8 @@ ${
         setOptionChainData(data.data);
         console.log('✅ [OPTIONS] Option chain loaded:', data.data.calls?.length || 0, 'calls,', data.data.puts?.length || 0, 'puts');
         // Auto-select first expiry if not already selected
-        if (data.data.expiryDates && data.data.expiryDates.length > 0) {
-          const firstExpiry = data.data.expiryDates[0];
+        if (data.data.expiries && data.data.expiries.length > 0) {
+          const firstExpiry = data.data.expiries[0];
           if (!selectedOptionExpiryDate) {
             setSelectedOptionExpiryDate(firstExpiry);
             console.log('✅ [OPTIONS] Auto-selected first expiry:', firstExpiry);

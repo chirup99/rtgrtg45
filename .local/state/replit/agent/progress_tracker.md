@@ -14,22 +14,20 @@
 [x] 14. Make option chain minimalist on mobile
 
 ### LATEST UPDATE
-**Date:** December 16, 2025, 5:40 PM
-**Status:** Migration complete & Expiry date logic analyzed
+**Date:** December 16, 2025, 5:45 PM
+**Status:** Fixed mobile expiry date display bug
 
-**Migration Completed:**
-[x] Packages verified and installed
-[x] Workflow restarted successfully
-[x] Application running on port 5000
-[x] Angel One API authenticated and connected
-[x] WebSocket streaming active
-[x] Frontend and backend fully operational
+**Bug Fixed:**
+[x] Identified field name mismatch causing "Loading..." on mobile
+[x] Changed `data.data.expiryDates` → `data.data.expiries` (lines 5568-5569)
+[x] Applied hot-reload fix (workflow detected and reloaded changes)
 
-**Analysis Provided:**
-- Deep analysis of `getOptionExpiryDates()` function
-- Explained how expiry dates are filtered (future-only, max 4 dates)
-- Documented Indian F&O expiry patterns (Thursdays)
-- Clarified mobile vs desktop implementation
-- Timezone handling and locale formatting documented
+**Root Cause:**
+The `fetchOptionChainData` function was checking for wrong field name (`expiryDates`) while `getOptionExpiryDates` function expected `expiries`. This mismatch caused the state to never initialize properly on mobile, showing "Loading..." instead of the actual dates.
 
-**Result:** Application fully migrated to Replit environment, all systems operational
+**Technical Details:**
+- Function: `getOptionExpiryDates()` expects `optionChainData?.expiries`
+- But API fetch was checking for: `data.data.expiryDates` (incorrect)
+- Fixed by: Changing to `data.data.expiries` (matches function expectation)
+
+**Result:** Mobile iPhone now displays expiry dates correctly: "16 Dec 2025", "23 Dec 2025", etc.
