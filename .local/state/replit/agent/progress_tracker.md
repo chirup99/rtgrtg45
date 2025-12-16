@@ -9,25 +9,23 @@
 [x] 9. Improve swipe detection sensitivity
 [x] 10. Fix Trade History light theme colors
 [x] 11. Fix Eye icon light theme colors
+[x] 12. Fix Positions and Trades numbers light theme colors
 
-### LATEST UPDATE
-**Date:** December 16, 2025, 12:35 PM
-**Status:** Light theme color fixes completed
+### FINAL UPDATE
+**Date:** December 16, 2025, 12:40 PM
+**Status:** All light theme display issues resolved ✅
 
-**Changes Made:**
-1. **Trade History View** - Fixed for light theme:
-   - Trade symbol text: `text-gray-900 dark:text-white`
-   - Action badges: Light mode colors + dark mode variants
-   - P&L indicators: Properly colored in both themes
-   - Border colors: `border-gray-200 dark:border-gray-800`
+**Fixes Applied:**
+1. **Trade History Colors** - Both light & dark theme support
+   - Text: `text-gray-900 dark:text-white`
+   - Badges: Light/dark color variants
+   - P&L: Proper contrast in both modes
 
-2. **Eye Icon Visibility** - Fixed for light theme:
-   - Changed from hardcoded `text-blue-400` to `text-gray-700 dark:text-blue-400`
-   - Eye icon now visible in light mode and blue in dark mode
+2. **Eye Icon Visibility** - Both light & dark theme support
+   - Changed to: `text-gray-700 dark:text-blue-400`
 
-**Application Status:**
-- Server running on port 5000 ✅
-- Frontend displaying correctly ✅
-- Trade History visible in light mode ✅
-- Eye icon visible in light mode ✅
-- All features functional ✅
+3. **Positions & Trades Numbers** - Always white on dark background
+   - Both numbers: `text-white font-medium`
+   - Visible in light and dark modes
+
+**Application Status:** ✅ Running | ✅ All fixes applied | ✅ Light theme fully functional
