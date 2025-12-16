@@ -5466,18 +5466,21 @@ ${
     return allExpiries.length > 0 ? allExpiries[0].value : null;
   };
 
-  // Get expiry dates from optionChainData
+  // Get expiry dates - using new filter logic
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
-    if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
-      return [];
-    }
+    if (!optionChainData?.expiries) return [];
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    
+    // Filter future dates using simplified logic
     const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
       const expiryDate = new Date(expiry);
       expiryDate.setHours(0, 0, 0, 0);
       return expiryDate >= today;
     });
+    
+    // Map to display format (limit to 4 dates)
     return futureExpiries.slice(0, 4).map((expiry: string) => ({
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
@@ -20365,8 +20368,10 @@ ${
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
                     data-testid="select-option-expiry-date-mobile"
                   >
-                    {getOptionExpiryDates(selectedOptionIndex).length === 0 ? (
-                      <option value="">Loading...</option>
+                    {optionChainLoading ? (
+                      <option value="">Loading expiry dates...</option>
+                    ) : getOptionExpiryDates(selectedOptionIndex).length === 0 ? (
+                      <option value="">No dates available</option>
                     ) : (
                       getOptionExpiryDates(selectedOptionIndex).map((date) => (
                         <option key={date.value} value={date.value}>
