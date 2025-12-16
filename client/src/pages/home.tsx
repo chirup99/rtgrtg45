@@ -21312,6 +21312,12 @@ ${
                             {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}₹${position.pnl.toFixed(0)}`}
                           </div>
                         </div>
+                            <div className="text-[10px] text-gray-400 mt-1">
+                              LTP: ₹{position.currentPrice.toFixed(2)}
+                              {(position as any).slTriggerPrice && (
+                                <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
+                              )}
+                            </div>
                       </div>
                     ))}
                   </div>
