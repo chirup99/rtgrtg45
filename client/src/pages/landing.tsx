@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   cognitoSignIn, 
@@ -30,6 +30,9 @@ export default function Landing() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isCheckingCallback, setIsCheckingCallback] = useState(true);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
 
   // Cooldown timer effect
@@ -442,22 +445,50 @@ export default function Landing() {
                       className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg text-center text-lg tracking-widest"
                       data-testid="input-otp"
                     />
-                    <Input
-                      type="password"
-                      placeholder="New Password (8+ characters)"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
-                      data-testid="input-new-password"
-                    />
-                    <Input
-                      type="password"
-                      placeholder="Confirm New Password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
-                      data-testid="input-confirm-password"
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="New Password (8+ characters)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg pr-12"
+                        data-testid="input-new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                        data-testid="button-toggle-new-password-visibility"
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm New Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg pr-12"
+                        data-testid="input-confirm-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                        data-testid="button-toggle-confirm-password-visibility"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                     <Button
                       onClick={handleSaveNewPassword}
                       disabled={otp.length < 6 || !newPassword || !confirmPassword || isSavingPassword}
@@ -528,15 +559,29 @@ export default function Landing() {
                   className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
                   data-testid="input-email"
                 />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleEmailAuth()}
-                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg"
-                  data-testid="input-password"
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleEmailAuth()}
+                    className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 h-12 rounded-lg pr-12"
+                    data-testid="input-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                    data-testid="button-toggle-password-visibility"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
                 <Button
                   onClick={handleEmailAuth}
                   disabled={isEmailLoading || isGoogleLoading}

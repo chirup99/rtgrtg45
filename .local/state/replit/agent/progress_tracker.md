@@ -14,25 +14,26 @@
 [x] 14. Make option chain minimalist on mobile
 [x] 15. Fixed syntax error in home.tsx (duplicate code block removed)
 [x] 16. Fixed mobile option chain expiry date selection not loading data
+[x] 17. Added eye icon to password input fields on landing page
 
 ### LATEST UPDATE
-**Date:** December 16, 2025, 6:28 PM
-**Status:** Mobile option chain expiry date selection fixed
+**Date:** December 16, 2025, 11:21 PM
+**Status:** Eye icon password visibility toggle added to landing page
 
 **✅ Tasks Completed:**
-[x] Fixed mobile expiry date display bug
-[x] Documented 10 different expiry date fetching logic flows
-[x] Analyzed filtering, rendering, and tracking logic
-[x] Provided 4 alternative fetching strategies for enhancement
-[x] Created comprehensive filtering logic explanation
-[x] Provided visual and quick-reference guides
-[x] Fixed duplicate code block syntax error in home.tsx (line 5648-5665)
-[x] Fixed mobile option chain expiry date selection - now calls fetchOptionChainData on change
+[x] Added Eye and EyeOff icons from lucide-react
+[x] Created three state variables for password visibility (showPassword, showNewPassword, showConfirmPassword)
+[x] Wrapped all password input fields in relative containers
+[x] Implemented eye icon button with toggle functionality on right corner
+[x] Added smooth hover effects and transitions for eye icons
+[x] Applied to all three password fields (login, new password, confirm password)
+[x] Added data-testid attributes for testing
 
-**🔧 Issue Fixed:**
-- Problem: Mobile expiry date dropdown only set state but didn't fetch new data
-- Solution: Added `fetchOptionChainData(selectedOptionIndex, newExpiry)` to mobile onChange handler
-- Location: client/src/pages/home.tsx line ~20393 (mobile expiry select)
-- Now matches desktop behavior
+**🎯 Feature Added:**
+- Password visibility toggle with eye icon on all password fields
+- Eye icon shows on right side with gray color, turns light on hover
+- Clicking icon toggles between showing/hiding password text
+- Applies to: Main login/signup password, password reset new password, password reset confirm password
+- Seamless user experience with proper positioning and styling
 
-**Result:** Mobile option chain now loads correct data when switching expiry dates.
+**Result:** Users can now view/hide passwords by clicking the eye icon in the right corner of password fields.
