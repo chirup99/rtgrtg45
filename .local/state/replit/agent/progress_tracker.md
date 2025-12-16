@@ -328,7 +328,20 @@
      * Better positioning within dialog bounds
      * Professional layout with proper spacing
 
-### Current Status: ALL UPDATES COMPLETE (69 ITEMS)
+[x] 70. **FIX: Open Positions SL Column Display (December 16, 2025, 5:35 AM)**
+   - Issue: When user adds SL to an open position, it doesn't display in the positions table
+   - Root Cause: SL column was missing from the open positions table
+   - Fix Applied:
+     * Added "SL" column header to open positions table (between LTP and P&L)
+     * Added SL display cell showing `slTriggerPrice` value in orange color
+     * Format: ₹{slTriggerPrice} or "-" if no SL set
+   - Result:
+     * SL now visible in open positions table
+     * Users can see at a glance which positions have SL set
+     * Color-coded in orange to highlight stop loss levels
+     * Table now shows: Symbol, Order, Qty, Avg, LTP, **SL**, P&L, %
+
+### Current Status: ALL UPDATES COMPLETE (70 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)

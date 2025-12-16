@@ -20012,6 +20012,7 @@ ${
                             <th className="px-2 py-1.5 text-right font-medium">Qty</th>
                             <th className="px-2 py-1.5 text-right font-medium">Avg</th>
                             <th className="px-2 py-1.5 text-right font-medium">LTP</th>
+                            <th className="px-2 py-1.5 text-right font-medium">SL</th>
                             <th className="px-2 py-1.5 text-right font-medium">P&L</th>
                             <th className="px-2 py-1.5 text-right font-medium">%</th>
                           </tr>
@@ -20032,6 +20033,9 @@ ${
                               <td className="px-2 py-1.5 text-right">{position.quantity}</td>
                               <td className="px-2 py-1.5 text-right text-gray-500">{hidePositionDetails ? '***' : position.entryPrice.toFixed(2)}</td>
                               <td className="px-2 py-1.5 text-right">{position.currentPrice.toFixed(2)}</td>
+                              <td className="px-2 py-1.5 text-right text-orange-500 text-[10px] font-medium">
+                                {(position as any).slTriggerPrice ? `₹${(position as any).slTriggerPrice.toFixed(2)}` : '-'}
+                              </td>
                               <td className={`px-2 py-1.5 text-right font-medium ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {hidePositionDetails ? '***' : `${position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(0)}`}
                               </td>
