@@ -21288,8 +21288,7 @@ ${
                   </div>
                   <div className="space-y-2">
                     {paperPositions.filter(p => p.isOpen).map(position => (
-                    {paperPositions.filter(p => p.isOpen).map(position => (
-                        key={position.id}
+                      <div
                         className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800"
                         data-testid={`position-card-tab-${position.symbol}`}
                       >
@@ -21335,7 +21334,6 @@ ${
                       );
                     })}
                   </div>
-                </div>
               )}
               
               {/* Trade History Section */}
@@ -21352,9 +21350,6 @@ ${
                       className="h-7 px-2 text-xs text-blue-400 hover:text-blue-500"
                       data-testid="button-record-all-mobile-tab"
                     >
-                      Record
-                    </Button>
-                  </div>
                   <div className="space-y-1">
                     {[...paperTradeHistory].reverse().slice(0, 10).map(trade => (
                       <div 
