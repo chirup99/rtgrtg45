@@ -5466,24 +5466,49 @@ ${
     return allExpiries.length > 0 ? allExpiries[0].value : null;
   };
 
-  // Get expiry dates - using new filter logic
+  // Get expiry dates - extract from actual options data or backend response
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
-    if (!optionChainData?.expiryDates) return [];
+    if (!optionChainData) return [];
+    
+    // First try: backend expiryDates field
+    let expiries = optionChainData?.expiryDates || optionChainData?.expiries || [];
+    
+    // Second try: extract from actual calls/puts if backend didn't provide dates
+    if (!expiries || expiries.length === 0) {
+      const allOptions = [...(optionChainData?.calls || []), ...(optionChainData?.puts || [])];
+      const uniqueExpiries = new Set(
+        allOptions
+          .map((opt: any) => opt.expiry)
+          .filter((exp: any) => exp && typeof exp === 'string')
+      );
+      expiries = Array.from(uniqueExpiries).sort();
+      console.log('📅 Extracted expiry dates from options:', expiries);
+    }
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Filter future dates using simplified logic
-    const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
-      const expiryDate = new Date(expiry);
-      expiryDate.setHours(0, 0, 0, 0);
-      return expiryDate >= today;
+    // Filter future dates
+    const futureExpiries = expiries.filter((expiry: any) => {
+      try {
+        const expiryDate = new Date(expiry);
+        expiryDate.setHours(0, 0, 0, 0);
+        return expiryDate >= today;
+      } catch {
+        return false;
+      }
     });
     
-    // Map to display format (limit to 4 dates)
-    return futureExpiries.slice(0, 4).map((expiry: string) => ({
-      value: expiry,
-      label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    // Map to display format
+    return futureExpiries.slice(0, 10).map((expiry: any) => ({
+      value: String(expiry),
+      label: (() => {
+        try {
+          return new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        } catch {
+          return String(expiry);
+        }
+      })()
     }));
   };
 
@@ -5570,7 +5595,7 @@ ${
   };
   
   // Fetch option chain data
-  const fetchOptionChainData = async (indexToFetch?: string, expiryToFetch?: string) => {
+    const fetchOptionChainData = async (indexToFetch?: string, expiryToFetch?: string) => {
     const underlying = getUnderlyingSymbol(indexToFetch);
     if (!underlying) return;
     
@@ -5600,7 +5625,27 @@ ${
       if (data.success && data.data) {
         setOptionChainData(data.data);
         console.log('✅ [OPTIONS] Option chain loaded:', data.data.calls?.length || 0, 'calls,', data.data.puts?.length || 0, 'puts');
+        
         // Auto-select first expiry if not already selected
+        // Try expiryDates first (backend field), then expiries (fallback)
+        const expiries = data.data.expiryDates || data.data.expiries || [];
+        if (expiries && expiries.length > 0) {
+          const firstExpiry = expiries[0];
+          if (!selectedOptionExpiryDate) {
+            setSelectedOptionExpiryDate(firstExpiry);
+            console.log('✅ [OPTIONS] Auto-selected first expiry:', firstExpiry);
+          }
+        }
+      } else {
+        console.warn('⚠️ [OPTIONS] Invalid response format:', data);
+        setOptionChainData(null);
+      }
+    } catch (error) {
+      console.error('❌ [OPTIONS] Error fetching option chain:', error);
+      setOptionChainData(null);
+    } finally {
+      setOptionChainLoading(false);
+    }        // Auto-select first expiry if not already selected
         if (data.data.expiries && data.data.expiries.length > 0) {
           const firstExpiry = data.data.expiries[0];
           if (!selectedOptionExpiryDate) {
