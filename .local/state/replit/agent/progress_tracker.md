@@ -351,7 +351,21 @@
    - Server running on port 5000
    - All 71 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (71 ITEMS)
+[x] 72. **FIX: Paper Trading Dialog Button Layout - BUY/SELL/SL in Same Row (December 16, 2025, 6:15 AM)**
+   - Issue: BUY and SELL buttons were on different rows from SL button
+   - Solution: Changed button layout to flex row with consistent spacing
+   - Changes to client/src/pages/home.tsx (line ~19823):
+     * Replaced fragment <> with flex container: <div className="flex gap-2 items-center">
+     * All three buttons (BUY, SELL, SL) now appear in same horizontal row
+     * Gap of 8px (gap-2) between buttons for proper spacing
+     * SL button maintains full dropdown functionality when clicked
+   - Result:
+     * BUY, SELL, and SL buttons aligned horizontally
+     * Cleaner, more compact UI layout
+     * Better use of space in the trading dialog
+     * Consistent button alignment across the interface
+
+### Current Status: ALL UPDATES COMPLETE (72 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)
@@ -361,3 +375,4 @@
 - Paper Trade button: HIDDEN on mobile, VISIBLE on desktop
 - **Replit environment migration: COMPLETE**
 - **Mobile SL button UI consistency: FIXED**
+- **Paper Trading Dialog Button Layout: FIXED - BUY/SELL/SL now in same row**
