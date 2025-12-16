@@ -19853,7 +19853,7 @@ ${
                               SL {paperTradeSLEnabled && '✓'}
                             </Button>
                             {showPaperTradeSLDropdown && (
-                              <div className="absolute z-50 top-10 -right-2 mt-1 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                              <div className="fixed z-[9999] top-10 -right-2 mt-1 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
                                 <div className="p-2.5 space-y-1.5">
                                   <div>
                                     <label className="text-[10px] text-gray-500 uppercase">Type</label>
