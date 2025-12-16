@@ -21408,9 +21408,11 @@ ${
 
                           {/* Main position card content - slides left on swipe */}
                           <div 
-                            className={`w-full p-3 bg-white dark:bg-gray-900 transition-transform duration-300 cursor-pointer ${
-                              swipedPositionId === position.id ? '-translate-x-1/5' : 'translate-x-0'
-                            }`}
+                            className="w-full p-3 bg-white dark:bg-gray-900 cursor-pointer"
+                            style={{
+                              transform: swipedPositionId === position.id ? 'translateX(-20%)' : 'translateX(0)',
+                              transition: 'transform 300ms ease-in-out'
+                            }}
                             onClick={() => {
                               // Clicking on main content (80% area) resets the swipe
                               if (swipedPositionId === position.id) {
