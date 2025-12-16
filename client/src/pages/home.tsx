@@ -19669,7 +19669,7 @@ ${
 
                 {/* Trade Entry - Compact Inline Form */}
                 <div className="border border-gray-200 dark:border-gray-800 rounded-md p-3">
-                  <div className="flex flex-wrap items-end gap-2">
+                  <div className="flex flex-wrap items-end gap-2 justify-end">
                     {/* Symbol Search */}
                     <div className="flex-1 min-w-[180px] relative">
                       <div className="relative">
