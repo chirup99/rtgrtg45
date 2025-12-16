@@ -16666,6 +16666,7 @@ ${
                                                 <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} disabled={!visibleStats.aiAnalysis && isAtLimit} className="rounded" />
                                                 AI Analysis
                                               </label>
+                                            </div>
                                           );
                                         })()}
                                       </div>
