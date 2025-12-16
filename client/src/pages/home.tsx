@@ -5435,39 +5435,26 @@ ${
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
   const [showMobileExpiryDialog, setShowMobileExpiryDialog] = useState(false);
   // Get expiry dates from optionChainData
-  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
-    if (!optionChainData?.expiryDates || optionChainData.expiryDates.length === 0) {
+  const getOptionExpiryDates = (): Array<{value: string, label: string}> => {
+    if (!optionChainData?.calls || optionChainData.calls.length === 0) {
       return [];
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
-      const expiryDate = new Date(expiry);
-      expiryDate.setHours(0, 0, 0, 0);
-      return expiryDate >= today;
+    
+    // Extract unique expiry dates from calls
+    const expirySet = new Set<string>();
+    optionChainData.calls.forEach((call: any) => {
+      if (call.expiryDate) {
+        expirySet.add(call.expiryDate);
+      }
     });
-    return futureExpiries.slice(0, 4).map((expiry: string) => ({
+    
+    // Convert to array and format
+    const uniqueExpiries = Array.from(expirySet).sort();
+    return uniqueExpiries.map((expiry: string) => ({
       value: expiry,
       label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     }));
   };
-
-  // Auto-select first expiry date when option chain data loads (mobile fix)
-  useEffect(() => {
-    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
-        const expiryDate = new Date(expiry);
-        expiryDate.setHours(0, 0, 0, 0);
-        return expiryDate >= today;
-      });
-      if (futureExpiries.length > 0) {
-        setSelectedOptionExpiryDate(futureExpiries[0]);
-      }
-    }
-  }, [optionChainData, selectedOptionExpiryDate]);
-
   // Auto-fetch option chain data when dialog opens (mobile fix)
   useEffect(() => {
     if (showOptionChain && selectedOptionIndex) {
