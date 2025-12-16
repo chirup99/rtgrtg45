@@ -435,7 +435,23 @@
    - Vite HMR WebSocket warning (cosmetic, related to Replit proxy - does not affect functionality)
    - All 78 items marked as complete
 
-### Current Status: ALL UPDATES COMPLETE (78 ITEMS)
+[x] 79. **FIX: Mobile Open Positions SL Values Not Displaying (December 16, 2025, 8:28 AM)**
+   - Issue: SL values not showing on mobile open positions display, but showing on desktop paper trading dialog
+   - Root Cause: Mobile card view had unnecessary `slEnabled` check preventing SL display
+   - Fix Applied to client/src/pages/home.tsx (line ~19556):
+     * Removed `slEnabled` check from condition - now only checks `slTriggerPrice`
+     * Changed from: `{(position as any).slEnabled && (position as any).slTriggerPrice && (`
+     * Changed to: `{(position as any).slTriggerPrice && (`
+     * Updated precision from `.toFixed(1)` to `.toFixed(2)` to match desktop format
+     * Removed duplicate old line that was causing issues
+   - Result:
+     * SL values now display on mobile cards just like desktop table
+     * Consistent user experience across mobile and desktop
+     * Mobile shows: "LTP: ₹{value} SL: ₹{triggerPrice}" format
+     * Professional, unified appearance
+     * Server running successfully on port 5000
+
+### Current Status: ALL UPDATES COMPLETE (79 ITEMS)
 - Application running on port 5000
 - Angel One auto-reconnection ENABLED (startup + scheduled + frontend detection)
 - Token expiry auto-refresh ENABLED (frontend + backend)
@@ -448,3 +464,4 @@
 - **Paper Trading Dialog Button Layout: FIXED - BUY/SELL/SL now in same row**
 - **Paper Trading Dialog Buttons: NOW ALIGNED TO RIGHT SIDE**
 - **Preview Loading Issue: FIXED - mobileBottomTab variable order**
+- **Mobile Open Positions SL Display: NOW FIXED - Matches desktop behavior**
