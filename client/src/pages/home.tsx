@@ -5436,12 +5436,12 @@ ${
   const [showMobileExpiryDialog, setShowMobileExpiryDialog] = useState(false);
   // Get expiry dates from optionChainData
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
-    if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
+    if (!optionChainData?.expiryDates || optionChainData.expiryDates.length === 0) {
       return [];
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+    const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
       const expiryDate = new Date(expiry);
       expiryDate.setHours(0, 0, 0, 0);
       return expiryDate >= today;
@@ -5457,7 +5457,7 @@ ${
     if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
         const expiryDate = new Date(expiry);
         expiryDate.setHours(0, 0, 0, 0);
         return expiryDate >= today;
