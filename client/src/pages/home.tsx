@@ -1846,6 +1846,10 @@ export default function Home() {
   const [chartTimeframe, setChartTimeframe] = useState<string>("1");
   // Navigation menu state
   const [isNavOpen, setIsNavOpen] = useState(false);
+  // Mobile bottom navigation state (home, insight, ranking, paper-trade)
+  const [mobileBottomTab, setMobileBottomTab] = useState<
+    "home" | "insight" | "ranking" | "paper-trade"
+  >("home");
   // Settings panel state
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
@@ -6208,10 +6212,6 @@ ${
   // Mobile carousel state for journal panels (0=chart, 1=image, 2=notes)
   const [mobileJournalPanel, setMobileJournalPanel] = useState(2);
 
-  // Mobile bottom navigation state (home, insight, ranking)
-  const [mobileBottomTab, setMobileBottomTab] = useState<
-    "home" | "insight" | "ranking" | "paper-trade"
-  >("home");
 
   // Mobile trade history dropdown state
   const [showMobileTradeHistory, setShowMobileTradeHistory] = useState(false);
