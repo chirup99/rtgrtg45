@@ -19126,7 +19126,7 @@ ${
                 </div>
                 
               <div className="text-gray-400 text-xs mb-1">P&L</div>
-              <div className={`text-white text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
+              <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
                 {hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               </div>
               <div className="text-sm flex items-center gap-1 text-gray-400">
@@ -20928,7 +20928,7 @@ ${
               </div>
               
               <div className="text-gray-400 text-xs mb-1">P&L</div>
-              <div className={`text-white text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
+              <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
                 {hidePositionDetails ? '***' : `₹${paperTradingTotalPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               </div>
               <div className="text-sm flex items-center gap-1 text-gray-400">
