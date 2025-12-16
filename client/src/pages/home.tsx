@@ -19112,18 +19112,6 @@ ${
             <div className="flex flex-col h-full sm:hidden">
               {/* Hero Balance Section - Dark gradient background */}
               <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-5 pt-8 pb-6 relative">
-                <div className="absolute top-3 right-3">
-                  <span className={`text-[10px] px-2 py-1 rounded-full flex items-center gap-1 ${
-                    paperTradingWsStatus === 'connected' 
-                      ? 'bg-green-500/20 text-green-400' 
-                      : 'bg-gray-700 text-gray-400'
-                  }`} data-testid="paper-trading-ws-status-mobile">
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      paperTradingWsStatus === 'connected' ? 'bg-green-400' : 'bg-gray-500'
-                    }`} />
-                    {paperTradingWsStatus === 'connected' ? 'Live' : 'Offline'}
-                  </span>
-                </div>
                 
               <div className="text-gray-400 text-xs mb-1">P&L</div>
               <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
@@ -20914,18 +20902,6 @@ ${
           <div className="md:hidden fixed inset-0 z-40 bg-gradient-to-b from-gray-900 to-gray-950 overflow-y-auto pb-20 flex flex-col">
             {/* Hero Balance Section - Dark gradient background */}
             <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-5 pt-8 pb-6 relative">
-              <div className="absolute top-3 right-3">
-                <span className={`text-[10px] px-2 py-1 rounded-full flex items-center gap-1 ${
-                  paperTradingWsStatus === 'connected' 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-gray-700 text-gray-400'
-                }`} data-testid="paper-trading-ws-status-mobile">
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    paperTradingWsStatus === 'connected' ? 'bg-green-400' : 'bg-gray-500'
-                  }`} />
-                  {paperTradingWsStatus === 'connected' ? 'Live' : 'Offline'}
-                </span>
-              </div>
               
               <div className="text-gray-400 text-xs mb-1">P&L</div>
               <div className={`text-3xl font-bold mb-2 ${paperTradingTotalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} data-testid="paper-trading-pnl-mobile">
