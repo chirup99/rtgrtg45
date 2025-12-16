@@ -21327,6 +21327,7 @@ ${
                   </div>
                   
                   
+                  
                   {/* Open Positions View */}
                   {!showMobileTradeHistory && paperPositions.filter(p => p.isOpen).length > 0 && (
                     <div className="space-y-2 px-4">
@@ -21346,19 +21347,17 @@ ${
                             const diffY = Math.abs(swipeStartYRef.current - endY);
                             
                             // Swipe left (diffX > 0) with minimal vertical movement
-                            if (diffX > 50 && diffY < 30) {
+                            if (diffX > 40 && diffY < 40) {
                               setSwipedPositionId(position.id);
                             }
                             // Swipe right to close
-                            else if (diffX < -50 && diffY < 30) {
+                            else if (diffX < -40 && diffY < 40) {
                               setSwipedPositionId(null);
                             }
                           }}
                         >
                           {/* Main position card content */}
-                          <div className={`p-3 transition-transform duration-200 ${
-                            swipedPositionId === position.id ? 'translate-x-0' : 'translate-x-0'
-                          }`}>
+                          <div className="p-3">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm">{position.symbol}</span>
@@ -21370,6 +21369,9 @@ ${
                                   {position.action}
                                 </span>
                               </div>
+                              {swipedPositionId !== position.id && (
+                                <ChevronLeft className="w-4 h-4 text-gray-400 opacity-50" />
+                              )}
                             </div>
                             <div className="flex items-center justify-between text-xs">
                               <div className="text-gray-500">
@@ -21386,13 +21388,6 @@ ${
                               )}
                             </div>
                           </div>
-                          
-                          {/* Swipe hint text */}
-                          {swipedPositionId !== position.id && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">
-                              ← Swipe
-                            </div>
-                          )}
                           
                           {/* Exit button - appears on swipe */}
                           {swipedPositionId === position.id && (
@@ -21414,6 +21409,7 @@ ${
                       ))}
                     </div>
                   )}
+                  
                   
 
                   
