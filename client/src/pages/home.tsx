@@ -5434,7 +5434,7 @@ ${
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
   
-  // ✨ NEW OPTIMIZED FILTERING LOGIC
+  // ✨ OPTIMIZED FILTERING LOGIC
   // Normalize date to YYYY-MM-DD format
   const normalizeExpiryDate = (date: any): string | null => {
     if (!date) return null;
@@ -5448,9 +5448,10 @@ ${
     return null;
   };
 
-  // Filter options by selected expiry - works for both calls & puts
+  // Filter options by selected expiry (if expiry selected, otherwise return all)
   const filterOptionsByExpiry = (options: any[], selectedExpiry: string | null): any[] => {
-    if (!options || !selectedExpiry) return [];
+    if (!options) return [];
+    if (!selectedExpiry) return options; // No filter = show all
     return options.filter(option => {
       if (!option.expiry) return true;
       const optionExpiry = normalizeExpiryDate(option.expiry);
@@ -5461,8 +5462,8 @@ ${
   // Get effective selected expiry (user choice or first available)
   const getEffectiveExpiry = (): string | null => {
     if (selectedOptionExpiryDate) return selectedOptionExpiryDate;
-    const firstExpiry = getOptionExpiryDates(selectedOptionIndex)[0]?.value;
-    return firstExpiry || null;
+    const allExpiries = getOptionExpiryDates(selectedOptionIndex);
+    return allExpiries.length > 0 ? allExpiries[0].value : null;
   };
 
   // Get expiry dates from optionChainData
@@ -20439,13 +20440,13 @@ ${
               
               {!optionChainLoading && optionChainData && (() => {
                 const getOptionSymbols = () => {
-                  if (!optionChainData?.calls || !optionChainData?.puts) {
-                    return { calls: [], puts: [] };
-                  }
+                  // While loading, return empty; after loading, use actual data
+                  const calls = optionChainData?.calls || [];
+                  const puts = optionChainData?.puts || [];
                   
                   const effectiveExpiry = normalizeExpiryDate(getEffectiveExpiry());
-                  const filteredCalls = filterOptionsByExpiry(optionChainData.calls, effectiveExpiry);
-                  const filteredPuts = filterOptionsByExpiry(optionChainData.puts, effectiveExpiry);
+                  const filteredCalls = filterOptionsByExpiry(calls, effectiveExpiry);
+                  const filteredPuts = filterOptionsByExpiry(puts, effectiveExpiry);
                   
                   return { calls: filteredCalls, puts: filteredPuts };
                 };
@@ -20653,13 +20654,13 @@ ${
               
               {!optionChainLoading && optionChainData && (() => {
                 const getOptionSymbols = () => {
-                  if (!optionChainData?.calls || !optionChainData?.puts) {
-                    return { calls: [], puts: [] };
-                  }
+                  // While loading, return empty; after loading, use actual data
+                  const calls = optionChainData?.calls || [];
+                  const puts = optionChainData?.puts || [];
                   
                   const effectiveExpiry = normalizeExpiryDate(getEffectiveExpiry());
-                  const filteredCalls = filterOptionsByExpiry(optionChainData.calls, effectiveExpiry);
-                  const filteredPuts = filterOptionsByExpiry(optionChainData.puts, effectiveExpiry);
+                  const filteredCalls = filterOptionsByExpiry(calls, effectiveExpiry);
+                  const filteredPuts = filterOptionsByExpiry(puts, effectiveExpiry);
                   
                   return { calls: filteredCalls, puts: filteredPuts };
                 };
