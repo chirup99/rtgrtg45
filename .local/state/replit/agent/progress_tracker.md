@@ -14,20 +14,30 @@
 [x] 14. Make option chain minimalist on mobile
 
 ### LATEST UPDATE
-**Date:** December 16, 2025, 5:45 PM
-**Status:** Fixed mobile expiry date display bug
+**Date:** December 16, 2025, 5:50 PM
+**Status:** Complete expiry date logic documented & bug fixed
 
-**Bug Fixed:**
-[x] Identified field name mismatch causing "Loading..." on mobile
-[x] Changed `data.data.expiryDates` → `data.data.expiries` (lines 5568-5569)
-[x] Applied hot-reload fix (workflow detected and reloaded changes)
+**✅ Tasks Completed:**
+[x] Fixed mobile expiry date display bug
+[x] Documented 10 different expiry date fetching logic flows
+[x] Analyzed filtering, rendering, and tracking logic
+[x] Provided 4 alternative fetching strategies for enhancement
 
-**Root Cause:**
-The `fetchOptionChainData` function was checking for wrong field name (`expiryDates`) while `getOptionExpiryDates` function expected `expiries`. This mismatch caused the state to never initialize properly on mobile, showing "Loading..." instead of the actual dates.
+**📋 Documentation Created:**
+- File: `.local/state/replit/agent/expiry_dates_complete_logic.md`
+- Contains: Complete technical breakdown of all expiry date logic
+- Includes: Data flow diagrams, common issues & fixes
 
-**Technical Details:**
-- Function: `getOptionExpiryDates()` expects `optionChainData?.expiries`
-- But API fetch was checking for: `data.data.expiryDates` (incorrect)
-- Fixed by: Changing to `data.data.expiries` (matches function expectation)
+**🔧 Logic Flows Identified:**
+1. State management (selectedOptionExpiryDate, selectedOptionIndex)
+2. Primary: getOptionExpiryDates() - filters, limits, formats
+3. Auto-select: useEffect hook for initial selection
+4. API fetch: fetchOptionChainData() with expiry parameter
+5. Filtering: Matches calls/puts by expiry date
+6. Format conversion: YYYY-MM-DD normalization
+7. Mobile UI: Dropdown rendering with options
+8. Desktop UI: Dropdown with fallback selection
+9. Position tracking: Days until expiry calculation
+10. Complete data flow: Backend → Frontend → Display
 
-**Result:** Mobile iPhone now displays expiry dates correctly: "16 Dec 2025", "23 Dec 2025", etc.
+**Result:** All expiry date logic documented & mobile fix applied. Application fully operational.
