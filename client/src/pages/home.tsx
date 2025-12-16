@@ -21408,9 +21408,16 @@ ${
 
                           {/* Main position card content - slides left on swipe */}
                           <div 
-                            className={`w-full p-3 bg-white dark:bg-gray-900 transition-transform duration-300 ${
+                            className={`w-full p-3 bg-white dark:bg-gray-900 transition-transform duration-300 cursor-pointer ${
                               swipedPositionId === position.id ? '-translate-x-1/5' : 'translate-x-0'
                             }`}
+                            onClick={() => {
+                              // Clicking on main content (80% area) resets the swipe
+                              if (swipedPositionId === position.id) {
+                                console.log('🔄 Tapped on content - resetting swipe');
+                                setSwipedPositionId(null);
+                              }
+                            }}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
