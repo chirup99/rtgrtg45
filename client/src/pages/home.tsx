@@ -20325,17 +20325,22 @@ ${
                     value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                     onChange={(e) => {
                       const newExpiry = e.target.value;
-                      setSelectedOptionExpiryDate(newExpiry);
-                      setTimeout(() => fetchOptionChainData(selectedOptionIndex, newExpiry), 0);
+                      if (newExpiry) {
+                        setSelectedOptionExpiryDate(newExpiry);
+                      }
                     }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
                     data-testid="select-option-expiry-date-mobile"
                   >
-                    {getOptionExpiryDates(selectedOptionIndex).map((date) => (
-                      <option key={date.value} value={date.value}>
-                        {date.label}
-                      </option>
-                    ))}
+                    {getOptionExpiryDates(selectedOptionIndex).length === 0 ? (
+                      <option value="">Loading...</option>
+                    ) : (
+                      getOptionExpiryDates(selectedOptionIndex).map((date) => (
+                        <option key={date.value} value={date.value}>
+                          {date.label}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 
@@ -20400,7 +20405,7 @@ ${
                 </div>
               )}
               
-              {!optionChainLoading && (selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (() => {
+              {!optionChainLoading && optionChainData && (() => {
                 const getOptionSymbols = () => {
                   if (!optionChainData?.calls || !optionChainData?.puts) {
                     return { calls: [], puts: [] };
@@ -20618,11 +20623,9 @@ ${
                 );
               })()}
               
-              {!optionChainLoading && !(selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (
+              {!optionChainLoading && !optionChainData && (
                 <div className="text-center py-8">
-                  <p className="text-sm text-gray-300">
-                    {optionChainData ? 'Select an expiry date to view options' : 'Loading expiry dates...'}
-                  </p>
+                  <p className="text-sm text-gray-300">Loading option chain data...</p>
                 </div>
               )}
             </div>
@@ -20636,7 +20639,7 @@ ${
                 </div>
               )}
               
-              {!optionChainLoading && (selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value) && (() => {
+              {!optionChainLoading && optionChainData && (() => {
                 const getOptionSymbols = () => {
                   if (!optionChainData?.calls || !optionChainData?.puts) {
                     return { calls: [], puts: [] };
