@@ -1618,7 +1618,7 @@ function MicroAnimationsDemoPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               <div className="flex gap-2">
                 <Button
                   onClick={() => setTradeType("buy")}
@@ -10859,7 +10859,7 @@ ${
                         <div className="bg-slate-800 rounded-2xl p-4">
                           <h3 className="text-white text-lg font-bold mb-4">Saved Podcast</h3>
 
-                          <div className="space-y-3">
+                          <div className="space-y-1.5">
                             {/* Podcast Item 1 */}
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -12037,7 +12037,7 @@ ${
                                   <CheckCircle className="h-4 w-4" />
                                   <span>Verification code sent to your email</span>
                                 </div>
-                                <div className="space-y-3">
+                                <div className="space-y-1.5">
                                   <Input
                                     type="text"
                                     inputMode="numeric"
@@ -12307,7 +12307,7 @@ ${
                         <div className="max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden">
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
-                              <div className="space-y-3">
+                              <div className="space-y-1.5">
                                 <div className="flex items-center gap-2 pb-3 border-b border-transparent">
                                   {searchResults.includes("[CHART:WATCHLIST]") ? (
                                     <>
@@ -12952,7 +12952,7 @@ ${
                                                   })()}
                                                 </div>
 
-                                                <div className="space-y-3">
+                                                <div className="space-y-1.5">
                                                   {isWatchlistQuarterlyLoading ? (
                                                     <div className="flex items-center justify-center py-8">
                                                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -13787,7 +13787,7 @@ ${
                                   <div className="text-gray-300 whitespace-pre-wrap leading-tight text-xs">
                                     {searchResults.includes("[CHART:WATCHLIST]") ? (
                                       // Mobile Watchlist Layout
-                                      <div className="space-y-3">
+                                      <div className="space-y-1.5">
                                         {/* NIFTY 50 Chart */}
                                         <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
                                           <div className="flex items-center justify-between mb-2">
@@ -14440,7 +14440,7 @@ ${
                                     className="w-80 p-3"
                                     align="start"
                                   >
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex gap-1.5">
                                         <Input
                                           placeholder={
@@ -15360,7 +15360,7 @@ ${
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 p-3">
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">
                                           Daily Life Factors
@@ -15480,7 +15480,7 @@ ${
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 p-3">
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">
                                           Indicator & Timeframe Tracker
@@ -15561,7 +15561,7 @@ ${
                                               <DialogHeader>
                                                 <DialogTitle>Custom Timeframe</DialogTitle>
                                               </DialogHeader>
-                                              <div className="space-y-3">
+                                              <div className="space-y-1.5">
                                                 <input
                                                   type="text"
                                                   placeholder="e.g., 2h, 4h, 3d, 1w"
@@ -15664,7 +15664,7 @@ ${
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 p-3">
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">
                                           Trading Psychology & Strategy Tags
@@ -17909,7 +17909,7 @@ ${
                                     <h4 className="text-lg font-semibold mb-4">
                                       📈 Performance Insights
                                     </h4>
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       {disciplineInsights.length > 0 ? (
                                         disciplineInsights
                                           .slice(0, 4)
@@ -17957,7 +17957,7 @@ ${
                                     <h4 className="text-lg font-semibold mb-4">
                                       🎯 Professional Tips
                                     </h4>
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       {recommendations.map((rec, idx) => (
                                         <div
                                           key={idx}
@@ -18142,7 +18142,7 @@ ${
 
                 <div className="border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-900/30 p-3 mb-3">
                   {isBuildMode ? (
-                    <div className="space-y-3">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-xs font-medium text-slate-700 dark:text-slate-300">
                           Build Mode - Select text, click +, X to delete
@@ -20304,11 +20304,11 @@ ${
 
             
             {/* Mobile Header */}
-            <div className="md:hidden px-6 pt-8 pb-4">
-              <h2 className="text-2xl font-bold text-white mb-4">Option Chain</h2>
+            <div className="md:hidden px-4 pt-1.5 pb-1.5">
+              <h2 className="text-base font-semibold text-white mb-1">Option Chain</h2>
               
               {/* Controls */}
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {/* Index and Expiry Row */}
                 <div className="flex gap-2">
                   <select
@@ -20345,7 +20345,7 @@ ${
                 </div>
                 
                 {/* Spot Price */}
-                <div className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2.5">
+                <div className="flex items-center justify-between bg-gray-800 rounded-lg px-2.5 py-1.5">
                   <span className="text-gray-400 text-sm">Spot Price:</span>
                   <span className="text-green-400 font-semibold text-lg" data-testid="text-option-spot-price-mobile">
                     ₹{(optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
@@ -20397,7 +20397,7 @@ ${
             </div>
             
             {/* Content Area */}
-            <div className="md:hidden px-6 pb-6 overflow-y-auto max-h-[calc(100vh-300px)]">
+            <div className="md:hidden px-3 pb-3 overflow-y-auto max-h-[calc(100vh-300px)]">
               {optionChainLoading && (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400 mx-auto mb-3"></div>
