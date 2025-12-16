@@ -21328,36 +21328,41 @@ ${
                   
                   
                   
+                  
                   {/* Open Positions View */}
                   {!showMobileTradeHistory && paperPositions.filter(p => p.isOpen).length > 0 && (
                     <div className="space-y-2 px-4">
                       {paperPositions.filter(p => p.isOpen).map(position => (
                         <div 
                           key={position.id}
-                          className="relative overflow-hidden bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800"
+                          className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
                           data-testid={`position-card-tab-${position.symbol}`}
-                          onTouchStart={(e) => {
-                            swipeStartXRef.current = e.touches[0].clientX;
-                            swipeStartYRef.current = e.touches[0].clientY;
-                          }}
-                          onTouchEnd={(e) => {
-                            const endX = e.changedTouches[0].clientX;
-                            const endY = e.changedTouches[0].clientY;
-                            const diffX = swipeStartXRef.current - endX;
-                            const diffY = Math.abs(swipeStartYRef.current - endY);
-                            
-                            // Swipe left (diffX > 0) with minimal vertical movement
-                            if (diffX > 40 && diffY < 40) {
-                              setSwipedPositionId(position.id);
-                            }
-                            // Swipe right to close
-                            else if (diffX < -40 && diffY < 40) {
-                              setSwipedPositionId(null);
-                            }
-                          }}
                         >
-                          {/* Main position card content */}
-                          <div className="p-3">
+                          {/* Main position card content - slides left on swipe */}
+                          <div 
+                            className={`p-3 transition-transform duration-300 ${
+                              swipedPositionId === position.id ? '-translate-x-1/5' : 'translate-x-0'
+                            }`}
+                            onTouchStart={(e) => {
+                              swipeStartXRef.current = e.touches[0].clientX;
+                              swipeStartYRef.current = e.touches[0].clientY;
+                            }}
+                            onTouchEnd={(e) => {
+                              const endX = e.changedTouches[0].clientX;
+                              const endY = e.changedTouches[0].clientY;
+                              const diffX = swipeStartXRef.current - endX;
+                              const diffY = Math.abs(swipeStartYRef.current - endY);
+                              
+                              // Swipe left (diffX > 0) with minimal vertical movement
+                              if (diffX > 40 && diffY < 40) {
+                                setSwipedPositionId(position.id);
+                              }
+                              // Swipe right to close
+                              else if (diffX < -40 && diffY < 40) {
+                                setSwipedPositionId(null);
+                              }
+                            }}
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm">{position.symbol}</span>
@@ -21389,26 +21394,25 @@ ${
                             </div>
                           </div>
                           
-                          {/* Exit button - appears on swipe */}
-                          {swipedPositionId === position.id && (
-                            <div className="absolute right-0 top-0 bottom-0 w-16 bg-red-500 flex items-center justify-center animate-in fade-in duration-200">
-                              <button
-                                onClick={() => {
-                                  exitPosition(position.id);
-                                }}
-                                className="flex flex-col items-center justify-center w-full h-full gap-1 hover:bg-red-600 transition-colors"
-                                data-testid={`button-exit-position-${position.symbol}`}
-                                title="Exit position"
-                              >
-                                <div className="text-white text-lg">×</div>
-                                <div className="text-[9px] text-white font-medium">EXIT</div>
-                              </button>
-                            </div>
-                          )}
+                          {/* Exit button - visible when card slides left (20% of card width) */}
+                          <div className="absolute right-0 top-0 bottom-0 w-1/5 bg-red-500 flex items-center justify-center">
+                            <button
+                              onClick={() => {
+                                exitPosition(position.id);
+                              }}
+                              className="flex flex-col items-center justify-center w-full h-full gap-0.5 hover:bg-red-600 transition-colors active:bg-red-700"
+                              data-testid={`button-exit-position-${position.symbol}`}
+                              title="Exit position"
+                            >
+                              <div className="text-white text-sm font-bold">×</div>
+                              <div className="text-[7px] text-white font-bold whitespace-nowrap">EXIT</div>
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
+                  
                   
                   
 
