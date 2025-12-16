@@ -5468,13 +5468,13 @@ ${
 
   // Get expiry dates - using new filter logic
   const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
-    if (!optionChainData?.expiries) return [];
+    if (!optionChainData?.expiryDates) return [];
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     // Filter future dates using simplified logic
-    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+    const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
       const expiryDate = new Date(expiry);
       expiryDate.setHours(0, 0, 0, 0);
       return expiryDate >= today;
@@ -5489,10 +5489,10 @@ ${
 
   // Auto-select first expiry date when option chain data loads (mobile fix)
   useEffect(() => {
-    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
+    if (optionChainData?.expiryDates && optionChainData.expiryDates.length > 0 && !selectedOptionExpiryDate) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
         const expiryDate = new Date(expiry);
         expiryDate.setHours(0, 0, 0, 0);
         return expiryDate >= today;
