@@ -461,9 +461,9 @@ export default function Landing() {
                         data-testid="button-toggle-new-password-visibility"
                       >
                         {showNewPassword ? (
-                          <EyeOff className="w-5 h-5" />
+                          <EyeOff className="w-4 h-4" />
                         ) : (
-                          <Eye className="w-5 h-5" />
+                          <Eye className="w-4 h-4" />
                         )}
                       </button>
                     </div>
@@ -483,9 +483,9 @@ export default function Landing() {
                         data-testid="button-toggle-confirm-password-visibility"
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className="w-5 h-5" />
+                          <EyeOff className="w-4 h-4" />
                         ) : (
-                          <Eye className="w-5 h-5" />
+                          <Eye className="w-4 h-4" />
                         )}
                       </button>
                     </div>
@@ -576,9 +576,9 @@ export default function Landing() {
                     data-testid="button-toggle-password-visibility"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="w-4 h-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="w-4 h-4" />
                     )}
                   </button>
                 </div>
