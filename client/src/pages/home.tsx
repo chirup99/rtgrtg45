@@ -37,6 +37,7 @@ import { DemoHeatmap } from "@/components/DemoHeatmap";
 import { PersonalHeatmap } from "@/components/PersonalHeatmap";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAngelOneAutoconnect } from "@/hooks/useAngelOneAutoconnect";
 import { cognitoSignOut, getCognitoToken, sendEmailVerificationCode, confirmEmailVerification, checkEmailVerified } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
 import { ArrowLeft, Banknote, Clock, ExternalLink, Loader2, LogOut, Newspaper, RefreshCw, Save, TrendingUp } from "lucide-react";
@@ -1833,6 +1834,9 @@ const getFullApiUrl = (path: string): string => {
 
 export default function Home() {
   const [location, setLocation] = useLocation();
+  
+  // AUTO-CONNECT: Angel One API - Automatically connect when app loads
+  useAngelOneAutoconnect();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("trading-home");
   const [showTutorOverlay, setShowTutorOverlay] = useState(false);

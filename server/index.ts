@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { registerRoutes } from "./routes";
 import { liveWebSocketStreamer } from "./live-websocket-streamer";
+import { angelOneApi } from "./angel-one-api";
 
 // Simple logging function (inline to avoid vite dependency in production)
 function log(message: string, source = "express") {
@@ -236,7 +237,51 @@ server.listen(listenOptions, () => {
     
     // Start background tasks AFTER server is ready and health check passes
     // Delay startup to ensure Cloud Run health check succeeds first
-    setTimeout(() => {
+    setTimeout(async () => {
+      // AUTO-CONNECT: Angel One API using environment credentials at server startup
+      console.log('🔶 [STARTUP] Checking Angel One auto-connect...');
+      try {
+        // Guard: Skip if already connected
+        if (angelOneApi.isConnected()) {
+          console.log('✅ [STARTUP] Angel One already connected, skipping auto-connect');
+        } else {
+          const clientCode = process.env.ANGEL_ONE_CLIENT_CODE;
+          const pin = process.env.ANGEL_ONE_PIN;
+          const apiKey = process.env.ANGEL_ONE_API_KEY;
+          const totpSecret = process.env.ANGEL_ONE_TOTP_SECRET;
+
+          if (clientCode && pin && apiKey && totpSecret) {
+            console.log('🔶 [STARTUP] Angel One credentials found, auto-connecting...');
+            
+            angelOneApi.setCredentials({
+              clientCode: clientCode.trim(),
+              pin: pin.trim(),
+              apiKey: apiKey.trim(),
+              totpSecret: totpSecret.trim()
+            });
+
+            const session = await angelOneApi.generateSession();
+            if (session) {
+              console.log('✅ [STARTUP] Angel One auto-connected successfully!');
+              console.log(`   Client Code: ${clientCode}`);
+              // Notify live price streamer
+              liveWebSocketStreamer.onAngelOneAuthenticated();
+            } else {
+              console.log('⚠️ [STARTUP] Angel One auto-connect failed - session not created');
+            }
+          } else {
+            console.log('⚠️ [STARTUP] Angel One credentials not found in environment, skipping auto-connect');
+            console.log(`   CLIENT_CODE: ${clientCode ? 'SET' : 'MISSING'}`);
+            console.log(`   PIN: ${pin ? 'SET' : 'MISSING'}`);
+            console.log(`   API_KEY: ${apiKey ? 'SET' : 'MISSING'}`);
+            console.log(`   TOTP_SECRET: ${totpSecret ? 'SET' : 'MISSING'}`);
+          }
+        }
+      } catch (error: any) {
+        console.error('❌ [STARTUP] Angel One auto-connect error:', error.message);
+        console.log('⚠️ [STARTUP] Server will continue - user can manually connect later');
+      }
+
       // Start the live WebSocket price streaming system using Angel One API
       console.log('🚀 Initializing live WebSocket price streaming system (Angel One)...');
       liveWebSocketStreamer.startStreaming()
