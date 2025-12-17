@@ -20,6 +20,7 @@ interface PersonalHeatmapProps {
     dates: string[];
   } | null;
   isPublicView?: boolean;
+  refreshTrigger?: number;
 }
 
 // Simple function to calculate P&L from trade data
@@ -95,7 +96,7 @@ function getPnLColor(pnl: number): string {
   }
 }
 
-export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpdate, onRangeChange, highlightedDates, isPublicView = false }: PersonalHeatmapProps) {
+export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpdate, onRangeChange, highlightedDates, isPublicView = false, refreshTrigger = 0 }: PersonalHeatmapProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [heatmapData, setHeatmapData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -180,7 +181,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
         console.error("❌ PersonalHeatmap: Fetch error:", error);
         setIsLoading(false);
       });
-  }, [userId, refreshKey]); // Add refreshKey to dependencies
+  }, [userId, refreshKey, refreshTrigger]); // Add refreshKey and refreshTrigger to dependencies
 
   // Filter heatmap data based on selected date range
   const getFilteredData = (): Record<string, any> => {

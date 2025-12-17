@@ -4870,6 +4870,9 @@ ${
     });
     
     console.log("✅ Paper trades recorded to journal summary and heatmap");
+    
+    // 🔄 Trigger PersonalHeatmap refresh to immediately display colors after save
+    setPersonalHeatmapRevision(prev => prev + 1);
   };
 
   // Exit all open positions at once
@@ -16471,6 +16474,7 @@ ${
                               }}
                               onRangeChange={handleDateRangeChange}
                               highlightedDates={activeTagHighlight}
+                              refreshTrigger={personalHeatmapRevision}
                               onSelectDateForHeatmap={(symbol, date) => {
                                 console.log(`📊 [HOME] Switching to heatmap mode - Symbol: ${symbol}, Date: ${date}`);
                                 setJournalChartMode('heatmap');
@@ -16485,6 +16489,7 @@ ${
                               onDataUpdate={handleHeatmapDataUpdate}
                               onRangeChange={handleDateRangeChange}
                               highlightedDates={activeTagHighlight}
+                              refreshTrigger={personalHeatmapRevision}
                             />
                           )}
                         </div>
