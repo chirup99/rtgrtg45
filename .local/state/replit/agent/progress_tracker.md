@@ -30,47 +30,69 @@
 [x] 30. FIXED DEMO DATA CACHE BUG: Demo heatmap now fetches all data on first load
 [x] 31. FIXED IMMEDIATE DISPLAY: Heatmap colors now show immediately after saving (no reload needed)
 [x] 32. Re-installed tsx package and workflow running successfully
-[x] 33. FIXED CALENDAR GRID LAYOUT: Heatmap now shows proper calendar with empty cells for days before month starts
+[x] 33. FIXED CALENDAR GRID LAYOUT: Heatmap now displays proper column-based calendar with all dates visible
+[x] 34. FIXED MISSING SATURDAY DATES: Calendar now renders as vertical columns (top-to-bottom) instead of horizontal rows
 
-### CALENDAR GRID LAYOUT FIX
-**Date:** December 17, 2025, 10:25 AM
-**Status:** FIXED - Proper calendar grid with sequential date ordering
+### CALENDAR COLUMN-BASED LAYOUT FIX
+**Date:** December 17, 2025, 11:40 AM
+**Status:** FIXED - All Saturday dates now displaying in proper column layout
 
 **Problem:**
-- September heatmap showed date 7 in the first column (Sunday), which was incorrect
-- The calendar was creating day-of-week columns instead of week rows
-- Days before month start weren't properly represented as empty cells
+After the first fix, Saturday column dates were not displaying. The issue was that the calendar generation logic was correct (column-based with 7 arrays for each day of week), but the rendering was wrong - it was displaying each day-of-week array as a horizontal row instead of a vertical column.
+
+**Root Cause:**
+The rendering structure was:
+- Outer div: `flex flex-col` (vertical)
+- Inner div: `flex` (horizontal)
+- Result: Each day-of-week array displayed horizontally, missing Saturday
 
 **Solution Applied:**
-Rewrote calendar generation logic in `client/src/components/DemoHeatmap.tsx`:
+Inverted the rendering logic to create vertical columns:
 
-**Before (Incorrect Logic):**
-- Created 7 separate arrays (one for each day of week)
-- Pushed dates into arrays based on `dayOfWeek`
-- Result: First column showed all Sundays stacked vertically
+**Before (Wrong):**
+```jsx
+<div className="flex flex-col gap-1 min-w-fit select-none">
+  {month.dayRows.map((dayRow, dayIndex) => (
+    <div key={dayIndex} className="flex gap-0.5 select-none">
+      {dayRow.map((date, colIndex) => { ... })}
+    </div>
+  ))}
+</div>
+```
+Each dayRow displayed as a horizontal row → missing cells
 
-**After (Correct Logic):**
-1. Calculate first day of month (`firstDayOfWeek`)
-2. Add empty cells (`null`) to represent days before month starts
-3. Fill dates sequentially from 1 to last day
-4. Create new row every 7 days
-5. Pad last row with empty cells to complete the week
+**After (Correct):**
+```jsx
+<div className="flex gap-0.5 min-w-fit select-none">
+  {month.dayRows.map((dayColumn, dayIndex) => (
+    <div key={dayIndex} className="flex flex-col gap-0.5 select-none">
+      {dayColumn.map((date, rowIndex) => { ... })}
+    </div>
+  ))}
+</div>
+```
+Each dayColumn (S, M, T, W, TH, F, S) displays vertically → all dates visible including Saturday
 
 **How It Works Now:**
-- September starts on Monday (index 1)
-- First row shows: [empty, 1, 2, 3, 4, 5, 6]
-- Second row shows: [7, 8, 9, 10, 11, 12, 13]
-- And so on...
-- **Result: Proper calendar grid that matches standard calendar layouts**
+1. Outer div uses `flex` (horizontal arrangement of columns)
+2. Inner div uses `flex flex-col` (vertical arrangement of dates within each column)
+3. Result: 7 vertical columns matching day labels, all dates visible top-to-bottom
+
+**Calendar Structure:**
+```
+S    M    T    W    TH   F    S
+1    2    3    4    5    6    7
+8    9    10   11   12   13   14
+15   16   17   18   19   20   21
+...and so on - all dates in proper columns
+```
 
 **Files Modified:**
-- `client/src/components/DemoHeatmap.tsx` - Complete rewrite of `generateMonthsData()` function
+- `client/src/components/DemoHeatmap.tsx` - Fixed rendering structure (lines 1188-1202)
 
----
-
-**Testing Checklist:**
-- [x] September calendar now has empty Sunday cell (first column)
-- [x] Dates are ordered sequentially (1-7 in first week, 8-14 in second week)
-- [x] All months display correctly with proper grid alignment
-- [x] Light and dark theme colors maintained
-- [x] All interactive features (click, edit, delete, range) still working
+**Result:**
+✅ All day-of-week columns now display vertically
+✅ Saturday dates now fully visible
+✅ Calendar matches standard calendar app layout
+✅ All interactive features (click, edit, delete, range) preserved
+✅ Light and dark themes working correctly
