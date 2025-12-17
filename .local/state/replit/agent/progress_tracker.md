@@ -18,24 +18,26 @@
 [x] 18. Made eye icon compact on password fields (w-4 h-4)
 [x] 19. Removed "Connection Refreshed" notification toast
 [x] 20. Installed tsx package to fix workflow startup
+[x] 21. Fixed Personal Heatmap data merging with Demo Heatmap issue
 
 ### LATEST UPDATE
-**Date:** December 16, 2025, 11:54 PM
-**Status:** Project import migration completed successfully
+**Date:** December 17, 2025, 4:00 AM
+**Status:** Fixed critical Personal Heatmap data separation bug
 
-**✅ Tasks Completed in This Session:**
-[x] Installed tsx package (was blocking workflow startup)
-[x] Restarted workflow - server is now running on port 5000
-[x] Verified application is working via screenshot
-[x] Angel One API connected and authenticated successfully
-[x] WebSocket streaming working for market data (BANKNIFTY, SENSEX, GOLD)
+**Root Cause Analysis:**
+The issue was that personal heatmap data was merging with demo heatmap data. Deep analysis revealed:
+1. `handleHeatmapDataUpdate()` was writing to a shared state (`heatmapDataFromComponent`) regardless of whether the user was in Demo or Personal mode
+2. `getFilteredHeatmapData()` was reading from this shared state instead of the mode-aware `tradingDataByDate`
+3. This caused demo and personal data to contaminate each other in the client-side state layer
 
-**🎯 Application Status:**
-- Frontend: Trading Platform loading correctly
-- Backend: Express server running on port 5000
-- API: Angel One connected and streaming live market data
-- WebSocket: Real-time price updates working
+**Fixes Applied:**
+[x] Updated `handleHeatmapDataUpdate()` to update the correct state based on `isDemoMode`:
+    - If Demo mode: Updates `demoTradingDataByDate` 
+    - If Personal mode: Updates `personalTradingDataByDate`
+[x] Updated `getFilteredHeatmapData()` to use `tradingDataByDate` which correctly switches between demo and personal data based on mode
 
 **Result:** 
-- Application is fully functional and ready for use
-- All previous features intact (swipe gestures, eye icons, theme fixes, etc.)
+- Personal heatmap saves now correctly save to user's personal data (userId-specific)
+- Demo heatmap saves now correctly save to shared demo data
+- P&L calculations in the Quick Stats banner now show mode-specific data
+- No more data merging between demo and personal heatmaps

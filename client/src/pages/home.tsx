@@ -8577,8 +8577,21 @@ ${
   });
   
   // ✅ NEW: Callbacks to receive heatmap data and date range
+  // ✅ FIXED: Now updates the correct state (demo OR personal) based on isDemoMode
   const handleHeatmapDataUpdate = (data: Record<string, any>) => {
-    console.log("📊 Received heatmap data update:", Object.keys(data).length, "dates");
+    console.log(`📊 Received heatmap data update: ${Object.keys(data).length} dates [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
+    
+    // ✅ CRITICAL FIX: Update the correct state based on current mode
+    // This prevents demo and personal data from merging
+    if (isDemoMode) {
+      console.log("📊 Updating DEMO heatmap state");
+      setDemoTradingDataByDate(data);
+    } else {
+      console.log("👤 Updating PERSONAL heatmap state");
+      setPersonalTradingDataByDate(data);
+    }
+    
+    // Also update the legacy shared state for backward compatibility
     setHeatmapDataFromComponent(data);
     
     // ✅ AUTO-SWITCH TO DEMO MODE: Only for new users on initial load (not after manual toggle)
@@ -8626,22 +8639,25 @@ ${
   };
   
   // ✅ NEW: Filter heatmap data based on selected date range
+  // ✅ FIXED: Now uses tradingDataByDate (mode-aware) instead of shared heatmapDataFromComponent
   const getFilteredHeatmapData = () => {
-    const totalDates = Object.keys(heatmapDataFromComponent).length;
+    // ✅ CRITICAL FIX: Use tradingDataByDate which correctly switches between demo and personal data
+    const modeAwareData = tradingDataByDate;
+    const totalDates = Object.keys(modeAwareData).length;
     
     if (!selectedDateRange) {
       // No range selected - return all data
-      console.log(`🔍 No date range selected - returning all ${totalDates} dates`);
-      return heatmapDataFromComponent;
+      console.log(`🔍 No date range selected - returning all ${totalDates} dates [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
+      return modeAwareData;
     }
     
     const filtered: Record<string, any> = {};
     const fromTime = selectedDateRange.from.getTime();
     const toTime = selectedDateRange.to.getTime();
     
-    console.log(`🔍 Filtering ${totalDates} dates by range: ${selectedDateRange.from.toISOString().slice(0, 10)} to ${selectedDateRange.to.toISOString().slice(0, 10)}`);
+    console.log(`🔍 Filtering ${totalDates} dates by range: ${selectedDateRange.from.toISOString().slice(0, 10)} to ${selectedDateRange.to.toISOString().slice(0, 10)} [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
     
-    Object.keys(heatmapDataFromComponent).forEach(dateKey => {
+    Object.keys(modeAwareData).forEach(dateKey => {
       // Parse date key (expecting YYYY-MM-DD format)
       const dateTime = new Date(dateKey).getTime();
       
@@ -8651,16 +8667,16 @@ ${
       }
       
       if (dateTime >= fromTime && dateTime <= toTime) {
-        filtered[dateKey] = heatmapDataFromComponent[dateKey];
+        filtered[dateKey] = modeAwareData[dateKey];
       }
     });
     
     const filteredCount = Object.keys(filtered).length;
-    console.log(`🔍 Filtered heatmap data: ${filteredCount} dates (from ${totalDates} total)`);
+    console.log(`🔍 Filtered heatmap data: ${filteredCount} dates (from ${totalDates} total) [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
     
     if (filteredCount === 0 && totalDates > 0) {
       console.warn(`⚠️ WARNING: Filtering dropped all ${totalDates} entries! Check date key format compatibility.`);
-      console.log('Sample keys:', Object.keys(heatmapDataFromComponent).slice(0, 5));
+      console.log('Sample keys:', Object.keys(modeAwareData).slice(0, 5));
     }
     
     return filtered;
