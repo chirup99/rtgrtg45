@@ -13,6 +13,20 @@ import {
   confirmUserAttribute
 } from 'aws-amplify/auth';
 
+// Dynamically determine redirect URLs based on current origin
+// This ensures OAuth works from both dev domain and production domain
+const getRedirectUrl = () => {
+  const currentOrigin = window.location.origin;
+  const prodDomain = 'https://perala.in';
+  
+  // If we're on perala.in, use perala.in redirects
+  // Otherwise use current origin (for Replit dev domain)
+  if (currentOrigin.includes('perala.in')) {
+    return `${prodDomain}/landing`;
+  }
+  return `${currentOrigin}/landing`;
+};
+
 const cognitoConfig = {
   Auth: {
     Cognito: {
@@ -22,8 +36,8 @@ const cognitoConfig = {
         oauth: {
           domain: import.meta.env.VITE_COGNITO_DOMAIN || '',
           scopes: ['openid', 'email', 'profile'],
-          redirectSignIn: [import.meta.env.VITE_COGNITO_REDIRECT_URI || window.location.origin],
-          redirectSignOut: [import.meta.env.VITE_COGNITO_LOGOUT_URI || window.location.origin],
+          redirectSignIn: [getRedirectUrl()],
+          redirectSignOut: [getRedirectUrl()],
           responseType: 'code' as const,
         },
       },
