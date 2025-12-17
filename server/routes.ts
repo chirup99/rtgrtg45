@@ -66,6 +66,7 @@ import { screenerScraper } from './screener-scraper';
 import { getDemoHeatmapData, seedDemoDataToAWS } from './demo-heatmap-data';
 import { tradingNLPAgent } from './nlp-trading-agent';
 import { nlpDataRouter } from './nlp-data-router';
+import { tradingChallengeService } from './trading-challenge-service';
 
 // 🔶 Angel One Stock Token Mappings for historical data
 const ANGEL_ONE_STOCK_TOKENS: { [key: string]: { token: string; exchange: string; tradingSymbol: string } } = {
@@ -6070,6 +6071,251 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to reset paper trading data' });
     }
   });
+
+  // ==========================================
+  // TRADING CHALLENGE ROUTES (AWS DynamoDB)
+  // With Zod validation and Cognito authentication
+  // ==========================================
+
+  // Zod schemas for challenge validation
+  const challengeRegisterSchema = z.object({
+    startingCapital: z.number().min(10000).max(10000000).optional().default(1800000)
+  });
+
+  const challengeStatsSchema = z.object({
+    totalPnL: z.number().optional(),
+    tradesCount: z.number().int().min(0).optional(),
+    winRate: z.number().min(0).max(100).optional(),
+    maxDrawdown: z.number().optional()
+  });
+
+  const challengeTradeSchema = z.object({
+    symbol: z.string().min(1),
+    quantity: z.number().int().positive(),
+    entryPrice: z.number().positive(),
+    exitPrice: z.number().positive().optional(),
+    pnl: z.number().optional(),
+    tradeType: z.enum(['BUY', 'SELL']),
+    timestamp: z.string().optional()
+  });
+
+  // Get all challenges (public)
+  app.get('/api/challenges', async (req, res) => {
+    try {
+      console.log('🏆 Fetching all trading challenges');
+      const challenges = await tradingChallengeService.getAllChallenges();
+      res.json({ success: true, challenges });
+    } catch (error) {
+      console.error('❌ Error fetching challenges:', error);
+      res.status(500).json({ error: 'Failed to fetch challenges' });
+    }
+  });
+
+  // Get active challenges (public)
+  app.get('/api/challenges/active', async (req, res) => {
+    try {
+      console.log('🏆 Fetching active trading challenges');
+      const challenges = await tradingChallengeService.getActiveChallenges();
+      res.json({ success: true, challenges });
+    } catch (error) {
+      console.error('❌ Error fetching active challenges:', error);
+      res.status(500).json({ error: 'Failed to fetch active challenges' });
+    }
+  });
+
+  // Get specific challenge (public)
+  app.get('/api/challenges/:challengeId', async (req, res) => {
+    try {
+      const { challengeId } = req.params;
+      if (!challengeId || challengeId.length < 1) {
+        return res.status(400).json({ error: 'Invalid challenge ID' });
+      }
+      console.log(`🏆 Fetching challenge: ${challengeId}`);
+      const challenge = await tradingChallengeService.getChallenge(challengeId);
+      if (!challenge) {
+        return res.status(404).json({ error: 'Challenge not found' });
+      }
+      res.json({ success: true, challenge });
+    } catch (error) {
+      console.error('❌ Error fetching challenge:', error);
+      res.status(500).json({ error: 'Failed to fetch challenge' });
+    }
+  });
+
+  // Get leaderboard for a challenge (public)
+  app.get('/api/challenges/:challengeId/leaderboard', async (req, res) => {
+    try {
+      const { challengeId } = req.params;
+      if (!challengeId || challengeId.length < 1) {
+        return res.status(400).json({ error: 'Invalid challenge ID' });
+      }
+      console.log(`🏆 Fetching leaderboard for challenge: ${challengeId}`);
+      const leaderboard = await tradingChallengeService.getLeaderboard(challengeId);
+      res.json({ success: true, leaderboard });
+    } catch (error) {
+      console.error('❌ Error fetching leaderboard:', error);
+      res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    }
+  });
+
+  // Register for a challenge (authenticated with Cognito)
+  app.post('/api/challenges/:challengeId/register', async (req, res) => {
+    try {
+      const { challengeId } = req.params;
+      if (!challengeId || challengeId.length < 1) {
+        return res.status(400).json({ error: 'Invalid challenge ID' });
+      }
+
+      // Authenticate with Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Missing or invalid authorization header' });
+      }
+      
+      const cognitoUser = await authenticateRequest(authHeader);
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      // Validate body with Zod
+      const parseResult = challengeRegisterSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: 'Invalid request body', details: parseResult.error.errors });
+      }
+
+      const { startingCapital } = parseResult.data;
+      const userId = cognitoUser.sub;
+
+      console.log(`🏆 Registering user ${userId} for challenge ${challengeId}`);
+      const success = await tradingChallengeService.registerParticipant(
+        userId, 
+        challengeId, 
+        startingCapital
+      );
+      
+      if (success) {
+        res.json({ success: true, message: 'Registered successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to register' });
+      }
+    } catch (error) {
+      console.error('❌ Error registering for challenge:', error);
+      res.status(500).json({ error: 'Failed to register for challenge' });
+    }
+  });
+
+  // Get user's challenge participation (authenticated)
+  app.get('/api/challenges/user/me', async (req, res) => {
+    try {
+      // Authenticate with Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Missing or invalid authorization header' });
+      }
+      
+      const cognitoUser = await authenticateRequest(authHeader);
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      const userId = cognitoUser.sub;
+      console.log(`🏆 Fetching challenges for user: ${userId}`);
+      const participations = await tradingChallengeService.getUserChallenges(userId);
+      res.json({ success: true, participations });
+    } catch (error) {
+      console.error('❌ Error fetching user challenges:', error);
+      res.status(500).json({ error: 'Failed to fetch user challenges' });
+    }
+  });
+
+  // Update participant stats (authenticated with Cognito)
+  app.post('/api/challenges/:challengeId/stats', async (req, res) => {
+    try {
+      const { challengeId } = req.params;
+      if (!challengeId || challengeId.length < 1) {
+        return res.status(400).json({ error: 'Invalid challenge ID' });
+      }
+
+      // Authenticate with Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Missing or invalid authorization header' });
+      }
+      
+      const cognitoUser = await authenticateRequest(authHeader);
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      // Validate body with Zod
+      const parseResult = challengeStatsSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: 'Invalid request body', details: parseResult.error.errors });
+      }
+
+      const stats = parseResult.data;
+      const userId = cognitoUser.sub;
+
+      console.log(`🏆 Updating stats for user ${userId} in challenge ${challengeId}`);
+      const success = await tradingChallengeService.updateParticipantStats(userId, challengeId, stats);
+      
+      if (success) {
+        res.json({ success: true, message: 'Stats updated' });
+      } else {
+        res.status(500).json({ error: 'Failed to update stats' });
+      }
+    } catch (error) {
+      console.error('❌ Error updating challenge stats:', error);
+      res.status(500).json({ error: 'Failed to update challenge stats' });
+    }
+  });
+
+  // Record a trade in challenge (authenticated with Cognito)
+  app.post('/api/challenges/:challengeId/trade', async (req, res) => {
+    try {
+      const { challengeId } = req.params;
+      if (!challengeId || challengeId.length < 1) {
+        return res.status(400).json({ error: 'Invalid challenge ID' });
+      }
+
+      // Authenticate with Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Missing or invalid authorization header' });
+      }
+      
+      const cognitoUser = await authenticateRequest(authHeader);
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      // Validate body with Zod
+      const parseResult = challengeTradeSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: 'Invalid request body', details: parseResult.error.errors });
+      }
+
+      const trade = parseResult.data;
+      const userId = cognitoUser.sub;
+
+      console.log(`🏆 Recording trade in challenge ${challengeId} for user ${userId}`);
+      const success = await tradingChallengeService.recordChallengeTrade({
+        ...trade,
+        userId,
+        challengeId
+      });
+      
+      if (success) {
+        res.json({ success: true, message: 'Trade recorded' });
+      } else {
+        res.status(500).json({ error: 'Failed to record trade' });
+      }
+    } catch (error) {
+      console.error('❌ Error recording challenge trade:', error);
+      res.status(500).json({ error: 'Failed to record trade' });
+    }
+  });
+
 
   // Relocate user trading journal data from one date to another
   // ✅ AWS DynamoDB ONLY (Firebase removed Dec 3, 2025)

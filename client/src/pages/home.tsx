@@ -4124,6 +4124,7 @@ ${
   // PAPER TRADING (DEMO TRADING) STATE - Like TradingView Practice Account
   // ============================================
   const [showPaperTradingModal, setShowPaperTradingModal] = useState(false);
+  const [showTradingChallengeModal, setShowTradingChallengeModal] = useState(false); // Trading Challenge Coming Soon modal
   const [hidePositionDetails, setHidePositionDetails] = useState(false); // Eye icon toggle
   const [swipedPositionId, setSwipedPositionId] = useState<string | null>(null);
   const swipeStartXRef = useRef<number>(0);
@@ -16476,6 +16477,16 @@ ${
                               <TrendingUp className="h-4 w-4 mr-1" />
                               Paper Trade
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setShowTradingChallengeModal(true)}
+                              className="h-7 w-7"
+                              data-testid="button-trading-challenge"
+                              title="Trading Challenge"
+                            >
+                              <Trophy className="h-4 w-4" />
+                            </Button>
                             <div className="h-7 px-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-300">
                               <Timer className="h-4 w-4 mr-1.5" />
                               {calculateTotalDuration(tradeHistoryData)}
@@ -17111,8 +17122,37 @@ ${
                 {/* End of Main Journal Content */}
                 {/* Ranking Tab Content - Mobile only - Empty placeholder */}
                 {mobileBottomTab === "ranking" && (
-                  <div className="md:hidden">
-                    {/* Empty ranking tab */}
+                  <div className="md:hidden p-4">
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-4">
+                        <Trophy className="h-10 w-10 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Trading Challenge</h3>
+                      <p className="text-slate-500 dark:text-slate-400 mb-4">Coming Soon</p>
+                      <div className="space-y-3 w-full max-w-xs">
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-left">
+                          <Users className="h-5 w-5 text-blue-500" />
+                          <div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Compete with Traders</p>
+                            <p className="text-xs text-gray-500">Join 7-day trading challenges</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-left">
+                          <BarChart3 className="h-5 w-5 text-green-500" />
+                          <div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Live P&L Tracking</p>
+                            <p className="text-xs text-gray-500">Real-time ranking based on your trades</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-left">
+                          <Trophy className="h-5 w-5 text-amber-500" />
+                          <div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Leaderboard Rankings</p>
+                            <p className="text-xs text-gray-500">See your position among all participants</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -19493,6 +19533,53 @@ ${
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Trading Challenge Coming Soon Modal */}
+        <Dialog open={showTradingChallengeModal} onOpenChange={setShowTradingChallengeModal}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <Trophy className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <DialogTitle className="text-xl font-bold text-center">Trading Challenge</DialogTitle>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Coming Soon
+              </p>
+            </DialogHeader>
+            <div className="py-4 space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <Users className="h-5 w-5 text-blue-500" />
+                <div>
+                  <p className="text-sm font-medium">Compete with Traders</p>
+                  <p className="text-xs text-gray-500">Join 7-day trading challenges</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-green-500" />
+                <div>
+                  <p className="text-sm font-medium">Live P&L Tracking</p>
+                  <p className="text-xs text-gray-500">Real-time ranking based on your trades</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                <div>
+                  <p className="text-sm font-medium">Leaderboard Rankings</p>
+                  <p className="text-xs text-gray-500">See your position among all participants</p>
+                </div>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowTradingChallengeModal(false)}
+              className="w-full"
+              data-testid="button-close-challenge-modal"
+            >
+              Got It
+            </Button>
           </DialogContent>
         </Dialog>
 
