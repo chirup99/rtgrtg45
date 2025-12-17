@@ -16445,7 +16445,9 @@ ${
                                 setSelectedIndicators([]);
                                 setTradeHistoryData([]);
                                 setTradingImages([]);
-                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
+                                setTradingDataByDate({});
+                                setPersonalHeatmapRevision(prev => prev + 1);
+                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - CLEARED cache, heatmap fetching fresh AWS data...`);
                               }}
                               data-testid="switch-demo-mode"
                               className="scale-75"

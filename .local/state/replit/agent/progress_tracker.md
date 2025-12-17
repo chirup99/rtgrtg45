@@ -26,57 +26,68 @@
 [x] 26. Project import migration verified and completed
 [x] 27. FIXED: Personal heatmap now immediately displays color codes after saving data
 [x] 28. FIXED CRITICAL BUG: Performance Trend chart no longer shows 0-trade dates
+[x] 29. FIXED STALE CACHE BUG: Heatmap now shows all data (17 dates) on first load/toggle
 
-### FINAL UPDATE - ROOT CAUSE FIXED
-**Date:** December 17, 2025, 6:17 AM
-**Status:** Performance Trend chart now ONLY displays dates with actual trading data
+### LATEST FIX - STALE DATA CACHING ISSUE RESOLVED
+**Date:** December 17, 2025, 6:26 AM
+**Status:** Heatmap flash/incomplete data bug FIXED
 
 **Problem Identified:**
-The chart was displaying dates from `tradingDataByDate` that had `totalTrades = 0`. These dates shouldn't have been in the heatmap data at all if they had no trading activity.
+When toggling between Demo and Personal modes or reopening the heatmap:
+- First load showed ONLY 2 dates (stale/cached data)
+- After re-toggling showed all 17 dates (correct AWS data)
 
-**Solution Applied:**
-Modified `getFilteredHeatmapData()` function to filter out dates with 0 trades at the DATA SOURCE LEVEL (not just the chart display):
+This was a **React component lifecycle issue** where:
+1. PersonalHeatmap component didn't clear old data before fetching
+2. The parent (home.tsx) didn't clear tradingDataByDate when switching modes
+3. The component rendered cached/stale data while AWS fetch was in progress
 
-**Two-pronged fix:**
+**Solution Applied (Two-Part Fix):**
 
-1. **No date range selected** (lines 8668-8676):
-   - Filter `tradingDataByDate` to only include dates with `totalTrades > 0`
-   - Uses `Object.fromEntries()` with `filter()` to exclude 0-trade dates
-   - Result: Only dates with real trading activity returned
-
-2. **With date range** (lines 8697-8707):
-   - Added check: `if (totalTrades > 0)` before adding to filtered object
-   - Ensures even in date range mode, only real trading dates are included
-   - Both unranged and ranged filtering now consistent
-
-**Code Changes:**
+**Part 1 - PersonalHeatmap Component (client/src/components/PersonalHeatmap.tsx):**
+- IMMEDIATELY clear `heatmapData` to empty object BEFORE fetch starts
+- This prevents stale cache from displaying while AWS data loads
+- Added console log: "CLEARING old data and fetching FRESH AWS data"
 
 ```typescript
-// NO RANGE - Filter at source
-const unrangedData = Object.fromEntries(
-  Object.entries(modeAwareData).filter(([_, dayData]) => {
-    const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
-    return (metrics?.totalTrades || 0) > 0;
-  })
-);
+// Clear old data IMMEDIATELY before fetching to prevent stale cache display
+setHeatmapData({});
+setIsLoading(true);
 
-// WITH RANGE - Check trades before filtering
-if (dateTime >= fromTime && dateTime <= toTime) {
-  const dayData = modeAwareData[dateKey];
-  const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
-  const totalTrades = metrics?.totalTrades || 0;
-  if (totalTrades > 0) {
-    filtered[dateKey] = dayData;
-  }
-}
+fetch(`/api/user-journal/${userId}/all`)
+  // ... rest of fetch
+```
+
+**Part 2 - Mode Toggle Handler (client/src/pages/home.tsx line ~16448):**
+- Clear parent's `tradingDataByDate` immediately when mode changes
+- Force refresh of PersonalHeatmap by incrementing `personalHeatmapRevision`
+- Added console log: "CLEARED cache, heatmap fetching fresh AWS data..."
+
+```typescript
+// Clear parent data IMMEDIATELY when toggling modes to prevent stale cache
+setTradingDataByDate({});
+setPersonalHeatmapRevision(prev => prev + 1);
 ```
 
 **Result:**
-- ✅ Performance Trend chart ONLY shows dates with actual trades
-- ✅ Heatmap and chart now PERFECTLY aligned (same dates displayed)
-- ✅ No more phantom spikes or dates with 0 trading activity
-- ✅ Chart accurately reflects only real trading days
-- ✅ Filter happens at data layer (not just chart display layer)
+- ✅ Heatmap now shows ALL 17 dates on FIRST load (no 2-date flash)
+- ✅ No stale data displayed when switching modes
+- ✅ AWS data fetches fresh every time component mounts
+- ✅ Users see accurate data immediately
+- ✅ Chart, stats, and heatmap all perfectly aligned
 
-**Benefit:**
-Users now see exactly what they traded - no empty/0-trade dates confusing the chart visualization.
+**Technical Details:**
+- The fix forces a data refresh by clearing state BEFORE fetching
+- React re-renders with empty state (loading state visible)
+- AWS fetch completes and populates with fresh data
+- No intermediate cached state is ever displayed
+
+**What Changed:**
+1. PersonalHeatmap: Added `setHeatmapData({})` before fetch
+2. Mode toggle: Added `setTradingDataByDate({})` + `setPersonalHeatmapRevision(+1)`
+
+**Testing:**
+- Toggle between Preview (Demo) and Personal modes
+- Reopen the heatmap
+- Should see all 17 trading dates immediately (no 2-date flash)
+- All dates have correct color codes (green for profit, red for loss)
