@@ -1189,20 +1189,20 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                 >
                   {month.name}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex gap-0.5 select-none">
+                <div className="flex gap-1">
+                  <div className="flex flex-col gap-0.5 select-none">
                     {dayLabels.map((label, index) => (
                       <div
                         key={index}
-                        className="w-3 h-3 flex items-center justify-center text-[8px] text-gray-500 dark:text-gray-500 select-none"
+                        className="w-5 h-3 flex items-center justify-center text-[8px] text-gray-500 dark:text-gray-500 select-none"
                       >
                         {label}
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-0.5 min-w-fit select-none">
+                  <div className="flex flex-col gap-0.5 min-w-fit select-none">
                     {month.dayRows.map((column, columnIndex) => (
-                      <div key={columnIndex} className="flex flex-col gap-0.5 select-none">
+                      <div key={columnIndex} className="flex gap-0.5 select-none">
                         {column.map((date, dateIndex) => {
                           if (!date) return <div key={dateIndex} className="w-3 h-3" />;
                           
