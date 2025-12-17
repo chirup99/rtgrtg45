@@ -8362,28 +8362,55 @@ ${
     dates: string[];
   } | null>(null);
 
-  const [magicBarItems, setMagicBarItems] = useState([
-    { id: 'pnl', label: 'P&L', checked: true },
-    { id: 'trend', label: 'Trend', checked: true },
-    { id: 'fomo', label: 'FOMO', checked: false },
-    { id: 'winRate', label: 'Win Rate', checked: false },
-    { id: 'streak', label: 'Streak', checked: false },
-    { id: 'overtrading', label: 'Overtrading', checked: false },
-    { id: 'planned', label: 'Planned', checked: false },
-    { id: 'topTags', label: 'Top Tags', checked: false },
-    { id: 'aiAnalysis', label: 'AI Analysis', checked: false },
-  ]);
+  // Stats customization state for purple panel
+  const [visibleStats, setVisibleStats] = useState({
+    pnl: true,
+    trend: true,
+    fomo: true,
+    winRate: true,
+    streak: true,
+    overtrading: false,
+    topTags: false,
+    aiAnalysis: false,
+    planned: false,
+  });
 
+  // Load Magic Bar preferences from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("magicBarItems");
+    const saved = localStorage.getItem("magicBarPrefs");
     if (saved) {
       try {
-        setMagicBarItems(JSON.parse(saved));
+        const prefs = JSON.parse(saved);
+        setVisibleStats(prefs);
       } catch (e) {
-        console.log("Could not load Magic Bar items");
+        console.log("Could not load Magic Bar preferences");
       }
     }
   }, []);
+  
+  // Refs for curved line connections from tag block to heatmap dates
+  const fomoButtonRef = useRef<HTMLButtonElement>(null);
+  const overtradingButtonRef = useRef<HTMLButtonElement>(null);
+  const plannedButtonRef = useRef<HTMLButtonElement>(null);
+  const heatmapContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Refs for share dialog curved line connections
+  const shareDialogFomoButtonRef = useRef<HTMLButtonElement>(null);
+  const shareDialogHeatmapContainerRef = useRef<HTMLDivElement>(null);
+  
+  // State to trigger re-render of curved lines during scroll
+  const [scrollTrigger, setScrollTrigger] = useState(0);
+  const [shareDialogScrollTrigger, setShareDialogScrollTrigger] = useState(0);
+  
+  // Effect to handle scroll updates for curved lines - ULTRA FAST VERSION
+  useEffect(() => {
+    if (!activeTagHighlight || (activeTagHighlight.tag !== 'fomo' && activeTagHighlight.tag !== 'overtrading' && activeTagHighlight.tag !== 'planned')) return;
+    
+    const heatmapWrapper = heatmapContainerRef.current;
+    if (!heatmapWrapper) return;
+    
+    // Find the actual scrollable element inside the heatmap component immediately
+    const scrollableElement = heatmapWrapper.querySelector('.overflow-x-auto');
     if (!scrollableElement) {
       // Retry after a tiny delay if not found
       const retryTimeout = setTimeout(() => {
@@ -16716,7 +16743,7 @@ ${
                                 {/* Header row with stats and menu */}
                                 <div className="flex justify-between items-center gap-2">
                                   <div className={`text-white flex-1 flex ${Object.values(visibleStats).filter(v => v).length === 1 ? 'justify-center' : 'justify-around'} items-stretch gap-2`}>
-                                    {magicBarItems.find(i => i.id === "pnl")?.checked && (
+                                    {visibleStats.pnl && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-total-pnl">
                                         <div className="text-[10px] opacity-80">P&L</div>
                                         <div className={`text-xs font-bold ${isProfitable ? 'text-green-200' : 'text-red-200'}`}>
@@ -16724,7 +16751,7 @@ ${
                                         </div>
                                       </div>
                                     )}
-                                    {magicBarItems.find(i => i.id === "trend")?.checked && (
+                                    {visibleStats.trend && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-trend">
                                         <div className="text-[10px] opacity-80">Trend</div>
                                         <svg width="40" height="16" className="mt-0.5">
@@ -16732,7 +16759,7 @@ ${
                                         </svg>
                                       </div>
                                     )}
-                                    {magicBarItems.find(i => i.id === "fomo")?.checked && (
+                                    {visibleStats.fomo && (
                                       <button 
                                         ref={fomoButtonRef}
                                         className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${
@@ -16746,19 +16773,19 @@ ${
                                         <div className="text-xs font-bold">{fomoTrades}</div>
                                       </button>
                                     )}
-                                    {magicBarItems.find(i => i.id === "winRate")?.checked && (
+                                    {visibleStats.winRate && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-success-rate">
                                         <div className="text-[10px] opacity-80">Win%</div>
                                         <div className="text-xs font-bold">{winRate.toFixed(0)}%</div>
                                       </div>
                                     )}
-                                    {magicBarItems.find(i => i.id === "streak")?.checked && (
+                                    {visibleStats.streak && (
                                       <div className="flex flex-col items-center justify-center" data-testid="stat-win-streak">
                                         <div className="text-[10px] opacity-80">Streak</div>
                                         <div className="text-xs font-bold">{maxWinStreak}</div>
                                       </div>
                                     )}
-                                    {magicBarItems.find(i => i.id === "overtrading")?.checked && (
+                                    {visibleStats.overtrading && (
                                       <button 
                                         ref={overtradingButtonRef}
                                         className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${
@@ -16772,7 +16799,7 @@ ${
                                         <div className="text-xs font-bold text-orange-200">{overTradingCount}</div>
                                       </button>
                                     )}
-                                    {magicBarItems.find(i => i.id === "planned")?.checked && (
+                                    {visibleStats.planned && (
                                       <button 
                                         ref={plannedButtonRef}
                                         className={`flex flex-col items-center justify-center hover-elevate active-elevate-2 rounded px-1 transition-all ${activeTagHighlight?.tag === 'planned' ? 'bg-white/30 ring-2 ring-white/50' : ''}`} 
@@ -16813,54 +16840,47 @@ ${
                                         {(() => {
                                           const selectedCount = Object.values(visibleStats).filter(v => v).length;
                                           const isAtLimit = selectedCount >= 6;
-                                          const handleCheckChange = (id: string, checked: boolean) => {
-                                            const updated = magicBarItems.map(item =>
-                                              item.id === id ? { ...item, checked } : item
-                                            );
-                                            setMagicBarItems(updated);
-                                            localStorage.setItem("magicBarItems", JSON.stringify(updated));
+                                          const handleCheckChange = (field: string, checked: boolean) => {
+                                            if (checked && isAtLimit) return;
+                                            const updated = {...visibleStats, [field]: checked}; setVisibleStats(updated); localStorage.setItem("magicBarPrefs", JSON.stringify(updated));
                                           };
-
-
-
-
                                           return (
                                             <div className="flex flex-col gap-2">
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "pnl")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "pnl")?.checked} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "pnl")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.pnl && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!visibleStats.pnl && isAtLimit} className="rounded" />
                                                 P&L
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "trend")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "trend")?.checked} onChange={(e) => handleCheckChange('trend', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "trend")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.trend && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.trend} onChange={(e) => handleCheckChange('trend', e.target.checked)} disabled={!visibleStats.trend && isAtLimit} className="rounded" />
                                                 Trend
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "fomo")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "fomo")?.checked} onChange={(e) => handleCheckChange('fomo', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "fomo")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.fomo && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.fomo} onChange={(e) => handleCheckChange('fomo', e.target.checked)} disabled={!visibleStats.fomo && isAtLimit} className="rounded" />
                                                 FOMO
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "winRate")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "winRate")?.checked} onChange={(e) => handleCheckChange('winRate', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "winRate")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.winRate && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.winRate} onChange={(e) => handleCheckChange('winRate', e.target.checked)} disabled={!visibleStats.winRate && isAtLimit} className="rounded" />
                                                 Win Rate
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "streak")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "streak")?.checked} onChange={(e) => handleCheckChange('streak', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "streak")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.streak && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.streak} onChange={(e) => handleCheckChange('streak', e.target.checked)} disabled={!visibleStats.streak && isAtLimit} className="rounded" />
                                                 Streak
                                               </label>
                                               <div className="border-t border-slate-700 my-1"></div>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "overtrading")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "overtrading")?.checked} onChange={(e) => handleCheckChange('overtrading', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "overtrading")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.overtrading && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => handleCheckChange('overtrading', e.target.checked)} disabled={!visibleStats.overtrading && isAtLimit} className="rounded" />
                                                 Overtrading
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "planned")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "planned")?.checked} onChange={(e) => handleCheckChange('planned', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "planned")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.planned && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.planned} onChange={(e) => handleCheckChange('planned', e.target.checked)} disabled={!visibleStats.planned && isAtLimit} className="rounded" />
                                                 Planned
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "topTags")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "topTags")?.checked} onChange={(e) => handleCheckChange('topTags', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "topTags")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.topTags && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.topTags} onChange={(e) => handleCheckChange('topTags', e.target.checked)} disabled={!visibleStats.topTags && isAtLimit} className="rounded" />
                                                 Top Tags
                                               </label>
-                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!magicBarItems.find(i => i.id === "aiAnalysis")?.checked && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
-                                                <input type="checkbox" checked={magicBarItems.find(i => i.id === "aiAnalysis")?.checked} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} disabled={!magicBarItems.find(i => i.id === "aiAnalysis")?.checked && isAtLimit} className="rounded" />
+                                              <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.aiAnalysis && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
+                                                <input type="checkbox" checked={visibleStats.aiAnalysis} onChange={(e) => handleCheckChange('aiAnalysis', e.target.checked)} disabled={!visibleStats.aiAnalysis && isAtLimit} className="rounded" />
                                                 AI Analysis
                                               </label>
                                             </div>
@@ -16873,7 +16893,7 @@ ${
                                 
 
                                 {/* Top Tags Block with Curved Lines */}
-                                {magicBarItems.find(i => i.id === "topTags")?.checked && topTags.length > 0 && (
+                                {visibleStats.topTags && topTags.length > 0 && (
                                   <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
                                     <div className="opacity-80 mb-1">Top Tags:</div>
                                     <div className="flex flex-wrap gap-1">
@@ -16894,7 +16914,7 @@ ${
                                 )}
                                 
                                 {/* AI Analysis Block - Static Text Only */}
-                                {magicBarItems.find(i => i.id === "aiAnalysis")?.checked && (
+                                {visibleStats.aiAnalysis && (
                                   <div className="bg-white/10 rounded px-2 py-1 text-xs text-white">
                                     <span className="opacity-80">AI Insight: </span>
                                     <span className="italic text-blue-200">
