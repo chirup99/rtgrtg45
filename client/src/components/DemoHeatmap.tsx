@@ -1365,7 +1365,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                 variant="destructive"
                 size="sm"
                 onClick={handleConfirmDelete}
-                disabled={!selectedDateForDelete || localStorage.getItem('currentUserId') !== 'c06ce90c-20a1-7033-d457-efac5a682529'}
+                disabled={!selectedDateForDelete}
                 className="h-6 px-2 text-[10px]"
                 data-testid="button-confirm-delete"
               >
@@ -1462,7 +1462,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                 variant="default"
                 size="sm"
                 onClick={handleSaveEdit}
-                disabled={selectedDatesForEdit.length !== 2 || localStorage.getItem('currentUserId') !== 'c06ce90c-20a1-7033-d457-efac5a682529'}
+                disabled={selectedDatesForEdit.length !== 2}
                 className="h-6 px-2 text-[10px]"
                 data-testid="button-save-edit"
               >
