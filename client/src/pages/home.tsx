@@ -21395,7 +21395,32 @@ ${
                   }`}
                   data-testid="mobile-tab-insight"
                 >
-                  <svg viewBox="0 0 40 24" className="h-5 w-10" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points={navSparklineData.points} stroke={mobileBottomTab === "insight" ? "currentColor" : (navSparklineData.trend === "up" ? "#22c55e" : navSparklineData.trend === "down" ? "#ef4444" : "currentColor")} strokeWidth={mobileBottomTab === "insight" ? "2.5" : "2"} strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <svg viewBox="0 0 24 16" className="h-5 w-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id={`navAreaGradient-${mobileBottomTab === "insight" ? "active" : navSparklineData.trend}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={mobileBottomTab === "insight" ? "currentColor" : (navSparklineData.trend === "up" ? "#22c55e" : navSparklineData.trend === "down" ? "#ef4444" : "#9ca3af")} stopOpacity="0.4" />
+                        <stop offset="100%" stopColor={mobileBottomTab === "insight" ? "currentColor" : (navSparklineData.trend === "up" ? "#22c55e" : navSparklineData.trend === "down" ? "#ef4444" : "#9ca3af")} stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    <polygon 
+                      points={`0,14 ${navSparklineData.points.split(' ').map((p, i) => {
+                        const [x, y] = p.split(',');
+                        return `${(parseFloat(x) / 40 * 22) + 1},${(parseFloat(y) / 24 * 12) + 1}`;
+                      }).join(' ')} 22,14`}
+                      fill={`url(#navAreaGradient-${mobileBottomTab === "insight" ? "active" : navSparklineData.trend})`}
+                    />
+                    <polyline 
+                      points={navSparklineData.points.split(' ').map(p => {
+                        const [x, y] = p.split(',');
+                        return `${(parseFloat(x) / 40 * 22) + 1},${(parseFloat(y) / 24 * 12) + 1}`;
+                      }).join(' ')}
+                      stroke={mobileBottomTab === "insight" ? "currentColor" : (navSparklineData.trend === "up" ? "#22c55e" : navSparklineData.trend === "down" ? "#ef4444" : "#9ca3af")} 
+                      strokeWidth={mobileBottomTab === "insight" ? "2" : "1.5"} 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      fill="none"
+                    />
+                  </svg>
                 </button>
 
                 {/* Paper Trade Tab */}
