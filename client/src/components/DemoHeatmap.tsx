@@ -100,6 +100,15 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
     console.log("👤 Current user email:", currentUser.email);
     console.log("🔒 Can edit demo trades:", canEditDemoTrades);
   }, [currentUser.email, canEditDemoTrades]);
+
+  // ✅ AUTO-FETCH: Trigger immediate data fetch on component mount
+  useEffect(() => {
+    console.log("🚀 DemoHeatmap mounted - triggering immediate auto-fetch on mount");
+    if (!tradingDataByDate) {
+      // Increment refreshKey to trigger the main fetch useEffect below
+      setRefreshKey(prev => prev + 1);
+    }
+  }, []); // Empty deps - runs ONCE on mount to ensure immediate fetch
   
   const rangeBadge1Ref = useRef<HTMLDivElement>(null);
   const rangeBadge2Ref = useRef<HTMLDivElement>(null);
