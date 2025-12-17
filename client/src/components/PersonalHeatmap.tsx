@@ -995,7 +995,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
                   {month.name}
                 </div>
                 <div className="flex gap-1">
-                  <div className="flex flex-col gap-1 select-none">
+                  <div className="flex flex-col gap-0.5 select-none">
                     {dayLabels.map((label, index) => (
                       <div
                         key={index}
@@ -1005,7 +1005,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
                       </div>
                     ))}
                   </div>
-                  <div className="flex flex-col gap-1 min-w-fit select-none">
+                  <div className="flex flex-col gap-0.5 min-w-fit select-none">
                     {month.dayRows.map((dayRow, dayIndex) => (
                       <div key={dayIndex} className="flex gap-0.5 select-none">
                         {dayRow.map((date, colIndex) => {
