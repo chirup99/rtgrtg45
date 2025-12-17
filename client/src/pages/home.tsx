@@ -6936,18 +6936,6 @@ ${
     }
   }, [journalChartData]);
 
-  // Auto-reload trading journal data when journal is opened
-  useEffect(() => {
-    if (activeTab === "trading-home") {
-      console.log("📊 [JOURNAL] Opening trading journal - auto-reloading data...");
-      if (journalChartMode === "search" && selectedJournalSymbol) {
-        fetchJournalChartData();
-      } else if (journalChartMode === "heatmap" && heatmapSelectedDate && heatmapSelectedSymbol) {
-        fetchHeatmapChartData(heatmapSelectedSymbol, heatmapSelectedDate);
-      }
-    }
-  }, [activeTab, journalChartMode, selectedJournalSymbol, heatmapSelectedDate, heatmapSelectedSymbol, fetchJournalChartData, fetchHeatmapChartData]);
-
   // 🔴 DISCONNECT: When user leaves journal tab, close SSE
   useEffect(() => {
     if (activeTab !== 'journal') {
