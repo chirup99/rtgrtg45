@@ -9745,6 +9745,10 @@ ${
           [selectedDateStr]: journalData,
         };
         setTradingDataByDate(allData);
+        
+        // ✅ CRITICAL FIX: Trigger heatmap refresh immediately after save
+        // This forces PersonalHeatmap to clear old data and fetch fresh, displaying new colors
+        setPersonalHeatmapRevision(prev => prev + 1);
 
         console.log(
           `✅ All trading data saved successfully for ${selectedDateStr}`,
