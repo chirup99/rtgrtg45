@@ -58,26 +58,34 @@
     - AWS DynamoDB tables ready
     - NeoFeed routes registered
     - WebSocket streaming active
+[x] 49. REPLACED Google Sign-In: Switched from AWS Cognito to Firebase (December 17, 2025, 7:46 PM)
+    - Created client/src/firebase.ts with Firebase Auth implementation
+    - Updated landing.tsx to use Firebase signInWithPopup for Google Sign-In
+    - Added Firebase environment variables (VITE_FIREBASE_*)
+    - Uses popup-based auth (no redirect issues)
 
-### GOOGLE SIGN-IN FIX
-**Date:** December 17, 2025, 7:13 PM
-**Status:** FIXED - Google OAuth flow now properly exchanges authorization code for tokens
+### FIREBASE GOOGLE SIGN-IN IMPLEMENTATION
+**Date:** December 17, 2025, 7:46 PM
+**Status:** IMPLEMENTED - Google Sign-In now uses Firebase Authentication
 
 **Problem:**
-The "Sign in with Google" button was not working. After clicking and authenticating with Google, users were redirected back but the sign-in would fail silently.
+AWS Cognito's Google Identity Provider was not configured in the User Pool, causing "Login option is not available" error.
 
-**Root Cause:**
-In AWS Amplify v6+, after the OAuth redirect comes back with `code=...`, the code was calling `fetchAuthSession()` directly without first completing the code-to-token exchange. This meant the hosted UI exchange never completed, and the session still reflected the pre-login state.
-
-**Solution Applied:**
-1. Added `exchangeCodeForSession()` function that calls `fetchAuthSession({ forceRefresh: true })` to complete the OAuth flow
-2. Updated `handleCognitoCallback()` to use the exchange function before reading tokens
-3. Enhanced error handling in landing.tsx with OAuth error parameter detection
-4. Added URL cleanup to remove OAuth parameters after processing
+**Solution:**
+Replaced AWS Cognito Google OAuth with Firebase Authentication:
+1. Created `client/src/firebase.ts` with Firebase Auth setup
+2. Implemented `signInWithGoogle()` using Firebase's `signInWithPopup`
+3. Updated `landing.tsx` to use Firebase for Google Sign-In
+4. Added Firebase environment variables
 
 **Files Modified:**
-- `client/src/cognito.ts` - Added exchangeCodeForSession(), updated handleCognitoCallback()
-- `client/src/pages/landing.tsx` - Enhanced OAuth callback handling with better error messages
+- `client/src/firebase.ts` - NEW FILE: Firebase authentication implementation
+- `client/src/pages/landing.tsx` - Updated to use Firebase signInWithGoogle
+
+**Benefits:**
+- Popup-based auth (no redirect flow issues)
+- Simpler configuration (no hosted UI required)
+- Firebase handles OAuth securely
 
 ### PERSONAL HEATMAP CHART DISPLAY FIX
 **Date:** December 17, 2025, 12:26 PM

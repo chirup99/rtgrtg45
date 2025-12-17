@@ -6,13 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   cognitoSignIn, 
   cognitoSignUp, 
-  cognitoSignInWithGoogle,
-  handleCognitoCallback,
   getCognitoToken,
   initializeCognito,
   cognitoForgotPassword,
   cognitoConfirmResetPassword
 } from "@/cognito";
+import { signInWithGoogle, initializeFirebase } from "@/firebase";
 
 export default function Landing() {
   const [isLogin, setIsLogin] = useState(true);
@@ -45,111 +44,59 @@ export default function Landing() {
 
   useEffect(() => {
     initializeCognito();
-    
-    const checkOAuthCallback = async () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasCode = urlParams.has('code');
-        const hasError = urlParams.has('error');
-        
-        // Handle OAuth error
-        if (hasError) {
-          const errorDesc = urlParams.get('error_description') || 'Authentication failed';
-          console.error('❌ OAuth error:', errorDesc);
-          toast({
-            title: "Sign-In Failed",
-            description: errorDesc,
-            variant: "destructive",
-          });
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-          setIsCheckingCallback(false);
-          return;
-        }
-        
-        if (hasCode) {
-          console.log('🔐 [Google OAuth] Callback detected with authorization code, processing...');
-          
-          // Process the OAuth callback - this exchanges the code for tokens
-          const user = await handleCognitoCallback();
-          
-          if (user) {
-            console.log('✅ [Google OAuth] User authenticated:', user.email);
-            
-            localStorage.setItem('currentUserId', user.userId);
-            localStorage.setItem('currentUserEmail', user.email);
-            localStorage.setItem('currentUserName', user.name);
-            
-            const token = await getCognitoToken();
-            if (token) {
-              try {
-                await fetch('/api/auth/cognito', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify({ name: user.name, email: user.email }),
-                });
-              } catch (err) {
-                console.warn('Backend sync failed, continuing...', err);
-              }
-            }
-            
-            console.log('✅ [Google OAuth] Sign-in successful, redirecting to app...');
-            // Clean up URL before redirect
-            window.history.replaceState({}, document.title, window.location.pathname);
-            window.location.href = '/';
-            return;
-          } else {
-            console.error('❌ [Google OAuth] Failed to get user from callback');
-            toast({
-              title: "Sign-In Failed",
-              description: "Could not complete Google sign-in. Please try again.",
-              variant: "destructive",
-            });
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        }
-      } catch (error: any) {
-        console.error('❌ [Google OAuth] Callback error:', error);
-        toast({
-          title: "Sign-In Error",
-          description: error.message || "An unexpected error occurred during sign-in.",
-          variant: "destructive",
-        });
-        // Clean up URL on error
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } finally {
-        setIsCheckingCallback(false);
-      }
-    };
-    
-    checkOAuthCallback();
+    initializeFirebase();
+    setIsCheckingCallback(false);
   }, []);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      console.log('🔐 Initiating Google OAuth via AWS Cognito...');
-      await cognitoSignInWithGoogle();
+      console.log('Starting Google Sign-In with Firebase...');
+      const user = await signInWithGoogle();
+      
+      console.log('Google Sign-In successful:', user.email);
+      
+      localStorage.setItem('currentUserId', user.userId);
+      localStorage.setItem('currentUserEmail', user.email);
+      localStorage.setItem('currentUserName', user.name);
+      if (user.photoURL) {
+        localStorage.setItem('currentUserPhoto', user.photoURL);
+      }
+      
+      try {
+        await fetch('/api/auth/cognito', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: user.name, 
+            email: user.email,
+            userId: user.userId,
+            provider: 'google'
+          }),
+        });
+      } catch (err) {
+        console.warn('Backend sync failed, continuing...', err);
+      }
+      
+      toast({
+        title: "Welcome!",
+        description: `Signed in as ${user.email}`,
+      });
+      
+      window.location.href = '/';
     } catch (error: any) {
       console.error("Google sign-in error:", error);
       
-      if (error.message?.includes('not configured')) {
-        toast({
-          title: "Configuration Error",
-          description: "Google Sign-In is not configured. Please set up AWS Cognito with Google federation.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sign-In Error",
-          description: error.message || "An unexpected error occurred during Google sign-in.",
-          variant: "destructive",
-        });
+      if (error.message === 'Sign-in was cancelled') {
+        setIsGoogleLoading(false);
+        return;
       }
+      
+      toast({
+        title: "Sign-In Error",
+        description: error.message || "An unexpected error occurred during Google sign-in.",
+        variant: "destructive",
+      });
       setIsGoogleLoading(false);
     }
   };
