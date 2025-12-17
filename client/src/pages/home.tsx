@@ -16475,9 +16475,9 @@ ${
                               onClick={saveAllTradingData}
                               size="sm"
                               variant="outline"
-                              disabled={isDemoMode}
+                              disabled={isDemoMode || localStorage.getItem('currentUserEmail') !== 'chiranjeevi.perala99@gmail.com'}
                               className={`h-5 px-2 text-[10px] border-gray-300 dark:border-gray-700 ${
-                                isDemoMode 
+                                (isDemoMode || localStorage.getItem('currentUserEmail') !== 'chiranjeevi.perala99@gmail.com')
                                   ? 'text-gray-400 dark:text-gray-500 opacity-50 cursor-not-allowed' 
                                   : 'text-gray-600 dark:text-gray-400'
                               }`}
