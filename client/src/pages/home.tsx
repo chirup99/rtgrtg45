@@ -5468,6 +5468,51 @@ ${
     return activeData;
   }, [isDemoMode, demoTradingDataByDate, personalTradingDataByDate, personalHeatmapRevision]);
   
+  // Mini sparkline data for navigation bar icon - shows performance trend
+  const navSparklineData = useMemo(() => {
+    // Get data source - prefer personal, fallback to demo
+    const personalHasData = Object.keys(personalTradingDataByDate).length > 0;
+    const dataSource = personalHasData ? personalTradingDataByDate : demoTradingDataByDate;
+    
+    if (Object.keys(dataSource).length === 0) {
+      return { points: "0,12 20,12 40,12", hasData: false, trend: "neutral" };
+    }
+    
+    // Sort dates and calculate cumulative P/L
+    const sortedDates = Object.keys(dataSource).sort();
+    const recentDates = sortedDates.slice(-7); // Last 7 data points
+    
+    let cumulativePnL = 0;
+    const pnlValues: number[] = [];
+    
+    recentDates.forEach(date => {
+      const dayData = dataSource[date];
+      const dailyPnL = dayData?.totalPnL || dayData?.pnl || 0;
+      cumulativePnL += dailyPnL;
+      pnlValues.push(cumulativePnL);
+    });
+    
+    if (pnlValues.length === 0) {
+      return { points: "0,12 20,12 40,12", hasData: false, trend: "neutral" };
+    }
+    
+    // Normalize to SVG coordinates (width: 40, height: 24)
+    const minVal = Math.min(...pnlValues);
+    const maxVal = Math.max(...pnlValues);
+    const range = maxVal - minVal || 1;
+    
+    const points = pnlValues.map((val, idx) => {
+      const x = (idx / (pnlValues.length - 1 || 1)) * 40;
+      const y = 20 - ((val - minVal) / range) * 16; // 4px padding top/bottom
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    
+    const trend = pnlValues[pnlValues.length - 1] >= pnlValues[0] ? "up" : "down";
+    
+    return { points, hasData: true, trend };
+  }, [personalTradingDataByDate, demoTradingDataByDate]);
+
+  
   const setTradingDataByDate = isDemoMode ? setDemoTradingDataByDate : setPersonalTradingDataByDate;
   const getActiveStorageKey = () => isDemoMode ? "demoTradingDataByDate" : "personalTradingDataByDate";
 
@@ -21350,7 +21395,7 @@ ${
                   }`}
                   data-testid="mobile-tab-insight"
                 >
-                  <TrendingUp className={`h-5 w-5 ${mobileBottomTab === "insight" ? "stroke-[2.5]" : ""}`} />
+                  <svg viewBox="0 0 40 24" className="h-5 w-10" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points={navSparklineData.points} stroke={mobileBottomTab === "insight" ? "currentColor" : (navSparklineData.trend === "up" ? "#22c55e" : navSparklineData.trend === "down" ? "#ef4444" : "currentColor")} strokeWidth={mobileBottomTab === "insight" ? "2.5" : "2"} strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
 
                 {/* Paper Trade Tab */}
