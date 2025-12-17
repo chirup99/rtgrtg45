@@ -37,6 +37,7 @@ import { DemoHeatmap } from "@/components/DemoHeatmap";
 import { PersonalHeatmap } from "@/components/PersonalHeatmap";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAngelOneAutoconnect } from "@/hooks/useAngelOneAutoconnect";
 import { cognitoSignOut, getCognitoToken, sendEmailVerificationCode, confirmEmailVerification, checkEmailVerified } from "@/cognito";
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, IPriceLine, createSeriesMarkers } from 'lightweight-charts';
 import { ArrowLeft, Banknote, Clock, ExternalLink, Loader2, LogOut, Newspaper, RefreshCw, Save, TrendingUp } from "lucide-react";
@@ -1618,7 +1619,7 @@ function MicroAnimationsDemoPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               <div className="flex gap-2">
                 <Button
                   onClick={() => setTradeType("buy")}
@@ -1833,6 +1834,9 @@ const getFullApiUrl = (path: string): string => {
 
 export default function Home() {
   const [location, setLocation] = useLocation();
+  
+  // AUTO-CONNECT: Angel One API - Automatically connect when app loads
+  useAngelOneAutoconnect();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("trading-home");
   const [showTutorOverlay, setShowTutorOverlay] = useState(false);
@@ -4866,6 +4870,9 @@ ${
     });
     
     console.log("✅ Paper trades recorded to journal summary and heatmap");
+    
+    // 🔄 Trigger PersonalHeatmap refresh to immediately display colors after save
+    setPersonalHeatmapRevision(prev => prev + 1);
   };
 
   // Exit all open positions at once
@@ -5261,6 +5268,23 @@ ${
   // Loading state for heatmap data
   const [isLoadingHeatmapData, setIsLoadingHeatmapData] = useState(false);
   
+
+  // ✅ CLEANUP: Remove stale localStorage data on startup to prevent state mismatches
+  // This ensures fresh data is always fetched from AWS DynamoDB
+  useEffect(() => {
+    console.log("🧹 Startup cleanup: Removing stale localStorage trading data caches...");
+    
+    // Remove stale personal trading data cache - forces fresh fetch from AWS
+    localStorage.removeItem("personalTradingDataByDate");
+    
+    // Remove stale calendar data cache
+    localStorage.removeItem("calendarData");
+    
+    // Remove stale heatmap data cache
+    localStorage.removeItem("heatmapDataCache");
+    
+    console.log("✅ Stale localStorage caches cleared - will fetch fresh data from AWS");
+  }, []); // Empty dependency array = runs once on mount
   // Loading state for date selection
   const [isDateLoading, setIsDateLoading] = useState(false);
 
@@ -5433,30 +5457,91 @@ ${
   const [selectedOptionExpiry, setSelectedOptionExpiry] = useState<string>("");
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<string>("NIFTY");
   const [selectedOptionExpiryDate, setSelectedOptionExpiryDate] = useState<string>("");
-  // Get expiry dates from optionChainData
-  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
-    if (!optionChainData?.expiries || optionChainData.expiries.length === 0) {
-      return [];
+  
+  // ✨ OPTIMIZED FILTERING LOGIC
+  // Normalize date to YYYY-MM-DD format
+  const normalizeExpiryDate = (date: any): string | null => {
+    if (!date) return null;
+    if (typeof date === 'string') {
+      try {
+        return new Date(date).toISOString().split('T')[0];
+      } catch {
+        return null;
+      }
     }
+    return null;
+  };
+
+  // Filter options by selected expiry (if expiry selected, otherwise return all)
+  const filterOptionsByExpiry = (options: any[], selectedExpiry: string | null): any[] => {
+    if (!options) return [];
+    if (!selectedExpiry) return options; // No filter = show all
+    return options.filter(option => {
+      if (!option.expiry) return true;
+      const optionExpiry = normalizeExpiryDate(option.expiry);
+      return optionExpiry === selectedExpiry;
+    });
+  };
+
+  // Get effective selected expiry (user choice or first available)
+  const getEffectiveExpiry = (): string | null => {
+    if (selectedOptionExpiryDate) return selectedOptionExpiryDate;
+    const allExpiries = getOptionExpiryDates(selectedOptionIndex);
+    return allExpiries.length > 0 ? allExpiries[0].value : null;
+  };
+
+  // Get expiry dates - extract from actual options data or backend response
+  const getOptionExpiryDates = (index?: string): Array<{value: string, label: string}> => {
+    if (!optionChainData) return [];
+    
+    // First try: backend expiryDates field
+    let expiries = optionChainData?.expiryDates || optionChainData?.expiries || [];
+    
+    // Second try: extract from actual calls/puts if backend didn't provide dates
+    if (!expiries || expiries.length === 0) {
+      const allOptions = [...(optionChainData?.calls || []), ...(optionChainData?.puts || [])];
+      const uniqueExpiries = new Set(
+        allOptions
+          .map((opt: any) => opt.expiry)
+          .filter((exp: any) => exp && typeof exp === 'string')
+      );
+      expiries = Array.from(uniqueExpiries).sort();
+      console.log('📅 Extracted expiry dates from options:', expiries);
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
-      const expiryDate = new Date(expiry);
-      expiryDate.setHours(0, 0, 0, 0);
-      return expiryDate >= today;
+    
+    // Filter future dates
+    const futureExpiries = expiries.filter((expiry: any) => {
+      try {
+        const expiryDate = new Date(expiry);
+        expiryDate.setHours(0, 0, 0, 0);
+        return expiryDate >= today;
+      } catch {
+        return false;
+      }
     });
-    return futureExpiries.slice(0, 4).map((expiry: string) => ({
-      value: expiry,
-      label: new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    
+    // Map to display format
+    return futureExpiries.slice(0, 10).map((expiry: any) => ({
+      value: String(expiry),
+      label: (() => {
+        try {
+          return new Date(expiry).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        } catch {
+          return String(expiry);
+        }
+      })()
     }));
   };
 
   // Auto-select first expiry date when option chain data loads (mobile fix)
   useEffect(() => {
-    if (optionChainData?.expiries && optionChainData.expiries.length > 0 && !selectedOptionExpiryDate) {
+    if (optionChainData?.expiryDates && optionChainData.expiryDates.length > 0 && !selectedOptionExpiryDate) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const futureExpiries = optionChainData.expiries.filter((expiry: string) => {
+      const futureExpiries = optionChainData.expiryDates.filter((expiry: string) => {
         const expiryDate = new Date(expiry);
         expiryDate.setHours(0, 0, 0, 0);
         return expiryDate >= today;
@@ -5534,7 +5619,7 @@ ${
   };
   
   // Fetch option chain data
-  const fetchOptionChainData = async (indexToFetch?: string, expiryToFetch?: string) => {
+    const fetchOptionChainData = async (indexToFetch?: string, expiryToFetch?: string) => {
     const underlying = getUnderlyingSymbol(indexToFetch);
     if (!underlying) return;
     
@@ -5564,9 +5649,12 @@ ${
       if (data.success && data.data) {
         setOptionChainData(data.data);
         console.log('✅ [OPTIONS] Option chain loaded:', data.data.calls?.length || 0, 'calls,', data.data.puts?.length || 0, 'puts');
+        
         // Auto-select first expiry if not already selected
-        if (data.data.expiryDates && data.data.expiryDates.length > 0) {
-          const firstExpiry = data.data.expiryDates[0];
+        // Try expiryDates first (backend field), then expiries (fallback)
+        const expiries = data.data.expiryDates || data.data.expiries || [];
+        if (expiries && expiries.length > 0) {
+          const firstExpiry = expiries[0];
           if (!selectedOptionExpiryDate) {
             setSelectedOptionExpiryDate(firstExpiry);
             console.log('✅ [OPTIONS] Auto-selected first expiry:', firstExpiry);
@@ -8509,8 +8597,21 @@ ${
   });
   
   // ✅ NEW: Callbacks to receive heatmap data and date range
+  // ✅ FIXED: Now updates the correct state (demo OR personal) based on isDemoMode
   const handleHeatmapDataUpdate = (data: Record<string, any>) => {
-    console.log("📊 Received heatmap data update:", Object.keys(data).length, "dates");
+    console.log(`📊 Received heatmap data update: ${Object.keys(data).length} dates [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
+    
+    // ✅ CRITICAL FIX: Update the correct state based on current mode
+    // This prevents demo and personal data from merging
+    if (isDemoMode) {
+      console.log("📊 Updating DEMO heatmap state");
+      setDemoTradingDataByDate(data);
+    } else {
+      console.log("👤 Updating PERSONAL heatmap state");
+      setPersonalTradingDataByDate(data);
+    }
+    
+    // Also update the legacy shared state for backward compatibility
     setHeatmapDataFromComponent(data);
     
     // ✅ AUTO-SWITCH TO DEMO MODE: Only for new users on initial load (not after manual toggle)
@@ -8558,22 +8659,33 @@ ${
   };
   
   // ✅ NEW: Filter heatmap data based on selected date range
+  // ✅ FIXED: Now uses tradingDataByDate (mode-aware) instead of shared heatmapDataFromComponent
   const getFilteredHeatmapData = () => {
-    const totalDates = Object.keys(heatmapDataFromComponent).length;
+    // ✅ CRITICAL FIX: Use tradingDataByDate which correctly switches between demo and personal data
+    const modeAwareData = tradingDataByDate;
+    const totalDates = Object.keys(modeAwareData).length;
     
     if (!selectedDateRange) {
       // No range selected - return all data
-      console.log(`🔍 No date range selected - returning all ${totalDates} dates`);
-      return heatmapDataFromComponent;
+      // No range selected - return all data with actual trades
+      const unrangedData = Object.fromEntries(
+        Object.entries(modeAwareData).filter(([_, dayData]) => {
+          const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+          return (metrics?.totalTrades || 0) > 0;
+        })
+      );
+      const actualDates = Object.keys(unrangedData).length;
+      console.log(`🔍 No date range selected - returning ${actualDates} dates with trades (from ${totalDates} total) [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
+      return unrangedData;
     }
     
     const filtered: Record<string, any> = {};
     const fromTime = selectedDateRange.from.getTime();
     const toTime = selectedDateRange.to.getTime();
     
-    console.log(`🔍 Filtering ${totalDates} dates by range: ${selectedDateRange.from.toISOString().slice(0, 10)} to ${selectedDateRange.to.toISOString().slice(0, 10)}`);
+    console.log(`🔍 Filtering ${totalDates} dates by range: ${selectedDateRange.from.toISOString().slice(0, 10)} to ${selectedDateRange.to.toISOString().slice(0, 10)} [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
     
-    Object.keys(heatmapDataFromComponent).forEach(dateKey => {
+    Object.keys(modeAwareData).forEach(dateKey => {
       // Parse date key (expecting YYYY-MM-DD format)
       const dateTime = new Date(dateKey).getTime();
       
@@ -8583,16 +8695,16 @@ ${
       }
       
       if (dateTime >= fromTime && dateTime <= toTime) {
-        filtered[dateKey] = heatmapDataFromComponent[dateKey];
+        filtered[dateKey] = modeAwareData[dateKey];
       }
     });
     
     const filteredCount = Object.keys(filtered).length;
-    console.log(`🔍 Filtered heatmap data: ${filteredCount} dates (from ${totalDates} total)`);
+    console.log(`🔍 Filtered heatmap data: ${filteredCount} dates (from ${totalDates} total) [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
     
     if (filteredCount === 0 && totalDates > 0) {
       console.warn(`⚠️ WARNING: Filtering dropped all ${totalDates} entries! Check date key format compatibility.`);
-      console.log('Sample keys:', Object.keys(heatmapDataFromComponent).slice(0, 5));
+      console.log('Sample keys:', Object.keys(modeAwareData).slice(0, 5));
     }
     
     return filtered;
@@ -10859,7 +10971,7 @@ ${
                         <div className="bg-slate-800 rounded-2xl p-4">
                           <h3 className="text-white text-lg font-bold mb-4">Saved Podcast</h3>
 
-                          <div className="space-y-3">
+                          <div className="space-y-1.5">
                             {/* Podcast Item 1 */}
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -12037,7 +12149,7 @@ ${
                                   <CheckCircle className="h-4 w-4" />
                                   <span>Verification code sent to your email</span>
                                 </div>
-                                <div className="space-y-3">
+                                <div className="space-y-1.5">
                                   <Input
                                     type="text"
                                     inputMode="numeric"
@@ -12307,7 +12419,7 @@ ${
                         <div className="max-w-5xl mx-auto mt-4 animate-in slide-in-from-top-4 duration-300 md:block hidden">
                           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
                             {searchResults ? (
-                              <div className="space-y-3">
+                              <div className="space-y-1.5">
                                 <div className="flex items-center gap-2 pb-3 border-b border-transparent">
                                   {searchResults.includes("[CHART:WATCHLIST]") ? (
                                     <>
@@ -12952,7 +13064,7 @@ ${
                                                   })()}
                                                 </div>
 
-                                                <div className="space-y-3">
+                                                <div className="space-y-1.5">
                                                   {isWatchlistQuarterlyLoading ? (
                                                     <div className="flex items-center justify-center py-8">
                                                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -13787,7 +13899,7 @@ ${
                                   <div className="text-gray-300 whitespace-pre-wrap leading-tight text-xs">
                                     {searchResults.includes("[CHART:WATCHLIST]") ? (
                                       // Mobile Watchlist Layout
-                                      <div className="space-y-3">
+                                      <div className="space-y-1.5">
                                         {/* NIFTY 50 Chart */}
                                         <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
                                           <div className="flex items-center justify-between mb-2">
@@ -14440,7 +14552,7 @@ ${
                                     className="w-80 p-3"
                                     align="start"
                                   >
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex gap-1.5">
                                         <Input
                                           placeholder={
@@ -15360,7 +15472,7 @@ ${
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 p-3">
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">
                                           Daily Life Factors
@@ -15480,7 +15592,7 @@ ${
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 p-3">
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">
                                           Indicator & Timeframe Tracker
@@ -15561,7 +15673,7 @@ ${
                                               <DialogHeader>
                                                 <DialogTitle>Custom Timeframe</DialogTitle>
                                               </DialogHeader>
-                                              <div className="space-y-3">
+                                              <div className="space-y-1.5">
                                                 <input
                                                   type="text"
                                                   placeholder="e.g., 2h, 4h, 3d, 1w"
@@ -15664,7 +15776,7 @@ ${
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 p-3">
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between">
                                         <h4 className="font-medium text-sm">
                                           Trading Psychology & Strategy Tags
@@ -16370,6 +16482,7 @@ ${
                               }}
                               onRangeChange={handleDateRangeChange}
                               highlightedDates={activeTagHighlight}
+                              refreshTrigger={personalHeatmapRevision}
                               onSelectDateForHeatmap={(symbol, date) => {
                                 console.log(`📊 [HOME] Switching to heatmap mode - Symbol: ${symbol}, Date: ${date}`);
                                 setJournalChartMode('heatmap');
@@ -16384,6 +16497,7 @@ ${
                               onDataUpdate={handleHeatmapDataUpdate}
                               onRangeChange={handleDateRangeChange}
                               highlightedDates={activeTagHighlight}
+                              refreshTrigger={personalHeatmapRevision}
                             />
                           )}
                         </div>
@@ -17069,6 +17183,7 @@ ${
 
                                 // ✅ NEW: Convert filtered heatmap data to daily chart data format
                                 const chartData = allDates.map(
+                  
                                   (dateStr, idx) => {
                                     const date = new Date(dateStr);
                                     const dayData = filteredHeatmapData[dateStr];
@@ -17096,7 +17211,7 @@ ${
                                       ),
                                     };
                                   },
-                                );
+                                ).filter((item) => item.trades > 0);
 
                                 // Find peak value for indicator
                                 const peakData = chartData.reduce(
@@ -17909,7 +18024,7 @@ ${
                                     <h4 className="text-lg font-semibold mb-4">
                                       📈 Performance Insights
                                     </h4>
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       {disciplineInsights.length > 0 ? (
                                         disciplineInsights
                                           .slice(0, 4)
@@ -17957,7 +18072,7 @@ ${
                                     <h4 className="text-lg font-semibold mb-4">
                                       🎯 Professional Tips
                                     </h4>
-                                    <div className="space-y-3">
+                                    <div className="space-y-1.5">
                                       {recommendations.map((rec, idx) => (
                                         <div
                                           key={idx}
@@ -18142,7 +18257,7 @@ ${
 
                 <div className="border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-900/30 p-3 mb-3">
                   {isBuildMode ? (
-                    <div className="space-y-3">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-xs font-medium text-slate-700 dark:text-slate-300">
                           Build Mode - Select text, click +, X to delete
@@ -20304,11 +20419,11 @@ ${
 
             
             {/* Mobile Header */}
-            <div className="md:hidden px-6 pt-8 pb-4">
-              <h2 className="text-2xl font-bold text-white mb-4">Option Chain</h2>
+            <div className="md:hidden px-4 pt-1.5 pb-1.5">
+              <h2 className="text-base font-semibold text-white mb-1">Option Chain</h2>
               
               {/* Controls */}
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {/* Index and Expiry Row */}
                 <div className="flex gap-2">
                   <select
@@ -20326,14 +20441,16 @@ ${
                     onChange={(e) => {
                       const newExpiry = e.target.value;
                       if (newExpiry) {
-                        setSelectedOptionExpiryDate(newExpiry);
+                        setSelectedOptionExpiryDate(newExpiry); fetchOptionChainData(selectedOptionIndex, newExpiry);
                       }
                     }}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
                     data-testid="select-option-expiry-date-mobile"
                   >
-                    {getOptionExpiryDates(selectedOptionIndex).length === 0 ? (
-                      <option value="">Loading...</option>
+                    {optionChainLoading ? (
+                      <option value="">Loading expiry dates...</option>
+                    ) : getOptionExpiryDates(selectedOptionIndex).length === 0 ? (
+                      <option value="">No dates available</option>
                     ) : (
                       getOptionExpiryDates(selectedOptionIndex).map((date) => (
                         <option key={date.value} value={date.value}>
@@ -20345,7 +20462,7 @@ ${
                 </div>
                 
                 {/* Spot Price */}
-                <div className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2.5">
+                <div className="flex items-center justify-between bg-gray-800 rounded-lg px-2.5 py-1.5">
                   <span className="text-gray-400 text-sm">Spot Price:</span>
                   <span className="text-green-400 font-semibold text-lg" data-testid="text-option-spot-price-mobile">
                     ₹{(optionChainData?.spotPrice || 0)?.toLocaleString() || "-"}
@@ -20381,8 +20498,7 @@ ${
                   value={selectedOptionExpiryDate || (getOptionExpiryDates(selectedOptionIndex)[0]?.value || "")}
                   onChange={(e) => {
                     const newExpiry = e.target.value;
-                    setSelectedOptionExpiryDate(newExpiry);
-                    fetchOptionChainData(selectedOptionIndex, newExpiry);
+                    setSelectedOptionExpiryDate(newExpiry); fetchOptionChainData(selectedOptionIndex, newExpiry);
                   }}
                   className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                   data-testid="select-option-expiry-date-desktop"
@@ -20397,7 +20513,7 @@ ${
             </div>
             
             {/* Content Area */}
-            <div className="md:hidden px-6 pb-6 overflow-y-auto max-h-[calc(100vh-300px)]">
+            <div className="md:hidden px-3 pb-3 overflow-y-auto max-h-[calc(100vh-300px)]">
               {optionChainLoading && (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400 mx-auto mb-3"></div>
@@ -20407,33 +20523,13 @@ ${
               
               {!optionChainLoading && optionChainData && (() => {
                 const getOptionSymbols = () => {
-                  if (!optionChainData?.calls || !optionChainData?.puts) {
-                    return { calls: [], puts: [] };
-                  }
+                  // While loading, return empty; after loading, use actual data
+                  const calls = optionChainData?.calls || [];
+                  const puts = optionChainData?.puts || [];
                   
-                  const formatExpiryDate = (date: any) => {
-                    if (!date) return null;
-                    if (typeof date === 'string') {
-                      const d = new Date(date);
-                      return d.toISOString().split('T')[0];
-                    }
-                    return null;
-                  };
-                  
-                  const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
-                  const selectedExpiryFormatted = formatExpiryDate(effectiveExpiryDate);
-                  
-                  const filteredCalls = optionChainData.calls.filter((call: any) => {
-                    if (!call.expiry) return true;
-                    const callExpiryFormatted = formatExpiryDate(call.expiry);
-                    return callExpiryFormatted === selectedExpiryFormatted;
-                  });
-                  
-                  const filteredPuts = optionChainData.puts.filter((put: any) => {
-                    if (!put.expiry) return true;
-                    const putExpiryFormatted = formatExpiryDate(put.expiry);
-                    return putExpiryFormatted === selectedExpiryFormatted;
-                  });
+                  const effectiveExpiry = normalizeExpiryDate(getEffectiveExpiry());
+                  const filteredCalls = filterOptionsByExpiry(calls, effectiveExpiry);
+                  const filteredPuts = filterOptionsByExpiry(puts, effectiveExpiry);
                   
                   return { calls: filteredCalls, puts: filteredPuts };
                 };
@@ -20641,33 +20737,13 @@ ${
               
               {!optionChainLoading && optionChainData && (() => {
                 const getOptionSymbols = () => {
-                  if (!optionChainData?.calls || !optionChainData?.puts) {
-                    return { calls: [], puts: [] };
-                  }
+                  // While loading, return empty; after loading, use actual data
+                  const calls = optionChainData?.calls || [];
+                  const puts = optionChainData?.puts || [];
                   
-                  const formatExpiryDate = (date: any) => {
-                    if (!date) return null;
-                    if (typeof date === 'string') {
-                      const d = new Date(date);
-                      return d.toISOString().split('T')[0];
-                    }
-                    return null;
-                  };
-                  
-                  const effectiveExpiryDate = selectedOptionExpiryDate || getOptionExpiryDates(selectedOptionIndex)[0]?.value;
-                  const selectedExpiryFormatted = formatExpiryDate(effectiveExpiryDate);
-                  
-                  const filteredCalls = optionChainData.calls.filter((call: any) => {
-                    if (!call.expiry) return true;
-                    const callExpiryFormatted = formatExpiryDate(call.expiry);
-                    return callExpiryFormatted === selectedExpiryFormatted;
-                  });
-                  
-                  const filteredPuts = optionChainData.puts.filter((put: any) => {
-                    if (!put.expiry) return true;
-                    const putExpiryFormatted = formatExpiryDate(put.expiry);
-                    return putExpiryFormatted === selectedExpiryFormatted;
-                  });
+                  const effectiveExpiry = normalizeExpiryDate(getEffectiveExpiry());
+                  const filteredCalls = filterOptionsByExpiry(calls, effectiveExpiry);
+                  const filteredPuts = filterOptionsByExpiry(puts, effectiveExpiry);
                   
                   return { calls: filteredCalls, puts: filteredPuts };
                 };

@@ -8667,8 +8667,15 @@ ${
     
     if (!selectedDateRange) {
       // No range selected - return all data
-      console.log(`🔍 No date range selected - returning all ${totalDates} dates [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
-      return modeAwareData;
+      // No range selected - return all data with actual trades
+      const unrangedData = Object.fromEntries(
+        Object.entries(modeAwareData).filter(([_, dayData]) => {
+          const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+          return (metrics?.totalTrades || 0) > 0;
+        })
+      );
+      const actualDates = Object.keys(unrangedData).length;
+      return unrangedData;
     }
     
     const filtered: Record<string, any> = {};
@@ -8687,7 +8694,11 @@ ${
       }
       
       if (dateTime >= fromTime && dateTime <= toTime) {
-        filtered[dateKey] = modeAwareData[dateKey];
+        const dayData = modeAwareData[dateKey];
+        const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+        if ((metrics?.totalTrades || 0) > 0) {
+          filtered[dateKey] = dayData;
+        }
       }
     });
     

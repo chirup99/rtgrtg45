@@ -27,44 +27,56 @@
 [x] 27. FIXED: Personal heatmap now immediately displays color codes after saving data
 [x] 28. FIXED CRITICAL BUG: Performance Trend chart no longer shows 0-trade dates
 
-### LATEST UPDATE
-**Date:** December 17, 2025, 6:09 AM
-**Status:** Fixed Performance Trend chart displaying 0-trade dates
+### FINAL UPDATE - ROOT CAUSE FIXED
+**Date:** December 17, 2025, 6:17 AM
+**Status:** Performance Trend chart now ONLY displays dates with actual trading data
 
-**Critical Bug Found & Fixed:**
-The Performance Trend line chart was displaying ALL dates from `tradingDataByDate`, including dates with 0 trades and no actual trading activity. This created phantom spikes on the chart.
+**Problem Identified:**
+The chart was displaying dates from `tradingDataByDate` that had `totalTrades = 0`. These dates shouldn't have been in the heatmap data at all if they had no trading activity.
 
-**Root Cause:** 
-- `chartData` was mapping `allDates` without filtering
-- Dates with `totalTrades = 0` were still being plotted
-- No validation to ensure only real trading data was shown
+**Solution Applied:**
+Modified `getFilteredHeatmapData()` function to filter out dates with 0 trades at the DATA SOURCE LEVEL (not just the chart display):
 
-**The Fix Applied:**
-- Added `.filter((item) => item.trades > 0)` to the chartData creation
-- Only dates with actual trades (totalTrades > 0) are now included in the line chart
-- This prevents 0-trade dates from appearing as data points
+**Two-pronged fix:**
 
-**Line 17205 Changed From:**
-```javascript
+1. **No date range selected** (lines 8668-8676):
+   - Filter `tradingDataByDate` to only include dates with `totalTrades > 0`
+   - Uses `Object.fromEntries()` with `filter()` to exclude 0-trade dates
+   - Result: Only dates with real trading activity returned
+
+2. **With date range** (lines 8697-8707):
+   - Added check: `if (totalTrades > 0)` before adding to filtered object
+   - Ensures even in date range mode, only real trading dates are included
+   - Both unranged and ranged filtering now consistent
+
+**Code Changes:**
+
+```typescript
+// NO RANGE - Filter at source
+const unrangedData = Object.fromEntries(
+  Object.entries(modeAwareData).filter(([_, dayData]) => {
+    const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+    return (metrics?.totalTrades || 0) > 0;
+  })
 );
-```
 
-**To:**
-```javascript
-).filter((item) => item.trades > 0);
+// WITH RANGE - Check trades before filtering
+if (dateTime >= fromTime && dateTime <= toTime) {
+  const dayData = modeAwareData[dateKey];
+  const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+  const totalTrades = metrics?.totalTrades || 0;
+  if (totalTrades > 0) {
+    filtered[dateKey] = dayData;
+  }
+}
 ```
 
 **Result:**
-- Performance Trend chart now ONLY shows dates with real trading activity
-- No more phantom spikes from 0-trade dates
-- Chart accurately reflects only actual trading days with data
+- ✅ Performance Trend chart ONLY shows dates with actual trades
+- ✅ Heatmap and chart now PERFECTLY aligned (same dates displayed)
+- ✅ No more phantom spikes or dates with 0 trading activity
+- ✅ Chart accurately reflects only real trading days
+- ✅ Filter happens at data layer (not just chart display layer)
 
-**Data Integrity Verified:**
-- Only saves real AWS DynamoDB data (no demo/flashback data)
-- Filters happen at chart rendering layer (data is preserved in backend)
-- Both demo and personal modes work correctly with the filter
-
-**Previous Fixes (Still Active):**
-[x] Personal heatmap immediate color refresh after saves
-[x] Client-side state separation between demo and personal heatmap modes
-[x] AWS DynamoDB data corruption bug fixed
+**Benefit:**
+Users now see exactly what they traded - no empty/0-trade dates confusing the chart visualization.
