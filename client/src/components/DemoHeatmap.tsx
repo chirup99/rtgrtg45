@@ -22,6 +22,7 @@ interface DemoHeatmapProps {
   } | null;
   isPublicView?: boolean;
   onSelectDateForHeatmap?: (symbol: string, date: string) => void;
+  refreshTrigger?: number;
 }
 
 // Simple function to calculate P&L from trade data
@@ -76,7 +77,7 @@ function getPnLColor(pnl: number): string {
   }
 }
 
-export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeChange, highlightedDates, isPublicView, tradingDataByDate, onSelectDateForHeatmap }: DemoHeatmapProps) {
+export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeChange, highlightedDates, isPublicView, tradingDataByDate, onSelectDateForHeatmap, refreshTrigger = 0 }: DemoHeatmapProps) {
   const { currentUser } = useCurrentUser();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>(null);
@@ -132,7 +133,9 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
     }
     
     // Otherwise, fetch from API (normal demo mode)
-    console.log(`🔥 DemoHeatmap: Fetching ALL data from AWS... (refreshKey: ${refreshKey})`);
+    console.log(`🔥 DemoHeatmap: CLEARING old data and fetching FRESH AWS data... (refreshKey: ${refreshKey})`);
+    // ✅ CRITICAL FIX: Clear old data IMMEDIATELY before fetching to prevent stale cache display
+    setHeatmapData({});
     setIsLoading(true);
     
     fetch('/api/journal/all-dates')
@@ -167,7 +170,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
         console.error("❌ DemoHeatmap: Fetch error:", error);
         setIsLoading(false);
       });
-  }, [refreshKey, tradingDataByDate]); // Re-fetch when refreshKey changes or when tradingDataByDate is provided
+  }, [refreshKey, tradingDataByDate, refreshTrigger]); // Re-fetch when refreshKey, refreshTrigger, or tradingDataByDate changes
 
   // Calculate badge positions dynamically when badges render
   useEffect(() => {
