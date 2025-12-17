@@ -4136,6 +4136,15 @@ ${
     return 1800000;
   });
   
+  // Track cumulative realized P&L from all closed trades (persisted to AWS)
+  const [paperTradingRealizedPnl, setPaperTradingRealizedPnl] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("paperTradingRealizedPnl");
+      return stored ? parseFloat(stored) : 0;
+    }
+    return 0;
+  });
+  
   // Paper trading position interface
   interface PaperPosition {
     id: string;
@@ -4217,10 +4226,12 @@ ${
           setPaperTradingCapital(result.data.capital || 1800000);
           setPaperPositions(result.data.positions || []);
           setPaperTradeHistory(result.data.tradeHistory || []);
+          setPaperTradingRealizedPnl(result.data.realizedPnl || 0);
           // Also update localStorage for offline access
           localStorage.setItem("paperTradingCapital", String(result.data.capital || 1800000));
           localStorage.setItem("paperPositions", JSON.stringify(result.data.positions || []));
           localStorage.setItem("paperTradeHistory", JSON.stringify(result.data.tradeHistory || []));
+          localStorage.setItem("paperTradingRealizedPnl", String(result.data.realizedPnl || 0));
         }
         setPaperTradingAwsLoaded(true);
       } else {
@@ -4237,7 +4248,8 @@ ${
   const savePaperTradingToAWS = useCallback(async (
     capital: number, 
     positions: PaperPosition[], 
-    tradeHistory: PaperTrade[]
+    tradeHistory: PaperTrade[],
+    realizedPnl: number
   ) => {
     const userId = localStorage.getItem('currentUserId');
     if (!userId || userId === 'null') return;
@@ -4262,7 +4274,8 @@ ${
           capital,
           positions,
           tradeHistory,
-          totalPnl
+          totalPnl,
+          realizedPnl
         })
       });
       
@@ -4292,7 +4305,7 @@ ${
     
     // Debounce save by 2 seconds to avoid too many API calls
     paperTradingSaveTimeoutRef.current = setTimeout(() => {
-      savePaperTradingToAWS(paperTradingCapital, paperPositions, paperTradeHistory);
+      savePaperTradingToAWS(paperTradingCapital, paperPositions, paperTradeHistory, paperTradingRealizedPnl);
     }, 2000);
     
     return () => {
@@ -4300,7 +4313,7 @@ ${
         clearTimeout(paperTradingSaveTimeoutRef.current);
       }
     };
-  }, [paperTradingCapital, paperPositions, paperTradeHistory, paperTradingAwsLoaded, savePaperTradingToAWS]);
+  }, [paperTradingCapital, paperPositions, paperTradeHistory, paperTradingRealizedPnl, paperTradingAwsLoaded, savePaperTradingToAWS]);
   
   // Load paper trading data from AWS when user is authenticated
   useEffect(() => {
@@ -4891,6 +4904,8 @@ ${
     localStorage.setItem("paperTradingCapital", "1800000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
+    setPaperTradingRealizedPnl(0);
+    localStorage.setItem("paperTradingRealizedPnl", "0");
     // Reset AWS data
     setPaperTradingAwsLoaded(false);
     const userId = localStorage.getItem('currentUserId');
@@ -5082,6 +5097,13 @@ ${
     setPaperTradeHistory(updatedHistory);
     localStorage.setItem("paperTradeHistory", JSON.stringify(updatedHistory));
     
+    // Accumulate realized P&L from all closed positions
+    setPaperTradingRealizedPnl(prev => {
+      const newRealizedPnl = prev + totalPnl;
+      localStorage.setItem("paperTradingRealizedPnl", String(newRealizedPnl));
+      return newRealizedPnl;
+    });
+    
     // Show toast with summary
     toast({
       title: totalPnl >= 0 ? "All Positions Closed - Profit!" : "All Positions Closed - Loss",
@@ -5127,6 +5149,13 @@ ${
     const updatedHistory = [...paperTradeHistory, newTrade];
     setPaperTradeHistory(updatedHistory);
     localStorage.setItem("paperTradeHistory", JSON.stringify(updatedHistory));
+    
+    // Accumulate realized P&L from closed position
+    setPaperTradingRealizedPnl(prev => {
+      const newRealizedPnl = prev + exitPnL;
+      localStorage.setItem("paperTradingRealizedPnl", String(newRealizedPnl));
+      return newRealizedPnl;
+    });
     
     setSwipedPositionId(null);
     
@@ -5266,11 +5295,12 @@ ${
     };
   }, [showPaperTradingModal, activeTab, mobileBottomTab, paperPositions.filter(p => p.isOpen).map(p => `${p.symbol}:${p.action}`).join(',')]);
   
-  // Calculate total unrealized P&L for all open positions
+  // Calculate total P&L: realized (from closed trades) + unrealized (from open positions)
   const paperTradingTotalPnl = useMemo(() => {
-    // Include P&L from BOTH open (unrealized) and closed (realized) positions
-    return paperPositions.reduce((total, p) => total + (p.pnl || 0), 0);
-  }, [paperPositions]);
+    // Realized P&L from closed trades + Unrealized P&L from open positions
+    const unrealizedPnl = paperPositions.filter(p => p.isOpen).reduce((total, p) => total + (p.pnl || 0), 0);
+    return paperTradingRealizedPnl + unrealizedPnl;
+  }, [paperPositions, paperTradingRealizedPnl]);
   
   // SL Monitoring Effect - Auto-exit positions when SL is triggered
   useEffect(() => {

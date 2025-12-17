@@ -5972,7 +5972,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             capital: 1800000,
             positions: [],
             tradeHistory: [],
-            totalPnl: 0
+            totalPnl: 0,
+            realizedPnl: 0
           },
           isNew: true
         });
@@ -5987,8 +5988,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/paper-trading/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      const { capital, positions, tradeHistory, totalPnl } = req.body;
-      console.log(`💾 Saving paper trading data for user: ${userId}`);
+      const { capital, positions, tradeHistory, totalPnl, realizedPnl } = req.body;
+      console.log(`💾 Saving paper trading data for user: ${userId}, realizedPnl: ₹${realizedPnl || 0}`);
 
       // Verify authentication token using AWS Cognito
       const authHeader = req.headers.authorization;
@@ -6014,7 +6015,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         capital: capital ?? 1800000,
         positions: positions ?? [],
         tradeHistory: tradeHistory ?? [],
-        totalPnl: totalPnl ?? 0
+        totalPnl: totalPnl ?? 0,
+        realizedPnl: realizedPnl ?? 0
       });
 
       if (success) {

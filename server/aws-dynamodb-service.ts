@@ -368,6 +368,7 @@ class AWSDynamoDBService {
     positions: any[];
     tradeHistory: any[];
     totalPnl: number;
+    realizedPnl: number;
   }): Promise<boolean> {
     if (!this.isConnected()) {
       console.error("❌ AWS DynamoDB not connected");
@@ -400,6 +401,7 @@ class AWSDynamoDBService {
     positions: any[];
     tradeHistory: any[];
     totalPnl: number;
+    realizedPnl: number;
   } | null> {
     if (!this.isConnected()) {
       console.error("❌ AWS DynamoDB not connected");
