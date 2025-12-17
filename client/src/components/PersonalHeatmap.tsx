@@ -730,7 +730,7 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
     };
   }, [selectedRange]);
 
-  // Generate calendar data for the year (ALWAYS show complete calendar, no filtering)
+  // Generate calendar data for the year with perfect calendar design (empty cells at start)
   const generateMonthsData = () => {
     // Always use current year - show complete calendar regardless of range selection
     const startYear = currentDate.getFullYear();
@@ -744,20 +744,26 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
     for (let year = startYear; year <= endYear; year++) {
       for (let monthIndex = startMonth; monthIndex <= endMonth; monthIndex++) {
         const monthName = new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'short' });
+        const firstDay = new Date(year, monthIndex, 1);
         const lastDay = new Date(year, monthIndex + 1, 0);
+        const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
 
-        // Create 7 rows (one for each day of week)
-        const dayRows: (Date | null)[][] = [[], [], [], [], [], [], []];
+        // ✅ Create 7 columns (one for each day of week: S, M, T, W, TH, F, S)
+        const dayColumns: (Date | null)[][] = [[], [], [], [], [], [], []];
 
-        for (let day = 1; day <= lastDay.getDate(); day++) {
-          const date = new Date(year, monthIndex, day);
-
-          // Always include all dates - no filtering based on range
-          const dayOfWeek = date.getDay();
-          dayRows[dayOfWeek].push(date);
+        // ✅ Add empty cells for days before month starts (perfect calendar alignment)
+        for (let i = 0; i < firstDayOfWeek; i++) {
+          dayColumns[i].push(null);
         }
 
-        months.push({ name: monthName, year, dayRows });
+        // ✅ Add all dates for the month - each date goes to its day-of-week column
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+          const date = new Date(year, monthIndex, day);
+          const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+          dayColumns[dayOfWeek].push(date);
+        }
+
+        months.push({ name: monthName, year, dayRows: dayColumns });
       }
     }
 
