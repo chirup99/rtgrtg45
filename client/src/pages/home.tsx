@@ -19546,7 +19546,7 @@ ${
                 </div>
               </div>
               <DialogTitle className="text-xl font-bold text-center">Trading Challenge</DialogTitle>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
                 Coming Soon
               </p>
             </DialogHeader>
