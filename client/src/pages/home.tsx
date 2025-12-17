@@ -15557,13 +15557,13 @@ ${
                       >
                         {/* Top 30% - Performance Insights */}
                         <div className="h-[30%] border-b border-gray-200 dark:border-gray-700">
-                          <CardContent className="p-4 h-full">
-                            <div className="grid grid-cols-3 gap-3 text-sm">
+                          <CardContent className="p-2 h-full">
+                            <div className="grid grid-cols-3 gap-2 text-xs">
                               <div className="text-center">
                                 <p className="text-gray-600 dark:text-gray-400">
                                   Total Trades
                                 </p>
-                                <p className="text-xl font-bold text-gray-800 dark:text-white">
+                                <p className="text-base font-bold text-gray-800 dark:text-white">
                                   {performanceMetrics.totalTrades}
                                 </p>
                               </div>
@@ -15576,7 +15576,7 @@ ${
                                 </p>
                               </div>
                               <div className="text-center">
-                                <p className="text-gray-600 dark:text-gray-400">
+                                <p className="text-gray-600 dark:text-gray-400 text-xs">
                                   Net P&L
                                 </p>
                                 <p
@@ -15594,8 +15594,8 @@ ${
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
-                              <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
+                            <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                              <div className="space-y-0.5 bg-white dark:bg-gray-900/50 rounded-lg p-2">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600 dark:text-gray-400">
                                     Winning Trades:
@@ -15616,7 +15616,7 @@ ${
                                   </span>
                                 </div>
                               </div>
-                              <div className="space-y-1 bg-white dark:bg-gray-900/50 rounded-lg p-3">
+                              <div className="space-y-0.5 bg-white dark:bg-gray-900/50 rounded-lg p-2">
                                 <div className="flex justify-between">
                                   <span className="text-gray-600 dark:text-gray-400">
                                     Losing Trades:
