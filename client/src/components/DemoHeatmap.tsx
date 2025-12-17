@@ -576,17 +576,37 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
     for (let year = startYear; year <= endYear; year++) {
       for (let monthIndex = startMonth; monthIndex <= endMonth; monthIndex++) {
         const monthName = new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'short' });
+        const firstDay = new Date(year, monthIndex, 1);
         const lastDay = new Date(year, monthIndex + 1, 0);
+        const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
         
-        // Create 7 rows (one for each day of week)
-        const dayRows: (Date | null)[][] = [[], [], [], [], [], [], []];
+        // Create proper week-based calendar grid
+        const dayRows: (Date | null)[][] = [];
+        let currentRow: (Date | null)[] = [];
         
+        // Add empty cells for days before month starts
+        for (let i = 0; i < firstDayOfWeek; i++) {
+          currentRow.push(null);
+        }
+        
+        // Add dates for each day of the month
         for (let day = 1; day <= lastDay.getDate(); day++) {
           const date = new Date(year, monthIndex, day);
+          currentRow.push(date);
           
-          // Always include all dates - no filtering based on range
-          const dayOfWeek = date.getDay();
-          dayRows[dayOfWeek].push(date);
+          // If row is complete (7 days), start a new row
+          if (currentRow.length === 7) {
+            dayRows.push(currentRow);
+            currentRow = [];
+          }
+        }
+        
+        // Add empty cells to complete the last week if needed
+        if (currentRow.length > 0) {
+          while (currentRow.length < 7) {
+            currentRow.push(null);
+          }
+          dayRows.push(currentRow);
         }
         
         months.push({ name: monthName, year, dayRows });
