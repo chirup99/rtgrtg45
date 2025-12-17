@@ -8374,6 +8374,19 @@ ${
     aiAnalysis: false,
     planned: false,
   });
+
+  // Load Magic Bar preferences from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("magicBarPrefs");
+    if (saved) {
+      try {
+        const prefs = JSON.parse(saved);
+        setVisibleStats(prefs);
+      } catch (e) {
+        console.log("Could not load Magic Bar preferences");
+      }
+    }
+  }, []);
   
   // Refs for curved line connections from tag block to heatmap dates
   const fomoButtonRef = useRef<HTMLButtonElement>(null);
@@ -8675,7 +8688,6 @@ ${
         })
       );
       const actualDates = Object.keys(unrangedData).length;
-      console.log(`🔍 No date range selected - returning ${actualDates} dates with trades (from ${totalDates} total) [Mode: ${isDemoMode ? 'DEMO' : 'PERSONAL'}]`);
       return unrangedData;
     }
     
@@ -8695,7 +8707,11 @@ ${
       }
       
       if (dateTime >= fromTime && dateTime <= toTime) {
-        filtered[dateKey] = modeAwareData[dateKey];
+        const dayData = modeAwareData[dateKey];
+        const metrics = dayData?.tradingData?.performanceMetrics || dayData?.performanceMetrics;
+        if ((metrics?.totalTrades || 0) > 0) {
+          filtered[dateKey] = dayData;
+        }
       }
     });
     
@@ -9742,6 +9758,10 @@ ${
           [selectedDateStr]: journalData,
         };
         setTradingDataByDate(allData);
+        
+        // ✅ CRITICAL FIX: Trigger heatmap refresh immediately after save
+        // This forces PersonalHeatmap to clear old data and fetch fresh, displaying new colors
+        setPersonalHeatmapRevision(prev => prev + 1);
 
         console.log(
           `✅ All trading data saved successfully for ${selectedDateStr}`,
@@ -16442,7 +16462,9 @@ ${
                                 setSelectedIndicators([]);
                                 setTradeHistoryData([]);
                                 setTradingImages([]);
-                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - heatmap will load data automatically`);
+                                setTradingDataByDate({});
+                                setPersonalHeatmapRevision(prev => prev + 1);
+                                console.log(`✅ Switched to ${checked ? 'Preview' : 'Personal'} mode - CLEARED cache, heatmap fetching fresh AWS data...`);
                               }}
                               data-testid="switch-demo-mode"
                               className="scale-75"
@@ -16820,10 +16842,10 @@ ${
                                           const isAtLimit = selectedCount >= 6;
                                           const handleCheckChange = (field: string, checked: boolean) => {
                                             if (checked && isAtLimit) return;
-                                            setVisibleStats({...visibleStats, [field]: checked});
+                                            const updated = {...visibleStats, [field]: checked}; setVisibleStats(updated); localStorage.setItem("magicBarPrefs", JSON.stringify(updated));
                                           };
                                           return (
-                                            <div className="flex gap-2 items-center justify-end">
+                                            <div className="flex flex-col gap-2">
                                               <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.pnl && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
                                                 <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!visibleStats.pnl && isAtLimit} className="rounded" />
                                                 P&L
@@ -16844,7 +16866,7 @@ ${
                                                 <input type="checkbox" checked={visibleStats.streak} onChange={(e) => handleCheckChange('streak', e.target.checked)} disabled={!visibleStats.streak && isAtLimit} className="rounded" />
                                                 Streak
                                               </label>
-                                              <div className="border-t border-slate-700 my-2"></div>
+                                              <div className="border-t border-slate-700 my-1"></div>
                                               <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.overtrading && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
                                                 <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => handleCheckChange('overtrading', e.target.checked)} disabled={!visibleStats.overtrading && isAtLimit} className="rounded" />
                                                 Overtrading

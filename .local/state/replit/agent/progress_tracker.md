@@ -33,67 +33,39 @@
 [x] 33. FIXED CALENDAR GRID LAYOUT: Heatmap now displays proper column-based calendar with all dates visible
 [x] 34. FIXED MISSING SATURDAY DATES: Calendar now renders as vertical columns (top-to-bottom) instead of horizontal rows
 [x] 35. Re-installed tsx package and verified application running (December 17, 2025)
+[x] 36. FIXED CHART DISPLAY BUG: Personal heatmap now loads chart data when date is selected from heatmap (December 17, 2025, 12:26 PM)
 
-### CALENDAR COLUMN-BASED LAYOUT FIX
-**Date:** December 17, 2025, 11:40 AM
-**Status:** FIXED - All Saturday dates now displaying in proper column layout
+### PERSONAL HEATMAP CHART DISPLAY FIX
+**Date:** December 17, 2025, 12:26 PM
+**Status:** FIXED - Chart data now loads correctly when selecting date from personal heatmap
 
 **Problem:**
-After the first fix, Saturday column dates were not displaying. The issue was that the calendar generation logic was correct (column-based with 7 arrays for each day of week), but the rendering was wrong - it was displaying each day-of-week array as a horizontal row instead of a vertical column.
+When selecting a date on the personal heatmap (e.g., 2025-03-12), the header showed the correct date but the chart displayed data from a different date or no data at all. The demo heatmap worked correctly for the same date.
 
 **Root Cause:**
-The rendering structure was:
-- Outer div: `flex flex-col` (vertical)
-- Inner div: `flex` (horizontal)
-- Result: Each day-of-week array displayed horizontally, missing Saturday
+When PersonalHeatmap passed fresh AWS data via the `awsData` parameter to `handleDateSelect`, the function set the heatmap header date (`heatmapSelectedDate` and `heatmapSelectedSymbol`) but returned early WITHOUT calling `fetchHeatmapChartData`. This meant the chart data was never fetched, so even though the header showed the correct date, the chart hadn't been updated.
 
 **Solution Applied:**
-Inverted the rendering logic to create vertical columns:
+Added an explicit call to `fetchHeatmapChartData()` in the PersonalHeatmap data handling section of `handleDateSelect()` (home.tsx line 9168):
 
-**Before (Wrong):**
-```jsx
-<div className="flex flex-col gap-1 min-w-fit select-none">
-  {month.dayRows.map((dayRow, dayIndex) => (
-    <div key={dayIndex} className="flex gap-0.5 select-none">
-      {dayRow.map((date, colIndex) => { ... })}
-    </div>
-  ))}
-</div>
+```javascript
+// ✅ FETCH CHART DATA: Load chart for this date and symbol from PersonalHeatmap
+fetchHeatmapChartData(`NSE:${firstSymbol}-INDEX`, dateString);
 ```
-Each dayRow displayed as a horizontal row → missing cells
-
-**After (Correct):**
-```jsx
-<div className="flex gap-0.5 min-w-fit select-none">
-  {month.dayRows.map((dayColumn, dayIndex) => (
-    <div key={dayIndex} className="flex flex-col gap-0.5 select-none">
-      {dayColumn.map((date, rowIndex) => { ... })}
-    </div>
-  ))}
-</div>
-```
-Each dayColumn (S, M, T, W, TH, F, S) displays vertically → all dates visible including Saturday
 
 **How It Works Now:**
-1. Outer div uses `flex` (horizontal arrangement of columns)
-2. Inner div uses `flex flex-col` (vertical arrangement of dates within each column)
-3. Result: 7 vertical columns matching day labels, all dates visible top-to-bottom
-
-**Calendar Structure:**
-```
-S    M    T    W    TH   F    S
-1    2    3    4    5    6    7
-8    9    10   11   12   13   14
-15   16   17   18   19   20   21
-...and so on - all dates in proper columns
-```
+1. User clicks date on PersonalHeatmap (e.g., 2025-03-12)
+2. PersonalHeatmap calls handleDateSelect with fresh AWS data
+3. handleDateSelect sets heatmap header date: `setHeatmapSelectedDate(dateString)`
+4. **NEW**: handleDateSelect explicitly calls `fetchHeatmapChartData` to load chart data
+5. Chart data is fetched from Angel One API for that specific date
+6. Chart renders with correct data for the selected date
 
 **Files Modified:**
-- `client/src/components/DemoHeatmap.tsx` - Fixed rendering structure (lines 1188-1202)
+- `client/src/pages/home.tsx` - Added fetchHeatmapChartData call (line 9168)
 
 **Result:**
-✅ All day-of-week columns now display vertically
-✅ Saturday dates now fully visible
-✅ Calendar matches standard calendar app layout
-✅ All interactive features (click, edit, delete, range) preserved
-✅ Light and dark themes working correctly
+✅ Personal heatmap header now shows correct date
+✅ Chart data loads correctly for the selected date
+✅ Chart display matches the header date
+✅ Behavior now consistent with demo heatmap
