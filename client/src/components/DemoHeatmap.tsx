@@ -1571,8 +1571,8 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
               </Button>
             )}
 
-            {/* 3-dot menu - only show when not in range select mode AND user is authorized AND not in public view */}
-            {!isRangeSelectMode && canEditDemoTrades && !isPublicView && (
+            {/* 3-dot menu - show when not in range select mode AND not in public view */}
+            {!isRangeSelectMode && !isPublicView && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
