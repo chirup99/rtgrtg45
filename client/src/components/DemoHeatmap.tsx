@@ -1365,7 +1365,10 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                 variant="destructive"
                 size="sm"
                 onClick={handleConfirmDelete}
-                disabled={!selectedDateForDelete}
+                disabled={
+                  !canEditDemoTrades ||
+                  !selectedDateForDelete
+                }
                 className="h-6 px-2 text-[10px]"
                 data-testid="button-confirm-delete"
               >
