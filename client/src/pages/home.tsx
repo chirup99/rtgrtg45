@@ -17175,6 +17175,7 @@ ${
 
                                 // ✅ NEW: Convert filtered heatmap data to daily chart data format
                                 const chartData = allDates.map(
+                  
                                   (dateStr, idx) => {
                                     const date = new Date(dateStr);
                                     const dayData = filteredHeatmapData[dateStr];
@@ -17202,7 +17203,7 @@ ${
                                       ),
                                     };
                                   },
-                                );
+                                ).filter((item) => item.trades > 0);
 
                                 // Find peak value for indicator
                                 const peakData = chartData.reduce(

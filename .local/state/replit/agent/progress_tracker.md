@@ -25,23 +25,46 @@
 [x] 25. Removed hardcoded local demo heatmap data (6 dates)
 [x] 26. Project import migration verified and completed
 [x] 27. FIXED: Personal heatmap now immediately displays color codes after saving data
+[x] 28. FIXED CRITICAL BUG: Performance Trend chart no longer shows 0-trade dates
 
 ### LATEST UPDATE
-**Date:** December 17, 2025, 6:08 AM
-**Status:** Fixed personal heatmap immediate color display issue
+**Date:** December 17, 2025, 6:09 AM
+**Status:** Fixed Performance Trend chart displaying 0-trade dates
 
-**Changes Made:**
-1. Added `refreshTrigger` prop to PersonalHeatmap component interface
-2. Passed `personalHeatmapRevision` as `refreshTrigger={personalHeatmapRevision}` to PersonalHeatmap
-3. Added `setPersonalHeatmapRevision(prev => prev + 1);` to trigger refresh after trades are recorded
-4. PersonalHeatmap now refetches data immediately when `refreshTrigger` changes
+**Critical Bug Found & Fixed:**
+The Performance Trend line chart was displaying ALL dates from `tradingDataByDate`, including dates with 0 trades and no actual trading activity. This created phantom spikes on the chart.
 
-**How it works:**
-- When user saves trading data, `recordAllPaperTrades()` is called
-- After trades are recorded, `setPersonalHeatmapRevision` increments, which changes `refreshTrigger`
-- PersonalHeatmap detects the change and immediately re-fetches all data from AWS
-- Color codes now display instantly without need to toggle or reopen heatmap
+**Root Cause:** 
+- `chartData` was mapping `allDates` without filtering
+- Dates with `totalTrades = 0` were still being plotted
+- No validation to ensure only real trading data was shown
+
+**The Fix Applied:**
+- Added `.filter((item) => item.trades > 0)` to the chartData creation
+- Only dates with actual trades (totalTrades > 0) are now included in the line chart
+- This prevents 0-trade dates from appearing as data points
+
+**Line 17205 Changed From:**
+```javascript
+);
+```
+
+**To:**
+```javascript
+).filter((item) => item.trades > 0);
+```
+
+**Result:**
+- Performance Trend chart now ONLY shows dates with real trading activity
+- No more phantom spikes from 0-trade dates
+- Chart accurately reflects only actual trading days with data
+
+**Data Integrity Verified:**
+- Only saves real AWS DynamoDB data (no demo/flashback data)
+- Filters happen at chart rendering layer (data is preserved in backend)
+- Both demo and personal modes work correctly with the filter
 
 **Previous Fixes (Still Active):**
+[x] Personal heatmap immediate color refresh after saves
 [x] Client-side state separation between demo and personal heatmap modes
 [x] AWS DynamoDB data corruption bug fixed
