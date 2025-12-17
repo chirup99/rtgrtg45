@@ -136,9 +136,16 @@ class AWSDynamoDBService {
       if (response.Items) {
         for (const item of response.Items) {
           if (item.dateKey && item.data) {
+            // ✅ CRITICAL FIX: Skip user-specific journal entries (personal heatmap data)
+            // These keys start with "user_" and should NOT be processed by getAllJournalData()
+            // They have their own function: getAllUserJournalData()
+            if (item.dateKey.startsWith('user_')) {
+              continue; // Skip personal heatmap data - do not modify or delete
+            }
+            
             let cleanKey = item.dateKey.replace('journal_', '');
             
-            // Fix invalid dates (empty, null, or non-date format)
+            // Fix invalid dates (empty, null, or non-date format) - only for demo data
             const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(cleanKey);
             if (!isValidDate) {
               console.log(`⚠️ Invalid date key detected: "${cleanKey}" - replacing with today: ${today}`);
@@ -152,7 +159,7 @@ class AWSDynamoDBService {
             result[cleanKey] = item.data;
           }
         }
-        console.log(`✅ AWS: Retrieved ${Object.keys(result).length} journal entries`);
+        console.log(`✅ AWS: Retrieved ${Object.keys(result).length} demo journal entries`);
       }
 
       return result;
