@@ -5617,7 +5617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Journal Database API endpoints with AWS DynamoDB as PRIMARY storage
   // Migration complete: AWS DynamoDB is now the source of truth
 
-  // ✅ JOURNAL ALL-DATES: AWS DynamoDB with Demo Data Fallback
+  // ✅ JOURNAL ALL-DATES: AWS DynamoDB ONLY (no demo data fallback)
   app.get('/api/journal/all-dates', async (req, res) => {
     try {
       console.log('📊 Fetching journal data: AWS DynamoDB ONLY...');
@@ -5629,15 +5629,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(allData);
       }
 
-      console.log('⚠️ AWS DynamoDB: No data found, returning demo data...');
-      const demoData = getDemoHeatmapData();
-      console.log(`📋 Demo Data: Loaded ${Object.keys(demoData).length} demo entries`);
-      res.json(demoData);
+      console.log('ℹ️ AWS DynamoDB: No data found, returning empty object');
+      res.json({});
     } catch (error) {
       console.error('❌ AWS DynamoDB error:', error);
-      console.log('⚠️ Returning demo data as fallback...');
-      const demoData = getDemoHeatmapData();
-      res.json(demoData);
+      console.log('ℹ️ Returning empty object (no fallback demo data)');
+      res.json({});
     }
   });
 

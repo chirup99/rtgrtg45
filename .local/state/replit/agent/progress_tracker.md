@@ -22,19 +22,17 @@
 [x] 22. Fixed CRITICAL AWS bug: getAllJournalData() was DELETING personal heatmap data
 [x] 23. Verified application startup and all services running
 [x] 24. Re-installed tsx package and verified application running
+[x] 25. Removed hardcoded local demo heatmap data (6 dates)
 
 ### LATEST UPDATE
-**Date:** December 17, 2025, 5:35 AM
-**Status:** Application verified running - all services initialized successfully
+**Date:** December 17, 2025, 5:38 AM
+**Status:** Removed hardcoded demo data from tradebook heatmap
 
-**Services Running:**
-- Express server on port 5000
-- AWS DynamoDB connected (tradebook-heatmaps table)
-- NeoFeed AWS DynamoDB tables ready (posts, likes, comments, etc.)
-- Angel One API initialized and authenticated (Client: P176266)
-- WebSocket streaming active (BANKNIFTY, SENSEX, GOLD)
-- Gemini AI routes configured
-- Trading NLP Agent ready with 25+ intents
+**Changes Made:**
+- Modified `/api/journal/all-dates` endpoint to return empty object instead of demo data fallback
+- Emptied `server/demo-heatmap-data.ts` - all demo data removed
+- Heatmap now shows only real AWS DynamoDB data (when AWS credentials are configured)
+- When AWS is not configured, heatmap will be empty (no fake local data)
 
 **Previous Fix (Still Active):**
 [x] Client-side state separation between demo and personal heatmap modes
