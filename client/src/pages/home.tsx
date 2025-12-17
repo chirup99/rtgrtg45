@@ -8374,6 +8374,19 @@ ${
     aiAnalysis: false,
     planned: false,
   });
+
+  // Load Magic Bar preferences from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("magicBarPrefs");
+    if (saved) {
+      try {
+        const prefs = JSON.parse(saved);
+        setVisibleStats(prefs);
+      } catch (e) {
+        console.log("Could not load Magic Bar preferences");
+      }
+    }
+  }, []);
   
   // Refs for curved line connections from tag block to heatmap dates
   const fomoButtonRef = useRef<HTMLButtonElement>(null);
@@ -16829,7 +16842,7 @@ ${
                                           const isAtLimit = selectedCount >= 6;
                                           const handleCheckChange = (field: string, checked: boolean) => {
                                             if (checked && isAtLimit) return;
-                                            setVisibleStats({...visibleStats, [field]: checked});
+                                            const updated = {...visibleStats, [field]: checked}; setVisibleStats(updated); localStorage.setItem("magicBarPrefs", JSON.stringify(updated));
                                           };
                                           return (
                                             <div className="flex flex-col gap-2">
