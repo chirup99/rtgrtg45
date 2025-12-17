@@ -20380,7 +20380,7 @@ ${
                               <td className="px-2 py-1.5 font-medium flex items-center gap-2">
                                 <span>{position.symbol}</span>
                                 <button
-                                  onClick={() => exitPaperPosition(position.id)}
+                                  onClick={() => exitPosition(position.id)}
                                   className="h-5 w-5 text-red-500 hover:text-red-600 hover:opacity-80 transition-all"
                                   data-testid="button-exit-desktop-position"
                                   title="Exit position"
