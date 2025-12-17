@@ -21753,7 +21753,17 @@ ${
                               </div>
                             </div>
                             <div className="text-[10px] text-gray-400 mt-1">
-                              LTP: ₹{position.currentPrice.toFixed(2)}
+                            <div className="text-[10px] text-gray-400 mt-1 flex items-center justify-between">
+                              <div>
+                                LTP: ₹{position.currentPrice.toFixed(2)}
+                                {(position as any).slTriggerPrice && (
+                                  <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
+                                )}
+                              </div>
+                              <div className={`text-[10px] font-semibold ${position.pnlPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {position.pnlPercent >= 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
+                              </div>
+                            </div>
                               {(position as any).slTriggerPrice && (
                                 <span className="text-orange-500 ml-2">SL: ₹{(position as any).slTriggerPrice.toFixed(2)}</span>
                               )}
