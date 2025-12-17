@@ -6922,7 +6922,19 @@ ${
     if (journalChartData && journalChartData.length > 0) {
       const latest = journalChartData[journalChartData.length - 1];
       setHoveredCandleOhlc({
-        open: latest.open,
+
+
+  // Auto-reload trading journal data when journal is opened
+  useEffect(() => {
+    if (activeTab === "trading-home") {
+      console.log("📊 [JOURNAL] Opening trading journal - auto-reloading data...");
+      if (journalChartMode === "search" && selectedJournalSymbol) {
+        fetchJournalChartData();
+      } else if (journalChartMode === "heatmap" && heatmapSelectedDate && heatmapSelectedSymbol) {
+        fetchHeatmapChartData(heatmapSelectedSymbol, heatmapSelectedDate);
+      }
+    }
+  }, [activeTab, journalChartMode, selectedJournalSymbol, heatmapSelectedDate, heatmapSelectedSymbol, fetchJournalChartData, fetchHeatmapChartData]);
         high: latest.high,
         low: latest.low,
         close: latest.close,
