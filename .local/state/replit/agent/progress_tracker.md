@@ -33,38 +33,39 @@
 [x] 33. FIXED CALENDAR GRID LAYOUT: Heatmap now displays proper column-based calendar with all dates visible
 [x] 34. FIXED MISSING SATURDAY DATES: Calendar now renders as vertical columns (top-to-bottom) instead of horizontal rows
 [x] 35. Re-installed tsx package and verified application running (December 17, 2025)
-[x] 36. FIXED CHART DISPLAY BUG: Personal heatmap now loads chart data when date is selected from heatmap
-[x] 37. UPDATED PERSONAL HEATMAP HEADER DESIGN: Now matches DemoHeatmap style (December 17, 2025, 12:35 PM)
+[x] 36. FIXED CHART DISPLAY BUG: Personal heatmap now loads chart data when date is selected from heatmap (December 17, 2025, 12:26 PM)
 
-### PERSONAL HEATMAP HEADER DESIGN UPDATE
-**Date:** December 17, 2025, 12:35 PM
-**Status:** COMPLETE - Personal heatmap header now matches demo heatmap design
+### PERSONAL HEATMAP CHART DISPLAY FIX
+**Date:** December 17, 2025, 12:26 PM
+**Status:** FIXED - Chart data now loads correctly when selecting date from personal heatmap
 
-**Changes Made:**
-Updated PersonalHeatmap header from verbose "PERSONAL TRADING CALENDAR 2025" to clean "PERSONAL 2025" format:
+**Problem:**
+When selecting a date on the personal heatmap (e.g., 2025-03-12), the header showed the correct date but the chart displayed data from a different date or no data at all. The demo heatmap worked correctly for the same date.
 
-**Before:**
+**Root Cause:**
+When PersonalHeatmap passed fresh AWS data via the `awsData` parameter to `handleDateSelect`, the function set the heatmap header date (`heatmapSelectedDate` and `heatmapSelectedSymbol`) but returned early WITHOUT calling `fetchHeatmapChartData`. This meant the chart data was never fetched, so even though the header showed the correct date, the chart hadn't been updated.
+
+**Solution Applied:**
+Added an explicit call to `fetchHeatmapChartData()` in the PersonalHeatmap data handling section of `handleDateSelect()` (home.tsx line 9168):
+
+```javascript
+// ✅ FETCH CHART DATA: Load chart for this date and symbol from PersonalHeatmap
+fetchHeatmapChartData(`NSE:${firstSymbol}-INDEX`, dateString);
 ```
-Personal Trading Calendar 2025     2 DATES
-```
 
-**After:**
-```
-PERSONAL 2025     2 DATES
-```
-
-**Design Improvements:**
-- Matches DemoHeatmap header style (simple, clean)
-- "personal" label in gray with year separated by spacing
-- Consistent typography: `text-[10px] uppercase tracking-wider`
-- Same layout structure as DemoHeatmap for visual consistency
-- Better visual hierarchy with "PERSONAL" label followed by year
+**How It Works Now:**
+1. User clicks date on PersonalHeatmap (e.g., 2025-03-12)
+2. PersonalHeatmap calls handleDateSelect with fresh AWS data
+3. handleDateSelect sets heatmap header date: `setHeatmapSelectedDate(dateString)`
+4. **NEW**: handleDateSelect explicitly calls `fetchHeatmapChartData` to load chart data
+5. Chart data is fetched from Angel One API for that specific date
+6. Chart renders with correct data for the selected date
 
 **Files Modified:**
-- `client/src/components/PersonalHeatmap.tsx` - Updated header structure (line 849-857)
+- `client/src/pages/home.tsx` - Added fetchHeatmapChartData call (line 9168)
 
 **Result:**
-✅ Personal heatmap header now matches demo heatmap design
-✅ Cleaner, more professional appearance
-✅ Consistent visual hierarchy across both heatmaps
-✅ Better user interface consistency
+✅ Personal heatmap header now shows correct date
+✅ Chart data loads correctly for the selected date
+✅ Chart display matches the header date
+✅ Behavior now consistent with demo heatmap
