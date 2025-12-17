@@ -16832,7 +16832,7 @@ ${
                                             setVisibleStats({...visibleStats, [field]: checked});
                                           };
                                           return (
-                                            <div className="flex gap-2 items-center justify-end">
+                                            <div className="flex flex-col gap-2">
                                               <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.pnl && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
                                                 <input type="checkbox" checked={visibleStats.pnl} onChange={(e) => handleCheckChange('pnl', e.target.checked)} disabled={!visibleStats.pnl && isAtLimit} className="rounded" />
                                                 P&L
@@ -16853,7 +16853,7 @@ ${
                                                 <input type="checkbox" checked={visibleStats.streak} onChange={(e) => handleCheckChange('streak', e.target.checked)} disabled={!visibleStats.streak && isAtLimit} className="rounded" />
                                                 Streak
                                               </label>
-                                              <div className="border-t border-slate-700 my-2"></div>
+                                              <div className="border-t border-slate-700 my-1"></div>
                                               <label className={`flex items-center gap-2 text-sm p-1.5 rounded ${!visibleStats.overtrading && isAtLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800/50'}`}>
                                                 <input type="checkbox" checked={visibleStats.overtrading} onChange={(e) => handleCheckChange('overtrading', e.target.checked)} disabled={!visibleStats.overtrading && isAtLimit} className="rounded" />
                                                 Overtrading
