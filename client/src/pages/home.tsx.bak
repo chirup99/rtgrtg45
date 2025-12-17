@@ -9164,6 +9164,8 @@ ${
             setHeatmapSelectedDate(dateString);
             console.log(`🗓️ [TRADE BOOK SELECT] Syncing heatmap header with date: ${dateString}, symbol: ${firstSymbol}`);
             // ✅ DO NOT set selectedJournalSymbol here - manual search chart is independent from heatmap
+            // ✅ FETCH CHART DATA: Load chart for this date and symbol from PersonalHeatmap
+            fetchHeatmapChartData(`NSE:${firstSymbol}-INDEX`, dateString);
           }
         }
 

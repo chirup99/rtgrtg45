@@ -16475,7 +16475,12 @@ ${
                               onClick={saveAllTradingData}
                               size="sm"
                               variant="outline"
-                              className="h-5 px-2 text-[10px] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700"
+                              disabled={isDemoMode}
+                              className={`h-5 px-2 text-[10px] border-gray-300 dark:border-gray-700 ${
+                                isDemoMode 
+                                  ? 'text-gray-400 dark:text-gray-500 opacity-50 cursor-not-allowed' 
+                                  : 'text-gray-600 dark:text-gray-400'
+                              }`}
                               data-testid="button-save-trade-book"
                             >
                               Save
