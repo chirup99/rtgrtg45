@@ -20377,7 +20377,17 @@ ${
                               className="border-t border-gray-100 dark:border-gray-800"
                               data-testid={`position-row-${position.symbol}`}
                             >
-                              <td className="px-2 py-1.5 font-medium">{position.symbol}</td>
+                              <td className="px-2 py-1.5 font-medium flex items-center gap-2">
+                                <span>{position.symbol}</span>
+                                <button
+                                  onClick={() => exitPaperPosition(position.id)}
+                                  className="h-5 w-5 text-red-500 hover:text-red-600 hover:opacity-80 transition-all"
+                                  data-testid="button-exit-desktop-position"
+                                  title="Exit position"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
                               <td className="px-2 py-1.5 text-center">
                                 <span className={`text-[10px] ${position.action === 'BUY' ? 'text-green-600' : 'text-red-600'}`}>
                                   {position.action}
