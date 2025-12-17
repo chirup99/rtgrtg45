@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, MoreVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, MoreVertical, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -120,6 +120,17 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
   const closeButtonRef = useRef<boolean>(false);
   const { toast } = useToast();
   const [refreshKey, setRefreshKey] = useState(0); // Add refresh trigger
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editableTitle, setEditableTitle] = useState("Personal Trading Calendar");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved title from localStorage on mount
+  useEffect(() => {
+    const savedTitle = localStorage.getItem('heatmapTitle');
+    if (savedTitle) {
+      setEditableTitle(savedTitle);
+    }
+  }, []);
 
   // FETCH ALL DATES FROM AWS DYNAMODB - SIMPLE AND DIRECT (Migrated Dec 3, 2025)
   useEffect(() => {
@@ -852,11 +863,43 @@ export function PersonalHeatmap({ userId, onDateSelect, selectedDate, onDataUpda
   return (
     <div className="flex flex-col gap-2 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 select-none overflow-visible">
       <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between gap-2">
-        <div>
-          Personal Trading Calendar {selectedRange 
-            ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
-            : currentDate.getFullYear()
-          }
+        <div className="flex items-center gap-1">
+          {isEditingTitle ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editableTitle}
+              onChange={(e) => setEditableTitle(e.target.value)}
+              onBlur={() => {
+                setIsEditingTitle(false);
+                localStorage.setItem('heatmapTitle', editableTitle);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setIsEditingTitle(false);
+                  localStorage.setItem('heatmapTitle', editableTitle);
+                }
+              }}
+              className="bg-transparent border-b border-gray-400 dark:border-gray-500 px-1 py-0.5 text-[10px] focus:outline-none text-gray-500 dark:text-gray-400"
+              autoFocus
+              data-testid="input-edit-title"
+            />
+          ) : (
+            <>
+              <span>{editableTitle} {selectedRange 
+                ? `${selectedRange.from.getFullYear()}${selectedRange.from.getFullYear() !== selectedRange.to.getFullYear() ? `-${selectedRange.to.getFullYear()}` : ''}`
+                : currentDate.getFullYear()
+              }</span>
+              <button
+                onClick={() => setIsEditingTitle(true)}
+                className="opacity-0 hover:opacity-100 transition-opacity ml-1"
+                data-testid="button-edit-title"
+                title="Edit title"
+              >
+                <Edit2 className="w-3 h-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+              </button>
+            </>
+          )}
         </div>
         <span className="text-[10px] text-gray-600 dark:text-gray-400">
           {isLoading ? "Loading..." : selectedRange 
