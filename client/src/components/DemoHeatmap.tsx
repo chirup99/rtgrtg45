@@ -127,10 +127,15 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
 
   // Fetch data OR use provided tradingDataByDate - SECURE for public view
   useEffect(() => {
-    // If external data is provided (public view), use it directly without fetching
-    if (tradingDataByDate) {
+    // ✅ DEMO MODE: Always fetch complete data from API, ignore parent data
+    // ✅ PUBLIC MODE: Use provided data if substantial (>10 dates), otherwise fetch
+    const externalDataCount = tradingDataByDate ? Object.keys(tradingDataByDate).length : 0;
+    const isPublicModeWithData = isPublicView && externalDataCount > 10;
+    
+    // In public view with substantial data, use it directly
+    if (isPublicModeWithData) {
       console.log("🔓 DemoHeatmap: Using provided tradingDataByDate (public/secure mode)");
-      console.log(`✅ DemoHeatmap: ${Object.keys(tradingDataByDate).length} dates provided externally`);
+      console.log(`✅ DemoHeatmap: ${externalDataCount} dates provided externally`);
       setHeatmapData(tradingDataByDate);
       setIsLoading(false);
       
@@ -141,8 +146,8 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
       return;
     }
     
-    // Otherwise, fetch from API (normal demo mode)
-    console.log(`🔥 DemoHeatmap: CLEARING old data and fetching FRESH AWS data... (refreshKey: ${refreshKey})`);
+    // In demo/personal mode: ALWAYS fetch complete data from API (ignore parent data)
+    console.log(`🔥 DemoHeatmap: AUTO-FETCHING COMPLETE AWS data... (refreshKey: ${refreshKey}${externalDataCount > 0 ? `, ignoring ${externalDataCount} partial parent dates` : ''})`);
     // ✅ CRITICAL FIX: Clear old data IMMEDIATELY before fetching to prevent stale cache display
     setHeatmapData({});
     setIsLoading(true);
@@ -151,7 +156,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
       .then(res => res.json())
       .then(data => {
         console.log("✅ DemoHeatmap: Raw AWS data received:", data);
-        console.log("✅ DemoHeatmap: Total dates:", Object.keys(data).length);
+        console.log("✅ DemoHeatmap: Total dates loaded:", Object.keys(data).length);
         
         // Process each date to calculate P&L
         const processedData: Record<string, any> = {};
@@ -166,7 +171,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
           }
         });
         
-        console.log("✅ DemoHeatmap: Processed data:", processedData);
+        console.log("✅ DemoHeatmap: Processed complete dataset with", Object.keys(processedData).length, "dates");
         setHeatmapData(processedData);
         setIsLoading(false);
         
@@ -179,7 +184,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
         console.error("❌ DemoHeatmap: Fetch error:", error);
         setIsLoading(false);
       });
-  }, [refreshKey, tradingDataByDate, refreshTrigger]); // Re-fetch when refreshKey, refreshTrigger, or tradingDataByDate changes
+  }, [refreshKey, refreshTrigger, isPublicView]); // Remove tradingDataByDate from deps to ignore parent updates in demo mode
 
   // Calculate badge positions dynamically when badges render
   useEffect(() => {
