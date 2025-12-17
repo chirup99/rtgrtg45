@@ -5265,6 +5265,23 @@ ${
   // Loading state for heatmap data
   const [isLoadingHeatmapData, setIsLoadingHeatmapData] = useState(false);
   
+
+  // ✅ CLEANUP: Remove stale localStorage data on startup to prevent state mismatches
+  // This ensures fresh data is always fetched from AWS DynamoDB
+  useEffect(() => {
+    console.log("🧹 Startup cleanup: Removing stale localStorage trading data caches...");
+    
+    // Remove stale personal trading data cache - forces fresh fetch from AWS
+    localStorage.removeItem("personalTradingDataByDate");
+    
+    // Remove stale calendar data cache
+    localStorage.removeItem("calendarData");
+    
+    // Remove stale heatmap data cache
+    localStorage.removeItem("heatmapDataCache");
+    
+    console.log("✅ Stale localStorage caches cleared - will fetch fresh data from AWS");
+  }, []); // Empty dependency array = runs once on mount
   // Loading state for date selection
   const [isDateLoading, setIsDateLoading] = useState(false);
 
