@@ -5927,6 +5927,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==========================================
+  // USER PAPER TRADING (AWS DynamoDB Storage)
+  // Each user has their own paper trading data
+  // ==========================================
+
+  // Get user's paper trading data
+  app.get('/api/paper-trading/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      console.log(`📊 Fetching paper trading data for user: ${userId}`);
+
+      // Verify authentication token using AWS Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      const { verifyCognitoToken } = await import('./cognito-auth');
+      const cognitoUser = await verifyCognitoToken(idToken);
+
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      // Verify the authenticated user matches the requested userId
+      if (cognitoUser.sub !== userId) {
+        console.warn(`⚠️ Paper Trading Auth mismatch: token sub=${cognitoUser.sub} vs requested userId=${userId}`);
+        return res.status(403).json({ error: 'Forbidden: Cannot access another user\'s paper trading data' });
+      }
+
+      const paperTradingData = await awsDynamoDBService.getPaperTradingData(userId);
+      
+      if (paperTradingData) {
+        console.log(`✅ Found paper trading data for user ${userId}`);
+        res.json({ success: true, data: paperTradingData });
+      } else {
+        // Return default values for new users
+        console.log(`ℹ️ No paper trading data found for user ${userId}, returning defaults`);
+        res.json({ 
+          success: true, 
+          data: {
+            capital: 1800000,
+            positions: [],
+            tradeHistory: [],
+            totalPnl: 0
+          },
+          isNew: true
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error fetching paper trading data:', error);
+      res.status(500).json({ error: 'Failed to fetch paper trading data' });
+    }
+  });
+
+  // Save user's paper trading data
+  app.post('/api/paper-trading/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { capital, positions, tradeHistory, totalPnl } = req.body;
+      console.log(`💾 Saving paper trading data for user: ${userId}`);
+
+      // Verify authentication token using AWS Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      const { verifyCognitoToken } = await import('./cognito-auth');
+      const cognitoUser = await verifyCognitoToken(idToken);
+
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      // Verify the authenticated user matches the requested userId
+      if (cognitoUser.sub !== userId) {
+        console.warn(`⚠️ Paper Trading Auth mismatch: token sub=${cognitoUser.sub} vs requested userId=${userId}`);
+        return res.status(403).json({ error: 'Forbidden: Cannot save to another user\'s paper trading data' });
+      }
+
+      const success = await awsDynamoDBService.savePaperTradingData(userId, {
+        capital: capital ?? 1800000,
+        positions: positions ?? [],
+        tradeHistory: tradeHistory ?? [],
+        totalPnl: totalPnl ?? 0
+      });
+
+      if (success) {
+        console.log(`✅ Paper trading data saved for user ${userId}`);
+        res.json({ success: true, message: 'Paper trading data saved' });
+      } else {
+        res.status(500).json({ error: 'Failed to save paper trading data to AWS DynamoDB' });
+      }
+    } catch (error) {
+      console.error('❌ Error saving paper trading data:', error);
+      res.status(500).json({ error: 'Failed to save paper trading data' });
+    }
+  });
+
+  // Reset user's paper trading data (delete and start fresh)
+  app.delete('/api/paper-trading/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      console.log(`🗑️ Resetting paper trading data for user: ${userId}`);
+
+      // Verify authentication token using AWS Cognito
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: Missing authentication token' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      const { verifyCognitoToken } = await import('./cognito-auth');
+      const cognitoUser = await verifyCognitoToken(idToken);
+
+      if (!cognitoUser) {
+        return res.status(401).json({ error: 'Invalid or expired authentication token' });
+      }
+
+      // Verify the authenticated user matches the requested userId
+      if (cognitoUser.sub !== userId) {
+        console.warn(`⚠️ Paper Trading Auth mismatch: token sub=${cognitoUser.sub} vs requested userId=${userId}`);
+        return res.status(403).json({ error: 'Forbidden: Cannot reset another user\'s paper trading data' });
+      }
+
+      const success = await awsDynamoDBService.deletePaperTradingData(userId);
+
+      if (success) {
+        console.log(`✅ Paper trading data reset for user ${userId}`);
+        res.json({ success: true, message: 'Paper trading data reset' });
+      } else {
+        res.status(500).json({ error: 'Failed to reset paper trading data' });
+      }
+    } catch (error) {
+      console.error('❌ Error resetting paper trading data:', error);
+      res.status(500).json({ error: 'Failed to reset paper trading data' });
+    }
+  });
+
   // Relocate user trading journal data from one date to another
   // ✅ AWS DynamoDB ONLY (Firebase removed Dec 3, 2025)
   app.post('/api/relocate-date', async (req, res) => {

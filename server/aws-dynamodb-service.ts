@@ -357,6 +357,98 @@ class AWSDynamoDBService {
       return false;
     }
   }
+
+  // ========================================
+  // USER-SPECIFIC PAPER TRADING METHODS
+  // Key format: paper_trading_{userId}
+  // ========================================
+
+  async savePaperTradingData(userId: string, data: {
+    capital: number;
+    positions: any[];
+    tradeHistory: any[];
+    totalPnl: number;
+  }): Promise<boolean> {
+    if (!this.isConnected()) {
+      console.error("❌ AWS DynamoDB not connected");
+      return false;
+    }
+
+    try {
+      const paperTradingKey = `paper_trading_${userId}`;
+      const command = new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          dateKey: paperTradingKey,
+          userId: userId,
+          data: data,
+          updatedAt: new Date().toISOString()
+        }
+      });
+
+      await this.docClient!.send(command);
+      console.log(`✅ AWS: Saved paper trading data for user ${userId}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ AWS: Failed to save paper trading data for user ${userId}:`, error);
+      return false;
+    }
+  }
+
+  async getPaperTradingData(userId: string): Promise<{
+    capital: number;
+    positions: any[];
+    tradeHistory: any[];
+    totalPnl: number;
+  } | null> {
+    if (!this.isConnected()) {
+      console.error("❌ AWS DynamoDB not connected");
+      return null;
+    }
+
+    try {
+      const paperTradingKey = `paper_trading_${userId}`;
+      const command = new GetCommand({
+        TableName: TABLE_NAME,
+        Key: { dateKey: paperTradingKey }
+      });
+
+      const response = await this.docClient!.send(command);
+
+      if (response.Item) {
+        console.log(`✅ AWS: Retrieved paper trading data for user ${userId}`);
+        return response.Item.data;
+      }
+
+      console.log(`⚠️ AWS: No paper trading data found for user ${userId}`);
+      return null;
+    } catch (error) {
+      console.error(`❌ AWS: Failed to get paper trading data for user ${userId}:`, error);
+      return null;
+    }
+  }
+
+  async deletePaperTradingData(userId: string): Promise<boolean> {
+    if (!this.isConnected()) {
+      console.error("❌ AWS DynamoDB not connected");
+      return false;
+    }
+
+    try {
+      const paperTradingKey = `paper_trading_${userId}`;
+      const command = new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: { dateKey: paperTradingKey }
+      });
+
+      await this.docClient!.send(command);
+      console.log(`✅ AWS: Deleted paper trading data for user ${userId}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ AWS: Failed to delete paper trading data for user ${userId}:`, error);
+      return false;
+    }
+  }
 }
 
 export const awsDynamoDBService = new AWSDynamoDBService();

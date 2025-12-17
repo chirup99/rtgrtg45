@@ -4188,6 +4188,128 @@ ${
     return [];
   });
   
+  // AWS Paper Trading Sync State
+  const [paperTradingAwsLoaded, setPaperTradingAwsLoaded] = useState(false);
+  const [paperTradingAwsSaving, setPaperTradingAwsSaving] = useState(false);
+  const paperTradingSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Load paper trading data from AWS when user is authenticated
+  const loadPaperTradingFromAWS = useCallback(async () => {
+    const userId = localStorage.getItem('currentUserId');
+    if (!userId || userId === 'null') return;
+    
+    try {
+      const idToken = await getCognitoToken();
+      if (!idToken) {
+        console.log('⚠️ No Cognito token for paper trading AWS load');
+        return;
+      }
+      
+      console.log('📊 Loading paper trading data from AWS for user:', userId);
+      const response = await fetch(`/api/paper-trading/${userId}`, {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          console.log('✅ Loaded paper trading data from AWS:', result.isNew ? '(new user, defaults)' : '');
+          setPaperTradingCapital(result.data.capital || 1800000);
+          setPaperPositions(result.data.positions || []);
+          setPaperTradeHistory(result.data.tradeHistory || []);
+          // Also update localStorage for offline access
+          localStorage.setItem("paperTradingCapital", String(result.data.capital || 1800000));
+          localStorage.setItem("paperPositions", JSON.stringify(result.data.positions || []));
+          localStorage.setItem("paperTradeHistory", JSON.stringify(result.data.tradeHistory || []));
+        }
+        setPaperTradingAwsLoaded(true);
+      } else {
+        console.warn('⚠️ Failed to load paper trading data from AWS:', response.status);
+        setPaperTradingAwsLoaded(true); // Mark as loaded even on error to prevent retries
+      }
+    } catch (error) {
+      console.error('❌ Error loading paper trading from AWS:', error);
+      setPaperTradingAwsLoaded(true); // Mark as loaded even on error to prevent retries
+    }
+  }, []);
+  
+  // Save paper trading data to AWS (debounced)
+  const savePaperTradingToAWS = useCallback(async (
+    capital: number, 
+    positions: PaperPosition[], 
+    tradeHistory: PaperTrade[]
+  ) => {
+    const userId = localStorage.getItem('currentUserId');
+    if (!userId || userId === 'null') return;
+    
+    try {
+      const idToken = await getCognitoToken();
+      if (!idToken) {
+        console.log('⚠️ No Cognito token for paper trading AWS save');
+        return;
+      }
+      
+      setPaperTradingAwsSaving(true);
+      const totalPnl = positions.reduce((total, p) => total + (p.pnl || 0), 0);
+      
+      const response = await fetch(`/api/paper-trading/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          capital,
+          positions,
+          tradeHistory,
+          totalPnl
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Paper trading data saved to AWS');
+      } else {
+        console.warn('⚠️ Failed to save paper trading data to AWS:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error saving paper trading to AWS:', error);
+    } finally {
+      setPaperTradingAwsSaving(false);
+    }
+  }, []);
+  
+  // Debounced save to AWS when paper trading data changes
+  useEffect(() => {
+    if (!paperTradingAwsLoaded) return; // Don't save until we've loaded from AWS
+    
+    const userId = localStorage.getItem('currentUserId');
+    if (!userId || userId === 'null') return;
+    
+    // Clear any pending save
+    if (paperTradingSaveTimeoutRef.current) {
+      clearTimeout(paperTradingSaveTimeoutRef.current);
+    }
+    
+    // Debounce save by 2 seconds to avoid too many API calls
+    paperTradingSaveTimeoutRef.current = setTimeout(() => {
+      savePaperTradingToAWS(paperTradingCapital, paperPositions, paperTradeHistory);
+    }, 2000);
+    
+    return () => {
+      if (paperTradingSaveTimeoutRef.current) {
+        clearTimeout(paperTradingSaveTimeoutRef.current);
+      }
+    };
+  }, [paperTradingCapital, paperPositions, paperTradeHistory, paperTradingAwsLoaded, savePaperTradingToAWS]);
+  
+  // Load paper trading data from AWS when user is authenticated
+  useEffect(() => {
+    const userId = localStorage.getItem('currentUserId');
+    if (userId && userId !== 'null' && authInitialized && !isViewOnlyMode && !paperTradingAwsLoaded) {
+      loadPaperTradingFromAWS();
+    }
+  }, [authInitialized, isViewOnlyMode, paperTradingAwsLoaded, loadPaperTradingFromAWS]);
+  
   // Paper trading form state
   const [paperTradeSymbol, setPaperTradeSymbol] = useState("");
   const [paperTradeSymbolSearch, setPaperTradeSymbolSearch] = useState("");
@@ -4758,7 +4880,7 @@ ${
   };
   
   // Reset paper trading account
-  const resetPaperTradingAccount = () => {
+  const resetPaperTradingAccount = async () => {
     setPaperTradingCapital(1800000);
     setPaperPositions([]);
     setPaperTradeHistory([]);
@@ -4769,6 +4891,24 @@ ${
     localStorage.setItem("paperTradingCapital", "1800000");
     localStorage.setItem("paperPositions", "[]");
     localStorage.setItem("paperTradeHistory", "[]");
+    // Reset AWS data
+    setPaperTradingAwsLoaded(false);
+    const userId = localStorage.getItem('currentUserId');
+    if (userId && userId !== 'null') {
+      try {
+        const idToken = await getCognitoToken();
+        if (idToken) {
+          await fetch(`/api/paper-trading/${userId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+          console.log('✅ Paper trading AWS data reset');
+        }
+      } catch (error) {
+        console.error('❌ Error resetting AWS paper trading data:', error);
+      }
+      setPaperTradingAwsLoaded(true);
+    }
     toast({
       title: "Account Reset",
       description: "Paper trading account reset to ₹18,00,000"
