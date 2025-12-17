@@ -13,6 +13,16 @@ import {
   confirmUserAttribute
 } from 'aws-amplify/auth';
 
+async function exchangeCodeForSession(): Promise<boolean> {
+  try {
+    const session = await fetchAuthSession({ forceRefresh: true });
+    return !!session.tokens?.idToken;
+  } catch (error) {
+    console.error('Failed to exchange code for session:', error);
+    return false;
+  }
+}
+
 // Dynamically determine redirect URLs based on current origin
 // This ensures OAuth works from both dev domain and production domain
 const getRedirectUrl = () => {
@@ -166,11 +176,25 @@ export async function handleCognitoCallback(): Promise<{ userId: string; email: 
   initializeCognito();
   
   try {
-    const session = await fetchAuthSession();
+    console.log('🔐 [OAuth] Processing Google OAuth callback...');
+    
+    // First, exchange the authorization code for tokens
+    // This is critical for completing the OAuth flow with AWS Amplify v6+
+    const exchangeSuccess = await exchangeCodeForSession();
+    
+    if (!exchangeSuccess) {
+      console.log('⚠️ [OAuth] Code exchange did not yield tokens, trying direct session fetch...');
+    }
+    
+    // Now fetch the session - this should have the tokens after code exchange
+    const session = await fetchAuthSession({ forceRefresh: true });
     
     if (session.tokens?.idToken) {
+      console.log('✅ [OAuth] Session tokens obtained successfully');
       const attributes = await fetchUserAttributes();
       const userId = session.tokens.idToken.payload.sub as string;
+      
+      console.log('✅ [OAuth] User authenticated:', { userId, email: attributes.email });
       
       return {
         userId,
@@ -179,9 +203,10 @@ export async function handleCognitoCallback(): Promise<{ userId: string; email: 
       };
     }
     
+    console.log('❌ [OAuth] No tokens in session after code exchange');
     return null;
   } catch (error) {
-    console.error('Error handling Cognito callback:', error);
+    console.error('❌ [OAuth] Error handling Cognito callback:', error);
     return null;
   }
 }

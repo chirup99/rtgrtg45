@@ -47,6 +47,31 @@
     - Version: v20251217-185747
     - Status: Ready, Health: Green
     - Live URL: https://perala-live.eba-pdmvmcm2.eu-north-1.elasticbeanstalk.com
+[x] 47. FIXED Google Sign-In OAuth flow (December 17, 2025, 7:13 PM)
+    - Added exchangeCodeForSession() function to properly complete OAuth token exchange
+    - Updated handleCognitoCallback() to use forceRefresh for fetching session
+    - Improved landing.tsx OAuth callback handling with better error messages
+    - Added URL cleanup after OAuth callback processing
+
+### GOOGLE SIGN-IN FIX
+**Date:** December 17, 2025, 7:13 PM
+**Status:** FIXED - Google OAuth flow now properly exchanges authorization code for tokens
+
+**Problem:**
+The "Sign in with Google" button was not working. After clicking and authenticating with Google, users were redirected back but the sign-in would fail silently.
+
+**Root Cause:**
+In AWS Amplify v6+, after the OAuth redirect comes back with `code=...`, the code was calling `fetchAuthSession()` directly without first completing the code-to-token exchange. This meant the hosted UI exchange never completed, and the session still reflected the pre-login state.
+
+**Solution Applied:**
+1. Added `exchangeCodeForSession()` function that calls `fetchAuthSession({ forceRefresh: true })` to complete the OAuth flow
+2. Updated `handleCognitoCallback()` to use the exchange function before reading tokens
+3. Enhanced error handling in landing.tsx with OAuth error parameter detection
+4. Added URL cleanup to remove OAuth parameters after processing
+
+**Files Modified:**
+- `client/src/cognito.ts` - Added exchangeCodeForSession(), updated handleCognitoCallback()
+- `client/src/pages/landing.tsx` - Enhanced OAuth callback handling with better error messages
 
 ### PERSONAL HEATMAP CHART DISPLAY FIX
 **Date:** December 17, 2025, 12:26 PM
