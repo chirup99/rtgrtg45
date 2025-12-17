@@ -17141,7 +17141,7 @@ ${
                                   {selectedDateRange ? 'Range' : 'Total'} P&L
                                 </div>
                                 <div className="text-2xl md:text-3xl font-bold">
-                                  {totalPnL >= 0 ? "+" : "-"}₹
+                                  {totalPnL >= 0 ? "" : "-"}₹
                                   {Math.abs(totalPnL).toLocaleString("en-IN")}
                                 </div>
                               </div>
