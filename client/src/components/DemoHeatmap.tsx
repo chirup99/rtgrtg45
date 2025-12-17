@@ -576,16 +576,37 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
     for (let year = startYear; year <= endYear; year++) {
       for (let monthIndex = startMonth; monthIndex <= endMonth; monthIndex++) {
         const monthName = new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'short' });
+        const firstDay = new Date(year, monthIndex, 1);
         const lastDay = new Date(year, monthIndex + 1, 0);
+        const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
         
-        // Create 7 columns (one for each day of week: S, M, T, W, TH, F, S)
-        const dayRows: (Date | null)[][] = [[], [], [], [], [], [], []];
+        // Create week-based rows (standard calendar layout)
+        const dayRows: (Date | null)[][] = [];
+        let currentWeek: (Date | null)[] = [];
         
-        // Fill each column with dates for that day of week
+        // Add empty cells for days before month starts
+        for (let i = 0; i < firstDayOfWeek; i++) {
+          currentWeek.push(null);
+        }
+        
+        // Add all dates for the month
         for (let day = 1; day <= lastDay.getDate(); day++) {
           const date = new Date(year, monthIndex, day);
-          const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-          dayRows[dayOfWeek].push(date);
+          currentWeek.push(date);
+          
+          // When week is complete (7 days), push it and start new week
+          if (currentWeek.length === 7) {
+            dayRows.push(currentWeek);
+            currentWeek = [];
+          }
+        }
+        
+        // Complete the last week with empty cells if needed
+        if (currentWeek.length > 0) {
+          while (currentWeek.length < 7) {
+            currentWeek.push(null);
+          }
+          dayRows.push(currentWeek);
         }
         
         months.push({ name: monthName, year, dayRows });
@@ -1183,7 +1204,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                   {month.name}
                 </div>
                 <div className="flex gap-1">
-                  <div className="flex gap-0.5 select-none">
+                  <div className="flex flex-col gap-0.5 select-none">
                     {dayLabels.map((label, index) => (
                       <div
                         key={index}
@@ -1193,11 +1214,11 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-0.5 min-w-fit select-none">
-                    {month.dayRows.map((dayColumn, dayIndex) => (
-                      <div key={dayIndex} className="flex flex-col gap-0.5 select-none">
-                        {dayColumn.map((date, rowIndex) => {
-                          if (!date) return <div key={rowIndex} className="w-3 h-3" />;
+                  <div className="flex flex-col gap-0.5 min-w-fit select-none">
+                    {month.dayRows.map((week, weekIndex) => (
+                      <div key={weekIndex} className="flex gap-0.5 select-none">
+                        {week.map((date, dayIndex) => {
+                          if (!date) return <div key={dayIndex} className="w-3 h-3" />;
                           
                           // Format date key YYYY-MM-DD
                           const year = date.getFullYear();
@@ -1239,7 +1260,7 @@ export function DemoHeatmap({ onDateSelect, selectedDate, onDataUpdate, onRangeC
 
                           return (
                             <div
-                              key={rowIndex}
+                              key={dayIndex}
                               className={`w-3 h-3 rounded-sm cursor-pointer transition-all relative ${cellColor} ${
                                 isHighlighted ? 'ring-2 ring-yellow-400 dark:ring-yellow-300 animate-pulse shadow-lg shadow-yellow-400/50' : ''
                               }`}
