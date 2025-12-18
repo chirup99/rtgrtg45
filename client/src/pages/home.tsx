@@ -14357,16 +14357,12 @@ ${
                                           </Button>
                                         </div>
                                       </div>
-                                          </div>
-                                        </div>
-                                      </div>
                                     ) : (
-                                      searchResults
+                                      <>{searchResults}</>
                                     )}
                                   </div>
                                 </div>
                               </div>
-                            </div>
                           )}
                         </div>
                         {/* Trading Tools Grid - Desktop: 4 columns centered, Mobile: 3 horizontal cards + swipeable below */}
