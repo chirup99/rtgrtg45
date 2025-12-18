@@ -21433,7 +21433,7 @@ ${
                   }`}
                   data-testid="mobile-tab-paper-trade"
                 >
-                  <Banknote className={`h-5 w-5 ${mobileBottomTab === "paper-trade" ? "fill-current" : ""}`} />
+                  <TrendingUp className={`h-5 w-5 ${mobileBottomTab === "paper-trade" ? "fill-current" : ""}`} />
                 </button>
 
                 {/* Ranking Tab */}
