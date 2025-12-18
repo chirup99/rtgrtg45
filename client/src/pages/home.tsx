@@ -1962,6 +1962,7 @@ export default function Home() {
   };
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [showTradingChallenge, setShowTradingChallenge] = useState(false);
   const [searchResults, setSearchResults] = useState("");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [searchResultsNews, setSearchResultsNews] = useState<any[]>([]);
@@ -14068,19 +14069,15 @@ ${
                                   <span>Market News</span>
                                 </div>
                               </Button>
-
                               <Button
                                 variant="secondary"
-                                className="bg-orange-600 hover:bg-orange-700 text-white border-0 h-7 px-3 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0"
-                                onClick={() =>
-                                  handleSuggestionClick(
-                                    "Analyze fundamentals for top stocks - P/E ratio, market cap, growth metrics",
-                                  )
-                                }
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white border-0 h-7 px-3 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0"
+                                onClick={() => setShowTradingChallenge(true)}
+                                data-testid="button-quick-trade-challenge"
                               >
                                 <div className="flex items-center gap-1.5">
-                                  <BarChart3 className="h-3 w-3" />
-                                  <span>Fundamentals</span>
+                                  <Trophy className="h-3 w-3" />
+                                  <span>Trade Challenge</span>
                                 </div>
                               </Button>
 
@@ -14304,6 +14301,86 @@ ${
                           )}
                         </div>
                         {/* Trading Tools Grid - Desktop: 4 columns centered, Mobile: 3 horizontal cards + swipeable below */}
+
+                        {/* Trade Challenge Coming Soon Modal */}
+                        {showTradingChallenge && (
+                          <div className="md:hidden fixed inset-x-0 top-0 bottom-0 bg-gray-900/95 backdrop-blur-sm z-[70] overflow-y-auto flex items-center justify-center">
+                            <div className="bg-gray-800 rounded-2xl p-6 m-4 max-w-sm w-full">
+                              {/* Close Button */}
+                              <div className="flex justify-end mb-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setShowTradingChallenge(false)}
+                                  className="text-gray-400 hover:text-gray-200 h-6 w-6 p-0"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              
+                              {/* Trophy Icon */}
+                              <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center">
+                                  <Trophy className="h-8 w-8 text-white" />
+                                </div>
+                              </div>
+
+                              {/* Title and Subtitle */}
+                              <h2 className="text-xl font-bold text-white text-center mb-1">Trading Challenge</h2>
+                              <p className="text-gray-400 text-sm text-center mb-6">Coming Soon</p>
+
+                              {/* Feature Cards */}
+                              <div className="space-y-3">
+                                {/* Compete with Traders */}
+                                <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex items-center justify-center h-6 w-6 bg-blue-500/30 rounded flex-shrink-0">
+                                      <Users className="h-4 w-4 text-blue-400" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-sm font-medium text-white">Compete with Traders</h3>
+                                      <p className="text-xs text-gray-400 mt-0.5">Join 7-day trading challenges</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Live P&L Tracking */}
+                                <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex items-center justify-center h-6 w-6 bg-green-500/30 rounded flex-shrink-0">
+                                      <BarChart3 className="h-4 w-4 text-green-400" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-sm font-medium text-white">Live P&L Tracking</h3>
+                                      <p className="text-xs text-gray-400 mt-0.5">Real-time ranking based on your trades</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Leaderboard Rankings */}
+                                <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex items-center justify-center h-6 w-6 bg-yellow-500/30 rounded flex-shrink-0">
+                                      <Trophy className="h-4 w-4 text-yellow-400" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-sm font-medium text-white">Leaderboard Rankings</h3>
+                                      <p className="text-xs text-gray-400 mt-0.5">See your position among all participants</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Notify Me Button */}
+                              <Button
+                                className="w-full mt-6 bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
+                                onClick={() => setShowTradingChallenge(false)}
+                              >
+                                Notify Me When Live
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         {!searchResults && (
                         <div className="mx-auto max-w-6xl hidden md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-4 md:px-6 md:items-center">
                           {/* Social Feed Card */}
