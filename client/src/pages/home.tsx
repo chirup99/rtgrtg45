@@ -14068,7 +14068,10 @@ ${
                               <Button
                                 variant="secondary"
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white border-0 h-7 px-3 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0"
-                                onClick={() => setShowTradingChallenge(true)}
+                                onClick={() => {
+                                  setSearchResults("[CHALLENGE:COMING_SOON]");
+                                  setIsSearchActive(true);
+                                }}
                                 data-testid="button-quick-trade-challenge"
                               >
                                 <div className="flex items-center gap-1.5">
@@ -14284,6 +14287,76 @@ ${
                                                 <p className="text-xs">No news available</p>
                                               </div>
                                             )}
+                                    ) : searchResults.includes("[CHALLENGE:COMING_SOON]") ? (
+                                      // Trade Challenge Coming Soon
+                                      <div className="flex flex-col items-center justify-center py-12 space-y-6">
+                                        {/* Trophy Icon */}
+                                        <div className="flex justify-center">
+                                          <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center">
+                                            <Trophy className="h-10 w-10 text-white" />
+                                          </div>
+                                        </div>
+
+                                        {/* Title and Subtitle */}
+                                        <div className="text-center">
+                                          <h2 className="text-2xl font-bold text-white mb-2">Trading Challenge</h2>
+                                          <p className="text-gray-400 text-sm">Coming Soon</p>
+                                        </div>
+
+                                        {/* Feature Cards */}
+                                        <div className="w-full space-y-3 px-2">
+                                          {/* Compete with Traders */}
+                                          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                                            <div className="flex items-start gap-3">
+                                              <div className="flex items-center justify-center h-8 w-8 bg-blue-500/30 rounded flex-shrink-0">
+                                                <Users className="h-5 w-5 text-blue-400" />
+                                              </div>
+                                              <div>
+                                                <h3 className="text-sm font-medium text-white">Compete with Traders</h3>
+                                                <p className="text-xs text-gray-400 mt-0.5">Join 7-day trading challenges</p>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Live P&L Tracking */}
+                                          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                                            <div className="flex items-start gap-3">
+                                              <div className="flex items-center justify-center h-8 w-8 bg-green-500/30 rounded flex-shrink-0">
+                                                <BarChart3 className="h-5 w-5 text-green-400" />
+                                              </div>
+                                              <div>
+                                                <h3 className="text-sm font-medium text-white">Live P&L Tracking</h3>
+                                                <p className="text-xs text-gray-400 mt-0.5">Real-time ranking based on your trades</p>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Leaderboard Rankings */}
+                                          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                                            <div className="flex items-start gap-3">
+                                              <div className="flex items-center justify-center h-8 w-8 bg-yellow-500/30 rounded flex-shrink-0">
+                                                <Trophy className="h-5 w-5 text-yellow-400" />
+                                              </div>
+                                              <div>
+                                                <h3 className="text-sm font-medium text-white">Leaderboard Rankings</h3>
+                                                <p className="text-xs text-gray-400 mt-0.5">See your position among all participants</p>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Notify Me Button */}
+                                          <Button
+                                            className="w-full mt-4 bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
+                                            onClick={() => {
+                                              setSearchQuery("");
+                                              setIsSearchActive(false);
+                                              setSearchResults("");
+                                            }}
+                                          >
+                                            Notify Me When Live
+                                          </Button>
+                                        </div>
+                                      </div>
                                           </div>
                                         </div>
                                       </div>
