@@ -16667,7 +16667,7 @@ ${
                     {/* Trade Book - Right Side (Functional Calendar) */}
                     <div className="relative">
                     <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <CardContent className="px-0.5 md:px-4 pt-1 pb-20 md:pb-4 md:py-4">
+                      <CardContent className="p-6 px-0.5 md:px-4 md:py-4 pt-[10px] pb-[10px]">
                         <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between gap-2">
                           <div>Trade Book</div>
                           <div className="flex items-center gap-1">
@@ -16873,7 +16873,7 @@ ${
                         </div>
 
                         {/* Quick Stats Banner */}
-                        <div className="mt-2 bg-gradient-to-r from-violet-500 to-purple-600 rounded-md px-2 py-1.5 relative" data-testid="banner-quick-stats">
+                        <div className="mt-2 mb-20 md:mb-2 bg-gradient-to-r from-violet-500 to-purple-600 rounded-md px-2 py-1.5 relative" data-testid="banner-quick-stats">
                           {(() => {
                             // Calculate metrics from heatmap data and build tag-to-dates mapping
                             const filteredData = getFilteredHeatmapData();
