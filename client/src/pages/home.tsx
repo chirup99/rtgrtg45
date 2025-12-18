@@ -16516,7 +16516,7 @@ ${
                               variant="ghost"
                               size="sm"
                               onClick={() => setShowPaperTradingModal(true)}
-                              className="h-7 px-2 text-xs hidden md:block"
+                              className="h-7 px-2 text-xs hidden md:flex items-center gap-1"
                               data-testid="button-paper-trade"
                             >
                               <TrendingUp className="h-4 w-4 mr-1" />
