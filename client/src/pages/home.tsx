@@ -13937,19 +13937,15 @@ ${
                           <span>IPO Updates</span>
                         </div>
                       </Button> */}
-
                         <Button
                           variant="secondary"
-                          className="bg-orange-600 hover:bg-orange-700  text-white border-0 h-7 px-2 rounded-full text-xs font-medium transition-all duration-200"
-                          onClick={() =>
-                            handleSuggestionClick(
-                              "Analyze fundamentals for top stocks - P/E ratio, market cap, growth metrics",
-                            )
-                          }
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white border-0 h-7 px-2 rounded-full text-xs font-medium transition-all duration-200"
+                          onClick={() => setShowTradingChallenge(true)}
+                          data-testid="button-quick-trade-challenge"
                         >
                           <div className="flex items-center gap-2">
-                            <BarChart3 className="h-3 w-3" />
-                            <span>Fundamentals</span>
+                            <Trophy className="h-3 w-3" />
+                            <span>Trade Challenge</span>
                           </div>
                         </Button>
                       </div>
