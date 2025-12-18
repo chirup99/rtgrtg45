@@ -16502,7 +16502,7 @@ ${
                           <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                             Trade History
                           </h3>
-                          <div className="flex gap-1.5">
+                          <div className="flex gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
